@@ -1,0 +1,713 @@
+using Merkato.Application.DTOs;
+using Merkato.Application.Interfaces;
+using Merkato.Domain.Enums;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
+
+namespace Merkato.Api.Controllers;
+
+// ================================================================
+// DELIVERIES CONTROLLER
+// ================================================================
+
+[ApiController]
+[Route("api/[controller]")]
+public class DeliveriesController : ControllerBase
+{
+    private readonly IDeliveryService _deliveryService;
+
+    public DeliveriesController(
+        IDeliveryService deliveryService)
+    {
+        _deliveryService = deliveryService;
+    }
+
+    // ============================================================
+    // CREATE DELIVERY
+    // BUYER / MERCHANT / ADMIN
+    // ============================================================
+
+    [HttpPost]
+    [Authorize(Roles = "BUYER,MERCHANT,ADMIN")]
+    public async Task<IActionResult> CreateDelivery(
+        [FromBody] CreateDeliveryDto dto)
+    {
+        var delivery =
+            await _deliveryService.CreateDeliveryAsync(
+                dto.OrderId,
+                dto.CourierType,
+                dto.FeeEtb,
+                dto.RawOtp);
+
+        return Ok(new
+        {
+            deliveryId = delivery.DeliveryId,
+            orderId = delivery.OrderId,
+            status = delivery.Status.ToString(),
+            courierType = delivery.CourierType,
+            feeEtb = delivery.FeeEtb,
+            createdAt = delivery.CreatedAt
+        });
+    }
+
+    // ============================================================
+    // UPDATE DELIVERY STATUS
+    // ONLY COURIER / ADMIN
+    // ============================================================
+
+    [HttpPost("{id}/status")]
+    [Authorize(Roles = "COURIER,ADMIN")]
+    public async Task<IActionResult> UpdateStatus(
+        string id,
+        [FromBody] DeliveryStatus nextStatus)
+    {
+        var delivery =
+            await _deliveryService.UpdateDeliveryStatusAsync(
+                id,
+                nextStatus);
+
+        return Ok(new
+        {
+            deliveryId = delivery.DeliveryId,
+            orderId = delivery.OrderId,
+            status = delivery.Status.ToString(),
+            courierType = delivery.CourierType,
+            feeEtb = delivery.FeeEtb,
+            dispatchedAt = delivery.DispatchedAt,
+            deliveredAt = delivery.DeliveredAt
+        });
+    }
+
+    // ============================================================
+    // VERIFY DELIVERY OTP
+    // AUTHENTICATED USER
+    // ============================================================
+
+    [HttpPost("{id}/verify-otp")]
+    [Authorize]
+    public async Task<IActionResult> VerifyOtp(
+        string id,
+        [FromBody] VerifyOtpDto dto)
+    {
+        if (!string.Equals(
+                id,
+                dto.DeliveryId,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return BadRequest(new
+            {
+                message =
+                    "DeliveryId in URL and request body must match."
+            });
+        }
+
+        var userIdClaim =
+            User.FindFirstValue(
+                ClaimTypes.NameIdentifier);
+
+        if (!long.TryParse(
+                userIdClaim,
+                out var requesterId))
+        {
+            return Unauthorized(new
+            {
+                message = "Invalid authenticated user."
+            });
+        }
+
+        var delivery =
+            await _deliveryService
+                .VerifyOtpAndCompleteHandoverAsync(
+                    id,
+                    requesterId,
+                    dto.OtpCode);
+
+        return Ok(new
+        {
+            deliveryId = delivery.DeliveryId,
+            orderId = delivery.OrderId,
+            status = delivery.Status.ToString(),
+            deliveredAt = delivery.DeliveredAt
+        });
+    }
+}
+
+
+// ================================================================
+// INSPECTIONS CONTROLLER
+// ================================================================
+
+[ApiController]
+[Route("api/[controller]")]
+public class InspectionsController : ControllerBase
+{
+    private readonly IInspectionService _inspectionService;
+
+    public InspectionsController(
+        IInspectionService inspectionService)
+    {
+        _inspectionService = inspectionService;
+    }
+
+    // ============================================================
+    // BUYER ACCEPTS INSPECTION
+    // ============================================================
+
+    [HttpPost("{orderId}/accept")]
+    [Authorize(Roles = "BUYER,ADMIN")]
+    public async Task<IActionResult> AcceptInspection(
+        long orderId)
+    {
+        var userIdClaim =
+            User.FindFirstValue(
+                ClaimTypes.NameIdentifier);
+
+        if (!long.TryParse(
+                userIdClaim,
+                out var buyerId))
+        {
+            return Unauthorized(new
+            {
+                message = "Invalid authenticated user."
+            });
+        }
+
+        var inspection =
+            await _inspectionService
+                .AcceptInspectionAsync(
+                    orderId,
+                    buyerId);
+
+        return Ok(new
+        {
+            id = inspection.Id,
+            orderId = inspection.OrderId,
+            status = inspection.Status.ToString(),
+            startedAt = inspection.StartedAt,
+            expiresAt = inspection.ExpiresAt,
+            completedAt = inspection.CompletedAt
+        });
+    }
+}
+
+
+// ================================================================
+// DISPUTES CONTROLLER
+// ================================================================
+
+[ApiController]
+[Route("api/[controller]")]
+public class DisputesController : ControllerBase
+{
+    private readonly Merkato.Infrastructure.Persistence.MerkatoDbContext _db;
+    private readonly IEscrowService _escrow;
+
+    public DisputesController(
+        Merkato.Infrastructure.Persistence.MerkatoDbContext db,
+        IEscrowService escrow)
+    {
+        _db = db;
+        _escrow = escrow;
+    }
+
+    // ============================================================
+    // FILE DISPUTE
+    // BUYER ONLY
+    // ============================================================
+
+    [HttpPost("{orderId}")]
+    [Authorize(Roles = "BUYER")]
+    public async Task<IActionResult> FileDispute(
+        long orderId,
+        [FromBody] FileDisputeRequest request,
+        CancellationToken ct)
+    {
+        if (request == null)
+        {
+            return BadRequest(new
+            {
+                message = "Request body is required."
+            });
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Reason))
+        {
+            return BadRequest(new
+            {
+                message = "Dispute reason is required."
+            });
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Description))
+        {
+            return BadRequest(new
+            {
+                message = "Dispute description is required."
+            });
+        }
+
+        var userIdClaim =
+            User.FindFirstValue(
+                ClaimTypes.NameIdentifier);
+
+        if (!long.TryParse(
+                userIdClaim,
+                out var buyerId))
+        {
+            return Unauthorized(new
+            {
+                message = "Invalid authenticated user."
+            });
+        }
+
+        var order =
+            await _db.Orders
+                .FindAsync(
+                    new object[] { orderId },
+                    ct);
+
+        if (order == null)
+        {
+            return NotFound(new
+            {
+                message =
+                    $"Order {orderId} not found."
+            });
+        }
+
+        // Buyer must own the order.
+        if (order.BuyerId != buyerId)
+        {
+            return Forbid();
+        }
+
+        // Only escrow-protected orders can be disputed.
+        if (order.EscrowState != EscrowState.HELD &&
+            order.EscrowState != EscrowState.INSPECTION_ACTIVE)
+        {
+            return Conflict(new
+            {
+                message =
+                    $"Order cannot be disputed from escrow state {order.EscrowState}."
+            });
+        }
+
+        // Prevent duplicate open dispute.
+        var existing =
+            await _db.Disputes
+                .AnyAsync(
+                    d =>
+                        d.OrderId == orderId &&
+                        (
+                            d.Status == DisputeStatus.OPEN ||
+                            d.Status == DisputeStatus.UNDER_REVIEW
+                        ),
+                    ct);
+
+        if (existing)
+        {
+            return Conflict(new
+            {
+                message =
+                    "An active dispute already exists for this order."
+            });
+        }
+
+        // Create dispute.
+        var dispute = new Merkato.Domain.Entities.Dispute
+        {
+            OrderId = order.Id,
+            BuyerId = order.BuyerId,
+            SellerId = order.SellerId,
+            Reason = request.Reason.Trim(),
+            Description = request.Description.Trim(),
+            Status = DisputeStatus.OPEN,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _db.Disputes.Add(dispute);
+
+        await _db.SaveChangesAsync(ct);
+
+        // Move escrow to DISPUTED.
+        await _escrow.FileDisputeAsync(
+            orderId,
+            buyerId,
+            request.Reason,
+            ct);
+
+        return Ok(new
+        {
+            id = dispute.Id,
+            orderId = dispute.OrderId,
+            buyerId = dispute.BuyerId,
+            sellerId = dispute.SellerId,
+            reason = dispute.Reason,
+            description = dispute.Description,
+            status = dispute.Status.ToString(),
+            createdAt = dispute.CreatedAt
+        });
+    }
+
+
+    // ============================================================
+    // GET SINGLE DISPUTE
+    // BUYER / MERCHANT / ARBITER / ADMIN
+    // ============================================================
+
+    [HttpGet("{id}")]
+    [Authorize(Roles = "BUYER,MERCHANT,ARBITER,ADMIN")]
+    public async Task<IActionResult> GetDispute(
+        long id,
+        CancellationToken ct)
+    {
+        var dispute =
+            await _db.Disputes
+                .FirstOrDefaultAsync(
+                    d => d.Id == id,
+                    ct);
+
+        if (dispute == null)
+        {
+            return NotFound(new
+            {
+                message =
+                    $"Dispute {id} not found."
+            });
+        }
+
+        var userIdClaim =
+            User.FindFirstValue(
+                ClaimTypes.NameIdentifier);
+
+        long.TryParse(
+            userIdClaim,
+            out var userId);
+
+        var role =
+            User.FindFirstValue(
+                ClaimTypes.Role);
+
+        // Buyer/Merchant may only see their own dispute.
+        if (role == "BUYER" &&
+            dispute.BuyerId != userId)
+        {
+            return Forbid();
+        }
+
+        if (role == "MERCHANT" &&
+            dispute.SellerId != userId)
+        {
+            return Forbid();
+        }
+
+        return Ok(new
+        {
+            id = dispute.Id,
+            orderId = dispute.OrderId,
+            buyerId = dispute.BuyerId,
+            sellerId = dispute.SellerId,
+            reason = dispute.Reason,
+            description = dispute.Description,
+            status = dispute.Status.ToString(),
+            arbiterId = dispute.ArbiterId,
+            decisionNotes =
+                dispute.ArbiterDecisionNotes,
+            createdAt = dispute.CreatedAt,
+            resolvedAt = dispute.ResolvedAt
+        });
+    }
+
+
+    // ============================================================
+    // LIST DISPUTES
+    // ARBITER / ADMIN ONLY
+    // ============================================================
+
+    [HttpGet]
+    [Authorize(Roles = "ARBITER,ADMIN")]
+    public async Task<IActionResult> GetDisputes(
+        CancellationToken ct)
+    {
+        var disputes =
+            await _db.Disputes
+                .OrderByDescending(
+                    d => d.CreatedAt)
+                .Select(d => new
+                {
+                    id = d.Id,
+                    orderId = d.OrderId,
+                    buyerId = d.BuyerId,
+                    sellerId = d.SellerId,
+                    reason = d.Reason,
+                    description = d.Description,
+                    status = d.Status.ToString(),
+                    arbiterId = d.ArbiterId,
+                    decisionNotes =
+                        d.ArbiterDecisionNotes,
+                    createdAt = d.CreatedAt,
+                    resolvedAt = d.ResolvedAt
+                })
+                .ToListAsync(ct);
+
+        return Ok(disputes);
+    }
+
+
+    // ============================================================
+    // MOVE DISPUTE TO UNDER REVIEW
+    // ARBITER / ADMIN ONLY
+    // ============================================================
+
+    [HttpPost("{id}/review")]
+    [Authorize(Roles = "ARBITER,ADMIN")]
+    public async Task<IActionResult> StartReview(
+        long id,
+        CancellationToken ct)
+    {
+        var dispute =
+            await _db.Disputes
+                .FirstOrDefaultAsync(
+                    d => d.Id == id,
+                    ct);
+
+        if (dispute == null)
+        {
+            return NotFound(new
+            {
+                message =
+                    $"Dispute {id} not found."
+            });
+        }
+
+        if (dispute.Status != DisputeStatus.OPEN)
+        {
+            return Conflict(new
+            {
+                message =
+                    $"Dispute cannot enter review from {dispute.Status}."
+            });
+        }
+
+        var userIdClaim =
+            User.FindFirstValue(
+                ClaimTypes.NameIdentifier);
+
+        if (!long.TryParse(
+                userIdClaim,
+                out var arbiterId))
+        {
+            return Unauthorized();
+        }
+
+        dispute.ArbiterId = arbiterId;
+        dispute.Status = DisputeStatus.UNDER_REVIEW;
+
+        await _db.SaveChangesAsync(ct);
+
+        return Ok(new
+        {
+            id = dispute.Id,
+            orderId = dispute.OrderId,
+            status = dispute.Status.ToString(),
+            arbiterId = dispute.ArbiterId
+        });
+    }
+
+
+    // ============================================================
+    // RESOLVE → REFUND BUYER
+    // ARBITER / ADMIN ONLY
+    // ============================================================
+
+    [HttpPost("{id}/refund")]
+    [Authorize(Roles = "ARBITER,ADMIN")]
+    public async Task<IActionResult> Refund(
+        long id,
+        [FromBody] ResolveDisputeRequest request,
+        CancellationToken ct)
+    {
+        if (request == null ||
+            string.IsNullOrWhiteSpace(request.Notes))
+        {
+            return BadRequest(new
+            {
+                message =
+                    "Resolution notes are required."
+            });
+        }
+
+        var dispute =
+            await _db.Disputes
+                .FirstOrDefaultAsync(
+                    d => d.Id == id,
+                    ct);
+
+        if (dispute == null)
+        {
+            return NotFound(new
+            {
+                message =
+                    $"Dispute {id} not found."
+            });
+        }
+
+        if (dispute.Status != DisputeStatus.OPEN &&
+            dispute.Status != DisputeStatus.UNDER_REVIEW)
+        {
+            return Conflict(new
+            {
+                message =
+                    $"Dispute is already {dispute.Status}."
+            });
+        }
+
+        var userIdClaim =
+            User.FindFirstValue(
+                ClaimTypes.NameIdentifier);
+
+        if (!long.TryParse(
+                userIdClaim,
+                out var arbiterId))
+        {
+            return Unauthorized();
+        }
+
+        var escrow =
+            await _escrow
+                .RefundFundsToBuyerAsync(
+                    dispute.OrderId,
+                    arbiterId,
+                    request.Notes,
+                    ct);
+
+        dispute.ArbiterId = arbiterId;
+        dispute.ArbiterDecisionNotes =
+            request.Notes.Trim();
+
+        dispute.Status =
+            DisputeStatus.RESOLVED_REFUND;
+
+        dispute.ResolvedAt =
+            DateTime.UtcNow;
+
+        await _db.SaveChangesAsync(ct);
+
+        return Ok(new
+        {
+            disputeId = dispute.Id,
+            orderId = dispute.OrderId,
+            status = dispute.Status.ToString(),
+            escrowState = escrow.Status.ToString(),
+            refundedAmountEtb =
+                escrow.RefundedAmountEtb,
+            resolvedAt = dispute.ResolvedAt
+        });
+    }
+
+
+    // ============================================================
+    // RESOLVE → RELEASE TO MERCHANT
+    // ARBITER / ADMIN ONLY
+    // ============================================================
+
+    [HttpPost("{id}/release")]
+    [Authorize(Roles = "ARBITER,ADMIN")]
+    public async Task<IActionResult> Release(
+        long id,
+        [FromBody] ResolveDisputeRequest request,
+        CancellationToken ct)
+    {
+        if (request == null ||
+            string.IsNullOrWhiteSpace(request.Notes))
+        {
+            return BadRequest(new
+            {
+                message =
+                    "Resolution notes are required."
+            });
+        }
+
+        var dispute =
+            await _db.Disputes
+                .FirstOrDefaultAsync(
+                    d => d.Id == id,
+                    ct);
+
+        if (dispute == null)
+        {
+            return NotFound(new
+            {
+                message =
+                    $"Dispute {id} not found."
+            });
+        }
+
+        if (dispute.Status != DisputeStatus.OPEN &&
+            dispute.Status != DisputeStatus.UNDER_REVIEW)
+        {
+            return Conflict(new
+            {
+                message =
+                    $"Dispute is already {dispute.Status}."
+            });
+        }
+
+        var userIdClaim =
+            User.FindFirstValue(
+                ClaimTypes.NameIdentifier);
+
+        if (!long.TryParse(
+                userIdClaim,
+                out var arbiterId))
+        {
+            return Unauthorized();
+        }
+
+        var escrow =
+            await _escrow
+                .ReleaseFundsToMerchantAsync(
+                    dispute.OrderId,
+                    arbiterId,
+                    ct);
+
+        dispute.ArbiterId = arbiterId;
+        dispute.ArbiterDecisionNotes =
+            request.Notes.Trim();
+
+        dispute.Status =
+            DisputeStatus.RESOLVED_RELEASE;
+
+        dispute.ResolvedAt =
+            DateTime.UtcNow;
+
+        await _db.SaveChangesAsync(ct);
+
+        return Ok(new
+        {
+            disputeId = dispute.Id,
+            orderId = dispute.OrderId,
+            status = dispute.Status.ToString(),
+            escrowState = escrow.Status.ToString(),
+            releasedAmountEtb =
+                escrow.ReleasedAmountEtb,
+            resolvedAt = dispute.ResolvedAt
+        });
+    }
+}
+
+
+// ================================================================
+// REQUEST MODELS
+// ================================================================
+
+public record FileDisputeRequest(
+    string Reason,
+    string Description
+);
+
+public record ResolveDisputeRequest(
+    string Notes
+);
