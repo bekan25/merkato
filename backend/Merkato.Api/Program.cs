@@ -380,19 +380,36 @@ var adminPhone = Environment.GetEnvironmentVariable("MERKATO_ADMIN_PHONE");
 var adminPin = Environment.GetEnvironmentVariable("MERKATO_ADMIN_PIN");
 var adminName = Environment.GetEnvironmentVariable("MERKATO_ADMIN_NAME");
 
-if (!string.IsNullOrWhiteSpace(adminPhone) &&
-    !string.IsNullOrWhiteSpace(adminPin) &&
-    !string.IsNullOrWhiteSpace(adminName))
+var adminBootstrapRequested = new[] { adminPhone, adminPin, adminName }
+    .Any(value => !string.IsNullOrWhiteSpace(value));
+
+if (adminBootstrapRequested)
 {
+    if (string.IsNullOrWhiteSpace(adminPhone) ||
+        string.IsNullOrWhiteSpace(adminPin) ||
+        string.IsNullOrWhiteSpace(adminName))
+    {
+        throw new InvalidOperationException(
+            "Set MERKATO_ADMIN_PHONE, MERKATO_ADMIN_PIN and MERKATO_ADMIN_NAME together.");
+    }
+
+    if (adminPin.Length < 6 || adminPin.Length > 8 ||
+        adminPin.Any(character => !char.IsDigit(character)))
+    {
+        throw new InvalidOperationException(
+            "MERKATO_ADMIN_PIN must contain 6 to 8 digits.");
+    }
+
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<MerkatoDbContext>();
-    var admin = await db.Users.FirstOrDefaultAsync(x => x.PhoneNumber == adminPhone);
+    var normalizedAdminPhone = adminPhone.Trim();
+    var admin = await db.Users.FirstOrDefaultAsync(x => x.PhoneNumber == normalizedAdminPhone);
 
     if (admin == null)
     {
         admin = new Merkato.Domain.Entities.User
         {
-            PhoneNumber = adminPhone.Trim(),
+            PhoneNumber = normalizedAdminPhone,
             FullName = adminName.Trim(),
             PinHash = Merkato.Api.Services.PinHasher.Hash(adminPin),
             Role = Merkato.Domain.Enums.UserRole.ADMIN,
@@ -402,14 +419,13 @@ if (!string.IsNullOrWhiteSpace(adminPhone) &&
             UpdatedAt = DateTime.UtcNow
         };
         db.Users.Add(admin);
+        await db.SaveChangesAsync();
     }
     else if (admin.Role != Merkato.Domain.Enums.UserRole.ADMIN)
     {
         throw new InvalidOperationException(
             "Configured MERKATO_ADMIN_PHONE belongs to a non-admin account. Resolve this manually.");
     }
-
-    await db.SaveChangesAsync();
 }
 app.Run();
 
