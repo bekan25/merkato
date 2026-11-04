@@ -195,3 +195,113 @@ tbody tr:hover{background:#fbfcfa}
 .trust-panel .product-form{margin-top:15px}
 .trust-panel .product-form label{min-width:180px}
 @media(max-width:640px){.trust-panel{padding:18px;margin:16px 0}.trust-panel .product-form{grid-template-columns:1fr}}
+
+
+/* 2026 glass commerce system — layered surfaces, accessible contrast */
+:root{
+ --glass-ink:#172b24;--glass-muted:#718078;--glass-line:rgba(30,67,49,.10);
+ --glass-surface:rgba(255,255,255,.72);--glass-surface-strong:rgba(255,255,255,.88);
+ --glass-shadow:0 18px 55px rgba(19,49,34,.09);
+ --glass-blur:blur(18px) saturate(145%);
+}
+body{
+ background:
+  radial-gradient(ellipse at 8% 8%,rgba(218,232,214,.42),transparent 34%),
+  radial-gradient(ellipse at 94% 30%,rgba(235,224,198,.28),transparent 30%),
+  #fbfcf9;
+ color:var(--glass-ink);
+}
+.announcement{background:linear-gradient(90deg,#0b3025,#174b38 50%,#0b3025)}
+.site-header{
+ background:rgba(250,252,248,.78);
+ border-bottom:1px solid rgba(255,255,255,.72);
+ box-shadow:0 8px 30px rgba(18,48,33,.055);
+ backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);
+}
+.hero{
+ position:relative;
+ background:
+  radial-gradient(ellipse at 78% 48%,rgba(212,229,207,.72),transparent 34%),
+  radial-gradient(ellipse at 12% 0%,rgba(255,255,255,.96),transparent 45%),
+  linear-gradient(125deg,#f7f9f3,#eef4eb 58%,#f6f1e6);
+}
+.hero:before{
+ content:"";position:absolute;inset:0;pointer-events:none;opacity:.24;
+ background-image:radial-gradient(rgba(35,76,51,.16) .7px,transparent .7px);
+ background-size:19px 19px;mask-image:linear-gradient(90deg,black,transparent 70%);
+}
+.art-card-main{
+ border:1px solid rgba(255,255,255,.85);
+ background:rgba(255,255,255,.76);
+ backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+ box-shadow:0 28px 75px rgba(24,60,39,.17),inset 0 1px 0 #fff;
+}
+.floating-tag{
+ background:rgba(255,255,255,.74);border:1px solid rgba(255,255,255,.9);
+ backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+ box-shadow:0 12px 34px rgba(23,54,37,.10);
+}
+.trust-strip{background:rgba(255,255,255,.66);backdrop-filter:blur(12px)}
+.category-list button{
+ background:rgba(255,255,255,.68);border:1px solid rgba(255,255,255,.92);
+ box-shadow:0 8px 25px rgba(27,60,40,.055),inset 0 1px 0 #fff;
+ backdrop-filter:blur(12px);transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease;
+}
+.category-list button:hover{transform:translateY(-4px);box-shadow:0 16px 32px rgba(27,60,40,.10)}
+.market-section{background:linear-gradient(180deg,rgba(242,247,239,.82),rgba(255,255,255,.94) 250px)}
+.search-box,.market-controls select{
+ background:rgba(255,255,255,.78);border-color:rgba(35,75,49,.12);
+ box-shadow:0 7px 22px rgba(23,56,36,.045);backdrop-filter:blur(12px);
+}
+.product-card{
+ background:rgba(255,255,255,.82);border:1px solid rgba(255,255,255,.96);
+ box-shadow:0 10px 30px rgba(22,55,36,.065),inset 0 1px 0 #fff;
+ backdrop-filter:blur(12px);transition:transform .25s ease,box-shadow .25s ease;
+}
+.product-card:hover{transform:translateY(-7px);box-shadow:0 22px 48px rgba(22,55,36,.13)}
+.product-visual{background:linear-gradient(145deg,#eef3eb,#e6ede4)}
+.product-visual img{transition:transform .55s cubic-bezier(.2,.7,.2,1)}
+.product-card:hover .product-visual img{transform:scale(1.045)}
+.product-category,.save-button{background:rgba(255,255,255,.78);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.9)}
+.seller-cta{
+ position:relative;background:
+ radial-gradient(circle at 80% 0%,rgba(85,145,103,.45),transparent 34%),
+ linear-gradient(120deg,#0b3025,#174b38);
+ border:1px solid rgba(255,255,255,.12);
+ box-shadow:0 22px 55px rgba(13,54,37,.18);
+}
+.workspace{background:linear-gradient(135deg,#f4f7f2,#edf3ec)}
+.workspace-sidebar{
+ background:rgba(255,255,255,.78);backdrop-filter:blur(18px);
+ border-right:1px solid rgba(255,255,255,.95);
+}
+.workspace-card,.workspace-section{
+ background:rgba(255,255,255,.76);border:1px solid rgba(255,255,255,.96);
+ box-shadow:0 10px 30px rgba(25,57,37,.055),inset 0 1px 0 #fff;
+ backdrop-filter:blur(14px);border-radius:15px;
+}
+.welcome-panel{
+ border:1px solid rgba(255,255,255,.14);
+ box-shadow:0 20px 48px rgba(14,55,37,.18);
+}
+.workspace-date,.trust-panel,.checkout-panel,.cart-line{
+ background:rgba(255,255,255,.76);border:1px solid rgba(255,255,255,.95);
+ box-shadow:0 10px 28px rgba(25,57,37,.05);backdrop-filter:blur(14px);
+}
+.trust-panel{border-radius:15px}
+.verification-status{border:1px solid rgba(255,255,255,.85)}
+.site-footer{background:rgba(250,252,248,.78);backdrop-filter:blur(12px)}
+.btn{transition:transform .2s ease,box-shadow .2s ease,background .2s ease}
+.btn-primary{background:linear-gradient(135deg,#1b6247,#103d30);box-shadow:0 8px 20px rgba(16,61,48,.18)}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 12px 26px rgba(16,61,48,.24)}
+input,select,textarea{transition:border-color .18s ease,box-shadow .18s ease}
+:focus-visible{outline:3px solid #c99a53;outline-offset:3px}
+@media(max-width:680px){
+ .hero:before{opacity:.12}
+ .category-list button{background:rgba(255,255,255,.82)}
+ .product-card{background:rgba(255,255,255,.94)}
+ .workspace-card,.workspace-section{background:rgba(255,255,255,.9)}
+}
+@media(prefers-reduced-motion:reduce){
+ *,*:before,*:after{scroll-behavior:auto!important;transition:none!important;animation:none!important}
+}
