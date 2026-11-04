@@ -1,5 +1,7 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
+RUN dotnet tool install --global dotnet-ef --version 8.0.8
+ENV PATH="$PATH:/root/.dotnet/tools"
 
 COPY backend/Merkato.Domain/Merkato.Domain.csproj backend/Merkato.Domain/
 COPY backend/Merkato.Application/Merkato.Application.csproj backend/Merkato.Application/
