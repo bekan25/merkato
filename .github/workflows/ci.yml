@@ -51,3 +51,14 @@ jobs:
         run: docker build --file backend/Dockerfile --tag merkato-api:ci .
       - name: Build web image
         run: docker build --file frontend/Dockerfile --tag merkato-web:ci .
+      - name: Validate Compose deployment configuration
+        env:
+          POSTGRES_DB: merkato_ci
+          POSTGRES_USER: merkato_ci
+          POSTGRES_PASSWORD: ci-password-not-for-production
+          JWT_KEY: ci-only-key-with-more-than-thirty-two-random-characters
+          JWT_ISSUER: https://api.merkato.test
+          JWT_AUDIENCE: https://merkato.test
+          MERKATO_ALLOWED_ORIGINS: https://merkato.test
+          MERKATO_DOMAIN: merkato.test
+        run: docker compose config --quiet
