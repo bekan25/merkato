@@ -36,7 +36,7 @@ public class PaymentsController : ControllerBase
         [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
         CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(idempotencyKey))
+        if (string.IsNullOrWhiteSpace(idempotencyKey) || idempotencyKey.Length > 128)
         {
             return BadRequest(new
             {
@@ -82,6 +82,9 @@ public class PaymentsController : ControllerBase
 
         var expectedAmount = order.TotalAmountEtb;
 
+        if (!Enum.IsDefined(request.PaymentRail))
+            return BadRequest(new { error = "Unsupported payment rail." });
+
         if (request.AmountEtb != expectedAmount)
         {
             return BadRequest(new
@@ -121,7 +124,7 @@ public class PaymentsController : ControllerBase
     [AllowAnonymous]
     public async Task<IActionResult> ProcessWebhook(
         string provider,
-        [FromBody] PaymentWebhookDto dto,
+        [FromBody] JsonElement payload,
         [FromHeader(Name = "X-Signature-SHA256")] string? signature,
         CancellationToken ct)
     {
@@ -133,18 +136,22 @@ public class PaymentsController : ControllerBase
             });
         }
 
-        var rawPayload =
-    JsonSerializer.Serialize(dto, new JsonSerializerOptions
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-    });
+        // Signature verification must use the exact JSON bytes received from the provider.
+        var rawPayload = payload.GetRawText();
+        PaymentWebhookDto? dto;
+        try
+        {
+            dto = JsonSerializer.Deserialize<PaymentWebhookDto>(
+                rawPayload,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        }
+        catch (JsonException)
+        {
+            return BadRequest(new { error = "Invalid webhook payload." });
+        }
 
-        Console.WriteLine("======================================");
-        Console.WriteLine("WEBHOOK DEBUG");
-        Console.WriteLine($"Provider: {provider}");
-        Console.WriteLine($"Raw Payload: {rawPayload}");
-        Console.WriteLine($"Received Signature: {signature}");
-        Console.WriteLine("======================================");
+        if (dto is null)
+            return BadRequest(new { error = "Webhook payload is required." });
 
         try
         {
