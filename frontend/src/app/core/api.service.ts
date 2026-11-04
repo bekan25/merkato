@@ -83,6 +83,14 @@ export class ApiService {
     return this.http.get<MerkatoOrder[]>(`${this.baseUrl}/orders/merchant`);
   }
 
+  getMerchantAnalytics(): Observable<MerchantAnalytics> {
+    return this.http.get<MerchantAnalytics>(`${this.baseUrl}/analytics/merchant`);
+  }
+
+  getAdminAnalytics(): Observable<AdminAnalytics> {
+    return this.http.get<AdminAnalytics>(`${this.baseUrl}/analytics/admin`);
+  }
+
   getDisputes(): Observable<MerkatoDispute[]> {
     return this.http.get<MerkatoDispute[]>(`${this.baseUrl}/disputes`);
   }
@@ -98,4 +106,26 @@ export class ApiService {
   releaseDispute(id: number, notes: string): Observable<unknown> {
     return this.http.post(`${this.baseUrl}/disputes/${id}/release`, { notes });
   }
+}
+
+export interface MerchantAnalytics {
+  productCount: number;
+  activeProductCount: number;
+  orderCount: number;
+  monthlyOrderCount: number;
+  grossOrderValueEtb: number;
+  monthlyGrossOrderValueEtb: number;
+  recentOrders: Array<Pick<MerkatoOrder, 'id' | 'orderNumber' | 'productTitle' | 'totalAmountEtb' | 'deliveryStatus' | 'escrowState' | 'createdAt'>>;
+}
+
+export interface AdminAnalytics {
+  totalUsers: number;
+  buyerCount: number;
+  merchantCount: number;
+  totalProducts: number;
+  activeProducts: number;
+  totalOrders: number;
+  grossOrderValueEtb: number;
+  openDisputes: number;
+  recentUsers: Array<{ id: number; fullName: string; phoneNumber: string; role: string; createdAt: string }>;
 }
