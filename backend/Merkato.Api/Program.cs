@@ -9,6 +9,8 @@ using Merkato.Infrastructure.Services;
 using Scalar.AspNetCore;
 using System.Text;
 using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.RateLimiting;
 
 // ============================================================
 // LOAD .ENV
@@ -23,14 +25,12 @@ var envPath = Path.GetFullPath(
     )
 );
 
-if (!File.Exists(envPath))
+// Local development may use a repository-root .env file. Production should inject
+// environment variables through the hosting platform's secret manager.
+if (File.Exists(envPath))
 {
-    throw new FileNotFoundException(
-        $"Merkato .env file was not found at: {envPath}"
-    );
+    Env.Load(envPath);
 }
-
-Env.Load(envPath);
 
 // ============================================================
 // CREATE BUILDER
@@ -195,10 +195,24 @@ builder.Services.AddSwaggerGen(options =>
 // CORS
 // ============================================================
 
-var allowedOrigins = (
+var configuredOrigins =
     Environment.GetEnvironmentVariable("MERKATO_ALLOWED_ORIGINS")
-    ?? "http://localhost:4200;https://merkato.et;https://www.merkato.et"
-).Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    ?? builder.Configuration["MERKATO_ALLOWED_ORIGINS"];
+
+if (appEnvironmentIsProduction(builder.Environment) && string.IsNullOrWhiteSpace(configuredOrigins))
+{
+    throw new InvalidOperationException("MERKATO_ALLOWED_ORIGINS must be configured in production.");
+}
+
+var allowedOrigins = (configuredOrigins ??
+    "http://localhost:4200")
+    .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+if (allowedOrigins.Any(origin => !Uri.TryCreate(origin, UriKind.Absolute, out var parsed) ||
+    (parsed.Scheme != Uri.UriSchemeHttps && !builder.Environment.IsDevelopment())))
+{
+    throw new InvalidOperationException("Production CORS origins must be valid HTTPS origins.");
+}
 
 builder.Services.AddCors(options =>
 {
@@ -209,6 +223,21 @@ builder.Services.AddCors(options =>
             .AllowAnyHeader()
             .AllowAnyMethod()
     );
+});
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("auth", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 6,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            }));
 });
 
 // ============================================================
@@ -225,41 +254,22 @@ app.UseExceptionHandler(errorApp =>
 {
     errorApp.Run(async context =>
     {
-        var exceptionHandler =
-            context.Features.Get<
-                Microsoft.AspNetCore.Diagnostics
-                    .IExceptionHandlerFeature
-            >();
+        var exception = context.Features
+            .Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>()?.Error;
 
-        var exception = exceptionHandler?.Error;
+        app.Logger.LogError(exception, "Unhandled request failure. TraceId: {TraceId}",
+            context.TraceIdentifier);
 
-        context.Response.ContentType =
-            "application/json";
+        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        context.Response.ContentType = "application/problem+json";
 
-        var statusCode = exception switch
+        await context.Response.WriteAsJsonAsync(new
         {
-            KeyNotFoundException => 404,
-            UnauthorizedAccessException => 403,
-            InvalidOperationException => 409,
-            ArgumentException => 400,
-            _ => 500
-        };
-
-        context.Response.StatusCode = statusCode;
-
-        await context.Response.WriteAsJsonAsync(
-            new
-            {
-                status = statusCode,
-
-                message =
-                    exception?.Message
-                    ?? "An unexpected error occurred.",
-
-                traceId =
-                    context.TraceIdentifier
-            }
-        );
+            type = "https://httpstatuses.com/500",
+            title = "An unexpected error occurred.",
+            status = StatusCodes.Status500InternalServerError,
+            traceId = context.TraceIdentifier
+        });
     });
 });
 
@@ -283,7 +293,13 @@ if (app.Environment.IsDevelopment())
 // CORS
 // ============================================================
 
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHsts();
+}
+app.UseHttpsRedirection();
 app.UseCors("MerkatoFrontend");
+app.UseRateLimiter();
 
 // ============================================================
 // AUTHENTICATION
@@ -297,7 +313,7 @@ app.UseAuthentication();
 
 app.UseStaticFiles();
 
-app.UseAuthorization();;
+app.UseAuthorization();
 
 // ============================================================
 // CONTROLLERS
@@ -326,42 +342,20 @@ app.MapGet(
 // DATABASE HEALTH CHECK
 // ============================================================
 
-app.MapGet(
-    "/health/db",
-    async (MerkatoDbContext db) =>
+app.MapGet("/health/ready", async (MerkatoDbContext db, CancellationToken ct) =>
+{
+    try
     {
-        try
-        {
-            var connected =
-                await db.Database.CanConnectAsync();
-
-            return Results.Ok(
-                new
-                {
-                    status =
-                        connected
-                            ? "healthy"
-                            : "unhealthy",
-
-                    database =
-                        connected
-                            ? "PostgreSQL connected"
-                            : "PostgreSQL not connected",
-
-                    timestamp = DateTime.UtcNow
-                }
-            );
-        }
-        catch (Exception ex)
-        {
-            return Results.Problem(
-                detail: ex.Message,
-                statusCode: 500,
-                title: "Database connection failed"
-            );
-        }
+        return await db.Database.CanConnectAsync(ct)
+            ? Results.Ok(new { status = "ready" })
+            : Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
     }
-);
+    catch (Exception ex)
+    {
+        app.Logger.LogError(ex, "Readiness check failed.");
+        return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+    }
+}).AllowAnonymous();
 
 // ============================================================
 // RUN
