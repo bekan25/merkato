@@ -135,6 +135,6 @@ public class OrdersController : ControllerBase
             order.PaymentRail, order.DeliveryCourier, order.DeliveryAddress,
             order.EscrowState, order.DeliveryStatus, order.CreatedAt);
 
-        return CreatedAtAction(nameof(GetMyOrders), new { id = order.Id }, response);
+        return Ok(response);
     }
 }
