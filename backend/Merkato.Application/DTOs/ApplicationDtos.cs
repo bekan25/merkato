@@ -6,7 +6,8 @@ public record RegisterUserDto(
     string PhoneNumber,
     string FullName,
     string? FaydaIdNumber,
-    UserRole Role
+    UserRole Role,
+    string Pin
 );
 
 public record LoginDto(
