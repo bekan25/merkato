@@ -62,8 +62,8 @@ import { RouterLink } from '@angular/router';
       <div class="product-grid" *ngIf="!loading && !error">
         <article class="product-card" *ngFor="let product of products; trackBy: trackByProductId">
           <div class="product-visual">
-            <img *ngIf="product.imageUrl" [src]="imageUrl(product.imageUrl)" [alt]="product.name" loading="lazy" (error)="onImageError($event)">
-            <span *ngIf="!product.imageUrl" class="product-emoji">{{product.emoji || '🛍️'}}</span>
+            <img *ngIf="product.imageUrl && !imageFailed(product.id)" [src]="imageUrl(product.imageUrl)" [alt]="product.name" loading="lazy" (error)="onImageError(product.id)">
+            <span *ngIf="!product.imageUrl || imageFailed(product.id)" class="product-emoji">{{product.emoji || '🛍️'}}</span>
             <span class="product-category">{{product.category}}</span>
             <button class="save-button" type="button" (click)="toggleSaved(product, $event)" [class.saved]="isSaved(product.id)" [attr.aria-pressed]="isSaved(product.id)" [attr.aria-label]="isSaved(product.id) ? 'Remove from saved products' : 'Save product'">{{isSaved(product.id) ? '♥' : '♡'}}</button>
             <button class="quick-view-trigger" type="button" (click)="openQuickView(product)">Quick view</button>
@@ -88,8 +88,8 @@ import { RouterLink } from '@angular/router';
       <section class="quick-view-dialog" role="dialog" aria-modal="true" [attr.aria-label]="product.name + ' details'" (click)="$event.stopPropagation()">
         <button class="quick-view-close" type="button" aria-label="Close product details" (click)="closeQuickView()">×</button>
         <div class="quick-view-image">
-          <img *ngIf="product.imageUrl" [src]="imageUrl(product.imageUrl)" [alt]="product.name" (error)="onImageError($event)">
-          <span *ngIf="!product.imageUrl">{{product.emoji || '🛍️'}}</span>
+          <img *ngIf="product.imageUrl && !imageFailed(product.id)" [src]="imageUrl(product.imageUrl)" [alt]="product.name" (error)="onImageError(product.id)">
+          <span *ngIf="!product.imageUrl || imageFailed(product.id)">{{product.emoji || '🛍️'}}</span>
         </div>
         <div class="quick-view-content">
           <span class="eyebrow">{{product.category}} · {{product.location || 'Ethiopia'}}</span>
@@ -141,6 +141,7 @@ export class StorefrontComponent implements OnInit, OnDestroy {
   private toastTimer?: ReturnType<typeof setTimeout>;
   private searchTimer?: ReturnType<typeof setTimeout>;
   private savedIds = new Set<number>();
+  private failedImageIds = new Set<number>();
   private readonly savedStorageKey = 'merkato_saved_products';
 
   categories = [{name:'Electronics',icon:'⌁'},{name:'Fashion',icon:'✳'},{name:'Home & Living',icon:'⌂'},{name:'Food',icon:'◈'},{name:'Beauty',icon:'✿'},{name:'Other',icon:'＋'}];
@@ -194,10 +195,9 @@ export class StorefrontComponent implements OnInit, OnDestroy {
     return path.startsWith('/') ? path : '/' + path;
   }
 
-  onImageError(event: Event): void {
-    const image = event.target as HTMLImageElement;
-    image.style.display = 'none';
-  }
+  imageFailed(id: number): boolean { return this.failedImageIds.has(id); }
+
+  onImageError(id: number): void { this.failedImageIds.add(id); }
 
   trackByProductId(_index: number, product: MerkatoProduct): number { return product.id; }
 
