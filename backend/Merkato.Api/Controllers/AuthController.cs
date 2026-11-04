@@ -9,6 +9,7 @@ using Merkato.Domain.Enums;
 using Merkato.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
@@ -34,6 +35,7 @@ public class AuthController : ControllerBase
     // =========================
     [AllowAnonymous]
     [HttpPost("register")]
+    [EnableRateLimiting("auth")]
     public async Task<ActionResult<AuthResponseDto>> Register(
         [FromBody] RegisterUserDto dto)
     {
@@ -44,10 +46,10 @@ public class AuthController : ControllerBase
             return BadRequest("FullName is required.");
 
         if (string.IsNullOrWhiteSpace(dto.Pin) ||
-            dto.Pin.Length < 4 ||
+            dto.Pin.Length < 6 ||
             dto.Pin.Length > 8 ||
             dto.Pin.Any(character => !char.IsDigit(character)))
-            return BadRequest("PIN must contain 4 to 8 digits.");
+            return BadRequest("PIN must contain 6 to 8 digits.");
 
         // Public registration must never be able to create privileged accounts.
         if (dto.Role != UserRole.BUYER && dto.Role != UserRole.MERCHANT)
@@ -95,6 +97,7 @@ public class AuthController : ControllerBase
     // =========================
     [AllowAnonymous]
 [HttpPost("login")]
+[EnableRateLimiting("auth")]
 public async Task<ActionResult<AuthResponseDto>> Login(
     [FromBody] LoginDto dto)
 {
@@ -111,7 +114,7 @@ public async Task<ActionResult<AuthResponseDto>> Login(
         return Unauthorized("Invalid phone number or PIN.");
 
     if (string.IsNullOrWhiteSpace(user.PinHash) ||
-        !PinHasher.Verify(dto.Pin.Trim(), user.PinHash))
+        !PinHasher.Verify(dto.Pin, user.PinHash))
     {
         return Unauthorized("Invalid phone number or PIN.");
     }
@@ -207,7 +210,7 @@ public async Task<ActionResult<AuthResponseDto>> Login(
             issuer: issuer,
             audience: audience,
             claims: claims,
-            expires: DateTime.UtcNow.AddHours(2),
+            expires: DateTime.UtcNow.AddMinutes(Math.Clamp(int.TryParse(_configuration["Jwt:ExpiryMinutes"], out var expiryMinutes) ? expiryMinutes : 30, 5, 60)),
             signingCredentials: credentials
          );
 
