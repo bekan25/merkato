@@ -1,6 +1,7 @@
 using Merkato.Application.DTOs;
 using Merkato.Application.Interfaces;
 using Merkato.Domain.Enums;
+using Merkato.Domain.Entities;
 using Merkato.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
