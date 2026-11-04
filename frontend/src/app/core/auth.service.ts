@@ -21,13 +21,19 @@ export class AuthService {
   private readonly userKey = 'merkato_user';
 
   login(phoneNumber: string, pin: string): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${this.api}/login`, { phoneNumber, pin }).pipe(
-      tap((response) => {
-        const user = { ...response, role: this.normalizeRole(response.role) };
-        sessionStorage.setItem(this.tokenKey, response.token);
-        sessionStorage.setItem(this.userKey, JSON.stringify(user));
-      })
-    );
+    return this.http.post<AuthResponse>(`${this.api}/login`, { phoneNumber, pin }).pipe(tap(response => this.persistSession(response)));
+  }
+
+  register(fullName: string, phoneNumber: string, pin: string, role: 'BUYER' | 'MERCHANT'): Observable<AuthResponse> {
+    return this.http.post<AuthResponse>(`${this.api}/register`, {
+      fullName, phoneNumber, pin, role, faydaIdNumber: null
+    }).pipe(tap(response => this.persistSession(response)));
+  }
+
+  private persistSession(response: AuthResponse): void {
+    const user = { ...response, role: this.normalizeRole(response.role) };
+    sessionStorage.setItem(this.tokenKey, response.token);
+    sessionStorage.setItem(this.userKey, JSON.stringify(user));
   }
 
   private normalizeRole(role: string | number): MerkatoRole {
