@@ -58,6 +58,14 @@ export class ApiService {
     return this.http.post<MerkatoProduct>(`${this.baseUrl}/products`, payload);
   }
 
+  updateProduct(id: number, payload: { name: string; priceEtb: number; location: string; category: string; emoji: string }): Observable<MerkatoProduct> {
+    return this.http.put<MerkatoProduct>(`${this.baseUrl}/products/${id}`, payload);
+  }
+
+  deleteProduct(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/products/${id}`);
+  }
+
   createOrder(payload: { sellerId: number; productTitle: string; amountEtb: number; deliveryFeeEtb: number; paymentRail: number; deliveryCourier: string; deliveryAddress: string; cityArea: string }): Observable<MerkatoOrder> {
     return this.http.post<MerkatoOrder>(`${this.baseUrl}/orders`, payload);
   }
