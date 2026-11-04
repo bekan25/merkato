@@ -15,7 +15,7 @@ import { AuthService } from './core/auth.service';
         <a class="brand" routerLink="/" aria-label="MERKATO home"><span class="brand-mark">M</span><span>merkato<small>ETHIOPIAN MARKETPLACE</small></span></a>
         <form class="global-search" (ngSubmit)="searchMarketplace()" role="search">
           <select [(ngModel)]="searchDepartment" name="department" aria-label="Search department">
-            <option value="All">All</option><option value="Electronics">Electronics</option><option value="Fashion">Fashion</option><option value="Home & Living">Home & Living</option><option value="Food">Food</option><option value="Beauty">Beauty</option>
+            <option value="All">All</option><option value="Electronics">Electronics</option><option value="Fashion">Fashion</option><option value="Home & Living">Home & Living</option><option value="Food">Food</option><option value="Beauty">Beauty</option><option value="Other">Other</option>
           </select>
           <input [(ngModel)]="headerSearch" name="q" placeholder="Search MERKATO Ethiopia" aria-label="Search MERKATO products">
           <button type="submit" aria-label="Search">⌕</button>
