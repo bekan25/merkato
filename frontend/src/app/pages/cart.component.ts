@@ -13,7 +13,7 @@ interface CartLine { product: MerkatoProduct; quantity: number; }
   imports: [CommonModule, FormsModule, RouterLink],
   template: `
     <section class="cart-page">
-      <div class="cart-heading"><a routerLink="/" class="back-link">← Continue shopping</a><span class="eyebrow">YOUR MARKET BAG</span><h1>Shopping cart</h1><p>Review your selected products before placing an order.</p></div>
+      <div class="cart-heading"><a routerLink="/" class="back-link">← Continue shopping</a><span class="eyebrow">YOUR MARKET BAG</span><h1>Shopping cart</h1><p>Review your selected products before placing an order.</p><p class="form-error" *ngIf="error">{{error}} <a routerLink="/login">Sign in</a></p></div>
       <div class="cart-layout">
         <div class="cart-items">
           <div *ngIf="loading" class="state-panel"><span class="loader"></span><strong>Loading your cart...</strong></div>
