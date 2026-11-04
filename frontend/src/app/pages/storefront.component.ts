@@ -60,7 +60,7 @@ import { RouterLink } from '@angular/router';
 
       <div *ngIf="loading" class="state-panel"><span class="loader"></span><strong>Finding good things...</strong><p>Loading products from the MERKATO marketplace.</p></div>
       <div *ngIf="error && !loading" class="state-panel"><span class="state-icon">⌁</span><strong>Marketplace connection unavailable</strong><p>{{error}}</p><small>Please try again in a moment.</small><button class="btn btn-outline" (click)="loadProducts()">Try again</button></div>
-      <div *ngIf="!loading && !error && products.length === 0" class="state-panel"><span class="state-icon">⌕</span><strong>No products found yet</strong><p>Try another search or check back as merchants add their products.</p><button class="btn btn-outline" *ngIf="search || category !== 'All'" (click)="clearFilters()">Clear filters</button></div>
+      <div *ngIf="!loading && !error && visibleProducts.length === 0" class="state-panel"><span class="state-icon">⌕</span><strong>No products found yet</strong><p>Try another search or check back as merchants add their products.</p><button class="btn btn-outline" *ngIf="search || category !== 'All'" (click)="clearFilters()">Clear filters</button></div>
 
       <div class="compare-bar" *ngIf="compareProducts.length"><span>{{compareProducts.length}} products selected to compare</span><button type="button" (click)="compareProducts = []">Clear comparison</button><div class="compare-items"><span *ngFor="let item of compareProducts">{{item.name}} · {{item.priceEtb | number:'1.2-2'}} ETB</span></div></div>
       <div class="product-grid" *ngIf="!loading && !error">
