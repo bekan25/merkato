@@ -387,4 +387,43 @@ button:focus-visible,input:focus-visible,select:focus-visible{
   .checkout-panel select{transition:none!important}
   .product-card:hover,.workspace-card:hover,.btn-primary:hover{transform:none}
 }
+/* Refined discovery controls and navigation surfaces */
+.category-list button{
+  background:linear-gradient(145deg,rgba(255,255,255,.92),rgba(245,248,242,.82));
+  border:1px solid rgba(222,232,220,.9);
+  border-radius:14px;
+  box-shadow:0 6px 20px rgba(18,59,47,.035);
+  transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease;
+}
+.category-list button:hover,.category-list button.selected{
+  transform:translateY(-3px);
+  box-shadow:0 12px 28px rgba(18,59,47,.09);
+  border-color:#b5cbb5;
+}
+.market-controls .search-box,.market-controls select,.market-controls .price-filter{
+  background:rgba(255,255,255,.82);
+  border:1px solid rgba(220,229,218,.95);
+  border-radius:12px;
+  box-shadow:0 4px 16px rgba(18,59,47,.025);
+  min-height:42px;
+}
+.market-controls .search-box:focus-within{
+  border-color:#9db89e;
+  box-shadow:0 0 0 4px rgba(157,184,158,.16);
+}
+.market-toolbar{
+  padding:11px 14px;
+  border:1px solid rgba(226,234,224,.8);
+  border-radius:12px;
+  background:rgba(248,250,246,.72);
+}
+.department-nav{
+  backdrop-filter:blur(16px) saturate(140%);
+  -webkit-backdrop-filter:blur(16px) saturate(140%);
+}
+@media(max-width:680px){
+  .category-list button{border-radius:12px}
+  .market-controls .search-box,.market-controls select,.market-controls .price-filter{border-radius:10px}
+  .market-toolbar{padding:10px 11px}
+}
 
