@@ -15,9 +15,21 @@ import { ApiService, MerkatoProduct, MerkatoOrder, MerkatoDispute } from '../cor
       <div class="workspace-main"><header class="workspace-topbar"><div><span class="eyebrow">MERKATO WORKSPACE</span><h1>{{heading}}</h1></div><span class="workspace-date">Ethiopia · ETB</span></header>
         <section class="welcome-panel"><div><span class="eyebrow">GOOD TO SEE YOU</span><h2>Welcome, {{user?.fullName?.split(' ')?.[0]}}.</h2><p>{{welcomeText}}</p></div><div class="welcome-symbol">✳</div></section>
         <div class="workspace-grid">
-          <article class="workspace-card"><span class="card-icon">◈</span><span class="card-label">ACCOUNT ROLE</span><strong>{{user?.role}}</strong><small>Access based on your account permissions</small></article>
-          <article class="workspace-card"><span class="card-icon">✦</span><span class="card-label">TRUST SCORE</span><strong>{{user?.trustScore ?? '—'}}<small>/100</small></strong><small>Marketplace trust indicator</small></article>
-          <article class="workspace-card"><span class="card-icon">✓</span><span class="card-label">FAYDA STATUS</span><strong>{{user?.isFaydaVerified ? 'Verified' : 'Not verified'}}</strong><small>Identity verification status</small></article>
+          <ng-container *ngIf="user?.role === 'BUYER'">
+            <article class="workspace-card"><span class="card-icon">▣</span><span class="card-label">TOTAL ORDERS</span><strong>{{buyerOrders.length}}</strong><small>Orders linked to your account</small></article>
+            <article class="workspace-card"><span class="card-icon">◈</span><span class="card-label">TOTAL SPENT</span><strong>{{buyerSpend | number:'1.2-2'}} <small>ETB</small></strong><small>Value of recorded orders</small></article>
+            <article class="workspace-card"><span class="card-icon">✓</span><span class="card-label">IDENTITY STATUS</span><strong>{{user?.isFaydaVerified ? 'Verified' : 'Not verified'}}</strong><small>Trust score: {{user?.trustScore ?? '—'}}/100</small></article>
+          </ng-container>
+          <ng-container *ngIf="user?.role === 'MERCHANT'">
+            <article class="workspace-card"><span class="card-icon">▤</span><span class="card-label">ACTIVE PRODUCTS</span><strong>{{merchantProducts.length}}</strong><small>Products currently returned by catalogue API</small></article>
+            <article class="workspace-card"><span class="card-icon">▣</span><span class="card-label">ORDERS RECEIVED</span><strong>{{merchantOrders.length}}</strong><small>Orders assigned to your merchant account</small></article>
+            <article class="workspace-card"><span class="card-icon">◈</span><span class="card-label">ORDER VALUE</span><strong>{{merchantSales | number:'1.2-2'}} <small>ETB</small></strong><small>Gross value of recorded orders, not payout</small></article>
+          </ng-container>
+          <ng-container *ngIf="user?.role === 'ADMIN'">
+            <article class="workspace-card"><span class="card-icon">▣</span><span class="card-label">PLATFORM ORDERS</span><strong>{{merchantOrders.length}}</strong><small>All orders returned by protected API</small></article>
+            <article class="workspace-card"><span class="card-icon">◈</span><span class="card-label">RECORDED ORDER VALUE</span><strong>{{platformVolume | number:'1.2-2'}} <small>ETB</small></strong><small>Gross order value, not settled revenue</small></article>
+            <article class="workspace-card"><span class="card-icon">⚑</span><span class="card-label">OPEN DISPUTES</span><strong>{{openDisputes}}</strong><small>{{disputes.length}} total disputes returned by API</small></article>
+          </ng-container>
         </div>
         <section class="workspace-section" *ngIf="user?.role === 'MERCHANT' || user?.role === 'ADMIN'" id="products"><div class="workspace-section-head"><div><span class="eyebrow">YOUR CATALOGUE</span><h2>Product management</h2><p>Products currently available in the marketplace API.</p></div><button class="btn btn-primary" (click)="toggleProductForm()">{{showProductForm ? 'Close form' : '+ Add product'}}</button></div>
           <form class="product-form" *ngIf="showProductForm" (ngSubmit)="createProduct()"><label>Product name<input name="name" [(ngModel)]="draft.name" required></label><label>Price (ETB)<input name="price" [(ngModel)]="draft.priceEtb" type="number" min="0.01" required></label><label>Category<input name="category" [(ngModel)]="draft.category" required></label><label>Location<input name="location" [(ngModel)]="draft.location" required></label><button class="btn btn-primary" [disabled]="saving">{{saving ? 'Saving...' : (editingProductId ? 'Update product' : 'Save product')}}</button><button type="button" class="btn btn-outline" *ngIf="editingProductId" (click)="cancelEdit()">Cancel edit</button><p class="form-error" *ngIf="productError">{{productError}}</p></form>
@@ -26,7 +38,7 @@ import { ApiService, MerkatoProduct, MerkatoOrder, MerkatoDispute } from '../cor
         </section>
         <section class="workspace-section" *ngIf="user?.role === 'MERCHANT' || user?.role === 'ADMIN'"><span class="eyebrow">ORDER FULFILMENT</span><h2>Incoming orders</h2><div *ngIf="merchantOrders.length" class="table-wrap"><table><thead><tr><th>Order</th><th>Product</th><th>Buyer</th><th>Total</th><th>Delivery</th></tr></thead><tbody><tr *ngFor="let order of merchantOrders"><td>{{order.orderNumber}}</td><td>{{order.productTitle}}</td><td>#{{order.buyerId}}</td><td>{{order.totalAmountEtb | number:'1.2-2'}} ETB</td><td>{{order.deliveryStatus}}</td></tr></tbody></table></div><div class="empty-inline" *ngIf="!merchantOrders.length">No incoming orders have been recorded yet.</div></section>
         <section class="workspace-section" *ngIf="user?.role === 'BUYER'"><div class="workspace-section-head"><div><span class="eyebrow">YOUR SHOPPING</span><h2>Your orders</h2><p>Recent orders created from your buyer account.</p></div><a routerLink="/cart" class="btn btn-outline">Open cart</a></div><div *ngIf="buyerOrders.length" class="table-wrap"><table><thead><tr><th>Order</th><th>Product</th><th>Total</th><th>Escrow</th><th>Date</th></tr></thead><tbody><tr *ngFor="let order of buyerOrders"><td>{{order.orderNumber}}</td><td>{{order.productTitle}}</td><td>{{order.totalAmountEtb | number:'1.2-2'}} ETB</td><td><span class="status-pill">{{order.escrowState}}</span></td><td>{{order.createdAt | date:'mediumDate'}}</td></tr></tbody></table></div><div class="empty-inline" *ngIf="!buyerOrders.length">No orders have been created yet. Browse the marketplace and add products to your cart.</div><a routerLink="/" class="btn btn-primary">Explore products ↗</a></section>
-        <section class="workspace-section" *ngIf="user?.role === 'ADMIN'" id="admin-note"><span class="eyebrow">PLATFORM OPERATIONS</span><h2>Dispute oversight</h2><p>Open disputes returned by the protected arbitration API.</p><div *ngIf="disputes.length" class="table-wrap"><table><thead><tr><th>Dispute</th><th>Order</th><th>Reason</th><th>Status</th><th>Created</th></tr></thead><tbody><tr *ngFor="let dispute of disputes"><td>#{{dispute.id}}</td><td>#{{dispute.orderId}}</td><td>{{dispute.reason}}</td><td><span class="status-pill">{{dispute.status}}</span></td><td>{{dispute.createdAt | date:'mediumDate'}}</td></tr></tbody></table></div><div class="empty-inline" *ngIf="!disputes.length">No disputes are currently returned by the API.</div></section>
+        <section class="workspace-section" *ngIf="user?.role === 'ADMIN'" id="admin-note"><span class="eyebrow">PLATFORM OPERATIONS</span><h2>Dispute oversight</h2><p>Open disputes returned by the protected arbitration API.</p><div *ngIf="disputes.length" class="table-wrap"><table><thead><tr><th>Dispute</th><th>Order</th><th>Reason</th><th>Status</th><th>Created</th><th>Admin actions</th></tr></thead><tbody><tr *ngFor="let dispute of disputes"><td>#{{dispute.id}}</td><td>#{{dispute.orderId}}</td><td>{{dispute.reason}}</td><td><span class="status-pill">{{dispute.status}}</span></td><td>{{dispute.createdAt | date:'mediumDate'}}</td><td class="product-actions"><button type="button" *ngIf="dispute.status === 'OPEN'" [disabled]="busyDisputeId === dispute.id" (click)="reviewDispute(dispute)">Review</button><button type="button" *ngIf="dispute.status === 'OPEN' || dispute.status === 'UNDER_REVIEW'" [disabled]="busyDisputeId === dispute.id" (click)="resolveDispute(dispute, 'refund')">Refund</button><button type="button" *ngIf="dispute.status === 'OPEN' || dispute.status === 'UNDER_REVIEW'" [disabled]="busyDisputeId === dispute.id" (click)="resolveDispute(dispute, 'release')">Release</button></td></tr></tbody></table></div><div class="empty-inline" *ngIf="!disputes.length">No disputes are currently returned by the API.</div></section>
         <div class="inline-error" *ngIf="loadError">{{loadError}}</div>
       </div>
     </section>
@@ -47,7 +59,13 @@ export class DashboardComponent implements OnInit {
   editingProductId: number | null = null;
   saving = false;
   productError = '';
+  busyDisputeId: number | null = null;
   draft = { name: '', priceEtb: 0, category: 'Other', location: 'Addis Ababa', emoji: '🛍️' };
+  get buyerSpend(): number { return this.buyerOrders.reduce((sum, order) => sum + Number(order.totalAmountEtb || 0), 0); }
+  get merchantSales(): number { return this.merchantOrders.reduce((sum, order) => sum + Number(order.totalAmountEtb || 0), 0); }
+  get platformVolume(): number { return this.merchantSales; }
+  get openDisputes(): number { return this.disputes.filter(item => item.status === 'OPEN' || item.status === 'UNDER_REVIEW').length; }
+
   ngOnInit(): void {
     if (this.user?.role === 'BUYER') this.api.getMyOrders().subscribe({ next: items => this.buyerOrders = items || [], error: () => this.loadError = 'Could not load order history.' });
     if (this.user?.role === 'MERCHANT' || this.user?.role === 'ADMIN') {
@@ -91,6 +109,34 @@ export class DashboardComponent implements OnInit {
     this.api.deleteProduct(product.id).subscribe({
       next: () => this.merchantProducts = this.merchantProducts.filter(item => item.id !== product.id),
       error: () => this.loadError = 'Could not archive this product. Check ownership and permissions.'
+    });
+  }
+  reviewDispute(dispute: MerkatoDispute): void {
+    if (!window.confirm('Move dispute #' + dispute.id + ' into arbitration review?')) return;
+    this.busyDisputeId = dispute.id;
+    this.api.startDisputeReview(dispute.id).subscribe({
+      next: () => { this.busyDisputeId = null; this.reloadDisputes(); },
+      error: err => { this.busyDisputeId = null; this.loadError = err?.status === 403 ? 'Your account is not authorized to review disputes.' : 'Could not start dispute review.'; }
+    });
+  }
+  resolveDispute(dispute: MerkatoDispute, outcome: 'refund' | 'release'): void {
+    const notes = window.prompt('Enter the arbitration decision notes. This action affects escrow funds:');
+    if (!notes || !notes.trim()) return;
+    const action = outcome === 'refund' ? 'Refund the buyer' : 'Release funds to the merchant';
+    if (!window.confirm(action + ' for dispute #' + dispute.id + '? This cannot be treated as a preview.')) return;
+    this.busyDisputeId = dispute.id;
+    const request = outcome === 'refund'
+      ? this.api.refundDispute(dispute.id, notes.trim())
+      : this.api.releaseDispute(dispute.id, notes.trim());
+    request.subscribe({
+      next: () => { this.busyDisputeId = null; this.reloadDisputes(); },
+      error: err => { this.busyDisputeId = null; this.loadError = err?.status === 403 ? 'Your account is not authorized to resolve disputes.' : 'The dispute could not be resolved. Refresh and check its current status.'; }
+    });
+  }
+  private reloadDisputes(): void {
+    this.api.getDisputes().subscribe({
+      next: items => this.disputes = items || [],
+      error: () => this.loadError = 'The action completed, but the dispute list could not be refreshed.'
     });
   }
   logout(): void { this.auth.logout(); window.location.href = '/'; }
