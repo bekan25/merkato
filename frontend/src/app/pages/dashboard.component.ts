@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../core/auth.service';
-import { ApiService, MerkatoProduct } from '../core/api.service';
+import { ApiService, MerkatoProduct, MerkatoOrder } from '../core/api.service';
 
 @Component({
   standalone: true,
@@ -24,7 +24,7 @@ import { ApiService, MerkatoProduct } from '../core/api.service';
           <div *ngIf="merchantProducts.length" class="table-wrap"><table><thead><tr><th>Product</th><th>Category</th><th>Price</th><th>Location</th><th>Status</th></tr></thead><tbody><tr *ngFor="let p of merchantProducts"><td>{{p.name}}</td><td>{{p.category}}</td><td>{{p.priceEtb | number:'1.2-2'}} ETB</td><td>{{p.location}}</td><td><span class="status-pill">Active</span></td></tr></tbody></table></div>
           <div class="empty-inline" *ngIf="!merchantProducts.length">No products are currently returned by the API. Add your first product when signed in as a merchant.</div>
         </section>
-        <section class="workspace-section" *ngIf="user?.role === 'BUYER'"><span class="eyebrow">YOUR SHOPPING</span><h2>Keep exploring</h2><p>Browse local products and add items to your session cart. Order history and checkout will appear here once the order workflow is connected.</p><a routerLink="/" class="btn btn-primary">Explore products ↗</a></section>
+        <section class="workspace-section" *ngIf="user?.role === 'BUYER'"><div class="workspace-section-head"><div><span class="eyebrow">YOUR SHOPPING</span><h2>Your orders</h2><p>Recent orders created from your buyer account.</p></div><a routerLink="/cart" class="btn btn-outline">Open cart</a></div><div *ngIf="buyerOrders.length" class="table-wrap"><table><thead><tr><th>Order</th><th>Product</th><th>Total</th><th>Escrow</th><th>Date</th></tr></thead><tbody><tr *ngFor="let order of buyerOrders"><td>{{order.orderNumber}}</td><td>{{order.productTitle}}</td><td>{{order.totalAmountEtb | number:'1.2-2'}} ETB</td><td><span class="status-pill">{{order.escrowState}}</span></td><td>{{order.createdAt | date:'mediumDate'}}</td></tr></tbody></table></div><div class="empty-inline" *ngIf="!buyerOrders.length">No orders have been created yet. Browse the marketplace and add products to your cart.</div><a routerLink="/" class="btn btn-primary">Explore products ↗</a></section>
         <section class="workspace-section" *ngIf="user?.role === 'ADMIN'" id="admin-note"><span class="eyebrow">PLATFORM OPERATIONS</span><h2>Administration</h2><p>Admin access is confirmed by the API role claim. Dispute resolution and platform reporting endpoints can be surfaced here as those workflows are wired into the dashboard.</p></section>
         <div class="inline-error" *ngIf="loadError">{{loadError}}</div>
       </div>
@@ -38,12 +38,14 @@ export class DashboardComponent implements OnInit {
   heading = this.user?.role === 'ADMIN' ? 'Admin overview' : this.user?.role === 'MERCHANT' ? 'Merchant overview' : 'Buyer overview';
   welcomeText = this.user?.role === 'ADMIN' ? 'Monitor your marketplace workspace and manage platform operations.' : this.user?.role === 'MERCHANT' ? 'Manage your catalogue and grow your reach across Ethiopia.' : 'Your marketplace journey starts here. Discover something worth sharing.';
   merchantProducts: MerkatoProduct[] = [];
+  buyerOrders: MerkatoOrder[] = [];
   loadError = '';
   showProductForm = false;
   saving = false;
   productError = '';
   draft = { name: '', priceEtb: 0, category: 'Other', location: 'Addis Ababa', emoji: '🛍️' };
   ngOnInit(): void {
+    if (this.user?.role === 'BUYER') this.api.getMyOrders().subscribe({ next: items => this.buyerOrders = items || [], error: () => this.loadError = 'Could not load order history.' });
     if (this.user?.role === 'MERCHANT' || this.user?.role === 'ADMIN') {
       this.api.getProducts().subscribe({ next: items => this.merchantProducts = (items || []).filter(p => this.user?.role === 'ADMIN' || p.sellerId === this.user?.userId), error: () => this.loadError = 'Could not load catalogue. Check the API connection.' });
     }
