@@ -41,7 +41,7 @@ export class AuthComponent {
     this.error = '';
     if (!this.phoneNumber.trim() || !this.pin.trim()) { this.error = 'Enter your phone number and PIN.'; return; }
     if (this.isRegister && !this.fullName.trim()) { this.error = 'Enter your full name.'; return; }
-    if (this.pin.length < 4 || this.pin.length > 8 || !/^\\d+$/.test(this.pin)) { this.error = 'PIN must contain 4 to 8 digits.'; return; }
+    if (this.pin.length < 4 || this.pin.length > 8 || !/^\d+$/.test(this.pin)) { this.error = 'PIN must contain 4 to 8 digits.'; return; }
     this.loading = true;
     const request = this.isRegister
       ? this.auth.register(this.fullName.trim(), this.phoneNumber.trim(), this.pin, this.role)
