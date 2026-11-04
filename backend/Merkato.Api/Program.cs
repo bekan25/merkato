@@ -8,6 +8,7 @@ using Merkato.Infrastructure.Persistence;
 using Merkato.Infrastructure.Services;
 using Scalar.AspNetCore;
 using System.Text;
+using System.Text.Json.Serialization;
 
 // ============================================================
 // LOAD .ENV
@@ -130,7 +131,10 @@ builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 // CONTROLLERS
 // ============================================================
 
-builder.Services.AddControllers();
+builder.Services.AddControllers().AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+});
 
 // ============================================================
 // OPENAPI
