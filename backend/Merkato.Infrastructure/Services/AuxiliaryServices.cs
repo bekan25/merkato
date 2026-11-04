@@ -23,15 +23,24 @@ public class PaymentService : IPaymentService
         _audit = audit;
     }
 
-    public async Task<PaymentTransaction> InitiatePaymentAsync(long orderId, string idempotencyKey, decimal amountEtb, PaymentRail rail, CancellationToken ct = default)
+    public async Task<PaymentTransaction> InitiatePaymentAsync(
+        long orderId, string idempotencyKey, decimal amountEtb, PaymentRail rail,
+        CancellationToken ct = default)
     {
         if (orderId <= 0) throw new ArgumentOutOfRangeException(nameof(orderId));
-        if (string.IsNullOrWhiteSpace(idempotencyKey)) throw new ArgumentException("Idempotency key is required.", nameof(idempotencyKey));
+        if (string.IsNullOrWhiteSpace(idempotencyKey) || idempotencyKey.Length > 128)
+            throw new ArgumentException("Idempotency key must contain 1 to 128 characters.", nameof(idempotencyKey));
         if (amountEtb <= 0m) throw new InvalidOperationException("Payment amount must be positive.");
+        if (!Enum.IsDefined(rail)) throw new InvalidOperationException("Unsupported payment rail.");
 
-        var existing = await _db.PaymentTransactions.FirstOrDefaultAsync(p => p.IdempotencyKey == idempotencyKey, ct);
+        var existing = await _db.PaymentTransactions
+            .FirstOrDefaultAsync(p => p.IdempotencyKey == idempotencyKey, ct);
         if (existing != null)
         {
+            if (existing.OrderId != orderId || existing.AmountEtb != amountEtb ||
+                existing.PaymentRail != rail)
+                throw new InvalidOperationException("Idempotency key was already used for a different payment request.");
+
             return existing;
         }
 
@@ -51,50 +60,96 @@ public class PaymentService : IPaymentService
         return tx;
     }
 
-    public async Task<PaymentTransaction> ProcessWebhookAsync(string provider, PaymentWebhookDto dto, string rawPayload, string signature, CancellationToken ct = default)
+    public async Task<PaymentTransaction> ProcessWebhookAsync(
+        string provider, PaymentWebhookDto dto, string rawPayload, string signature,
+        CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(provider)) throw new ArgumentException("Provider is required.", nameof(provider));
-        if (string.IsNullOrWhiteSpace(signature)) throw new UnauthorizedAccessException("Missing webhook signature");
-        if (dto.AmountEtb <= 0m) throw new InvalidOperationException("Webhook amount must be positive.");
-        if (string.IsNullOrWhiteSpace(dto.Currency) || !dto.Currency.Equals("ETB", StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("Unsupported or invalid currency");
-        if (string.IsNullOrWhiteSpace(dto.OrderNumber)) throw new ArgumentException("Order number is required.", nameof(dto.OrderNumber));
-        if (string.IsNullOrWhiteSpace(dto.RailTransactionId)) throw new ArgumentException("Provider transaction identifier is required.", nameof(dto.RailTransactionId));
+        if (string.IsNullOrWhiteSpace(provider) || string.IsNullOrWhiteSpace(signature))
+            throw new UnauthorizedAccessException("Webhook provider and signature are required.");
 
-        var secret = Environment.GetEnvironmentVariable($"{provider.ToUpperInvariant().Replace('-', '_')}_WEBHOOK_SECRET");
+        var providerKey = provider.Trim().ToLowerInvariant().Replace("-", string.Empty);
+        var (expectedRail, secretName) = providerKey switch
+        {
+            "telebirr" => (PaymentRail.TELEBIRR, "TELEBIRR_WEBHOOK_SECRET"),
+            "cbebirr" => (PaymentRail.CBE_BIRR, "CBEBIRR_WEBHOOK_SECRET"),
+            _ => throw new InvalidOperationException("Unsupported payment webhook provider.")
+        };
+
+        if (dto.AmountEtb <= 0m || !string.Equals(dto.Currency, "ETB", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Webhook amount or currency is invalid.");
+        if (string.IsNullOrWhiteSpace(dto.OrderNumber) ||
+            string.IsNullOrWhiteSpace(dto.RailTransactionId) ||
+            string.IsNullOrWhiteSpace(dto.EventId))
+            throw new InvalidOperationException("Webhook event, order and provider transaction identifiers are required.");
+        if (!new[] { "SUCCESS", "COMPLETED", "PAID" }.Contains(
+                dto.Status?.Trim().ToUpperInvariant()))
+            throw new InvalidOperationException("Payment provider has not confirmed a successful payment.");
+
+        var secret = Environment.GetEnvironmentVariable(secretName);
         if (string.IsNullOrWhiteSpace(secret))
+            throw new InvalidOperationException($"Webhook secret '{secretName}' is not configured.");
+
+        var signatureValue = signature.StartsWith("sha256=", StringComparison.OrdinalIgnoreCase)
+            ? signature[7..]
+            : signature;
+        byte[] suppliedSignature;
+        try
         {
-            throw new InvalidOperationException($"Webhook secret for provider '{provider}' is not configured.");
+            suppliedSignature = Convert.FromHexString(signatureValue);
+        }
+        catch (FormatException)
+        {
+            throw new UnauthorizedAccessException("Invalid webhook signature format.");
         }
 
-        var computedSignature = Convert.ToHexString(HMACSHA256.HashData(Encoding.UTF8.GetBytes(secret), Encoding.UTF8.GetBytes(rawPayload)));
-        if (!string.Equals(signature, computedSignature, StringComparison.OrdinalIgnoreCase))
-        {
-            throw new UnauthorizedAccessException("Invalid webhook HMAC-SHA256 signature");
-        }
+        var expectedSignature = HMACSHA256.HashData(
+            Encoding.UTF8.GetBytes(secret), Encoding.UTF8.GetBytes(rawPayload));
+        if (suppliedSignature.Length != expectedSignature.Length ||
+            !CryptographicOperations.FixedTimeEquals(suppliedSignature, expectedSignature))
+            throw new UnauthorizedAccessException("Invalid webhook signature.");
 
-        var order = await _db.Orders.FirstOrDefaultAsync(o => o.OrderNumber == dto.OrderNumber, ct)
-            ?? throw new KeyNotFoundException($"Order {dto.OrderNumber} not found");
+        var order = await _db.Orders
+            .FirstOrDefaultAsync(o => o.OrderNumber == dto.OrderNumber, ct)
+            ?? throw new KeyNotFoundException("Order was not found.");
 
-        var tx = await _db.PaymentTransactions.FirstOrDefaultAsync(p => p.OrderId == order.Id, ct)
-            ?? throw new KeyNotFoundException($"Payment transaction for order {dto.OrderNumber} not found");
+        var tx = await _db.PaymentTransactions
+            .FirstOrDefaultAsync(p => p.OrderId == order.Id, ct)
+            ?? throw new KeyNotFoundException("Payment transaction was not found.");
+
+        if (tx.PaymentRail != expectedRail)
+            throw new UnauthorizedAccessException("Webhook provider does not match the selected payment rail.");
 
         if (tx.Status == PaymentStatus.VERIFIED)
         {
-            return tx;
+            if (string.Equals(tx.RailTransactionId, dto.RailTransactionId, StringComparison.Ordinal))
+                return tx;
+            throw new InvalidOperationException("This order already has a verified payment.");
         }
 
-        if (dto.AmountEtb != tx.AmountEtb || !dto.Currency.Equals("ETB", StringComparison.OrdinalIgnoreCase))
-        {
-            throw new InvalidOperationException("Payment amount or currency mismatch");
-        }
+        if (tx.Status != PaymentStatus.PENDING && tx.Status != PaymentStatus.INITIATED)
+            throw new InvalidOperationException("Payment transaction is not awaiting provider confirmation.");
+
+        if (dto.AmountEtb != tx.AmountEtb)
+            throw new InvalidOperationException("Payment amount does not match the pending transaction.");
+
+        var reusedProviderReference = await _db.PaymentTransactions.AnyAsync(
+            p => p.Id != tx.Id && p.RailTransactionId == dto.RailTransactionId, ct);
+        if (reusedProviderReference)
+            throw new InvalidOperationException("Provider transaction reference has already been processed.");
+
+        if (order.EscrowState != EscrowState.AWAITING_PAYMENT)
+            throw new InvalidOperationException("Order is not awaiting payment.");
 
         tx.Status = PaymentStatus.VERIFIED;
         tx.RailTransactionId = dto.RailTransactionId;
         tx.WebhookVerified = true;
+        tx.RawPayloadHash = Convert.ToHexString(
+            SHA256.HashData(Encoding.UTF8.GetBytes(rawPayload)));
         tx.VerifiedAt = DateTime.UtcNow;
 
         await _escrow.LockFundsAsync(order.Id, tx.AmountEtb, ct);
-        await _audit.LogAsync(null, "PAYMENT_GATEWAY", "PAYMENT_VERIFIED", "PAYMENT", tx.Id.ToString(), "SUCCESS", $"Verified {dto.AmountEtb} ETB", ct);
+        await _audit.LogAsync(null, "PAYMENT_GATEWAY", "PAYMENT_VERIFIED",
+            "PAYMENT", tx.Id.ToString(), "SUCCESS", $"Verified {dto.AmountEtb} ETB", ct);
 
         await _db.SaveChangesAsync(ct);
         return tx;
