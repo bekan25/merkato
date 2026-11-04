@@ -230,6 +230,7 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders =
         ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.ForwardLimit = 2;
     // The API is private to the Docker network; only the reverse proxy can reach it.
     options.KnownNetworks.Clear();
     options.KnownProxies.Clear();
