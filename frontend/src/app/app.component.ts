@@ -39,21 +39,21 @@ import { AuthService } from './core/auth.service';
     </div>
   `,
   styles: [`
-    .site-header{height:auto;min-height:76px;padding:12px clamp(18px,5vw,76px);gap:24px;background:#172b3b;border:0;color:#fff}
-    .brand{color:#fff;flex:0 0 auto}.brand small{color:#c0cbd2}.brand-mark{background:#f4a340;color:#172b3b;border-radius:8px}
-    .global-search{display:flex;flex:1;max-width:690px;height:43px;border-radius:7px;overflow:hidden;background:#fff;border:2px solid transparent}
-    .global-search:focus-within{border-color:#f4a340}
-    .global-search select{width:92px;border:0;border-right:1px solid #e6e8e9;background:#f4f5f6;padding:0 9px;color:#35414a;font-size:11px}
-    .global-search input{min-width:0;flex:1;border:0;outline:0;padding:0 13px;color:#26333c;font-size:12px}
-    .global-search button{width:48px;border:0;background:#f4a340;color:#172b3b;font-size:25px;cursor:pointer}
-    .header-actions{gap:18px;color:#fff}
-    .delivery-link,.account-link{display:flex;flex-direction:column;gap:3px;color:#fff;white-space:nowrap}
-    .delivery-link small,.account-link small{font-size:9px;color:#c6d0d6}
-    .delivery-link strong,.account-link strong{font-size:11px;color:#fff}
-    .cart-link{display:flex;align-items:center;gap:5px;color:#fff;font-size:11px}
-    .cart-icon{font-size:21px}.cart-count{color:#f4a340;font-weight:800}
-    .department-nav{height:38px;padding:0 clamp(18px,5vw,76px);display:flex;align-items:center;gap:27px;background:#263e50;color:#e8eef2;font-size:10px;overflow-x:auto;white-space:nowrap}
-    .department-nav a:hover,.department-nav a.active{color:#ffc16f}
+    .site-header{height:auto;min-height:76px;padding:12px clamp(18px,5vw,76px);gap:24px;background:rgba(250,252,248,.82);border:1px solid rgba(255,255,255,.8);border-left:0;border-right:0;color:#173b2c;backdrop-filter:blur(20px) saturate(150%);-webkit-backdrop-filter:blur(20px) saturate(150%);box-shadow:0 8px 30px rgba(18,48,33,.07)}
+    .brand{color:#103d30;flex:0 0 auto}.brand small{color:#7d9183}.brand-mark{background:linear-gradient(145deg,#1b6247,#103d30);color:#fff;border-radius:11px;box-shadow:0 6px 16px rgba(16,61,48,.2)}
+    .global-search{display:flex;flex:1;max-width:690px;height:45px;border-radius:11px;overflow:hidden;background:rgba(255,255,255,.9);border:1px solid rgba(31,76,48,.12);box-shadow:0 6px 20px rgba(20,54,35,.06)}
+    .global-search:focus-within{border-color:#9eb99e;box-shadow:0 0 0 3px rgba(190,215,187,.35)}
+    .global-search select{width:100px;border:0;border-right:1px solid #e6ece4;background:#f5f8f2;padding:0 10px;color:#405347;font-size:11px}
+    .global-search input{min-width:0;flex:1;border:0;outline:0;padding:0 14px;color:#263b30;font-size:12px;background:transparent}
+    .global-search button{width:49px;border:0;background:linear-gradient(135deg,#d8ae70,#c7934b);color:#173b2c;font-size:25px;cursor:pointer}
+    .header-actions{gap:18px;color:#173b2c}
+    .delivery-link,.account-link{display:flex;flex-direction:column;gap:3px;color:#173b2c;white-space:nowrap}
+    .delivery-link small,.account-link small{font-size:9px;color:#78897d}
+    .delivery-link strong,.account-link strong{font-size:11px;color:#173b2c}
+    .cart-link{display:flex;align-items:center;gap:5px;color:#173b2c;font-size:11px}
+    .cart-icon{font-size:21px}.cart-count{color:#a77a3f;font-weight:800}
+    .department-nav{height:40px;padding:0 clamp(18px,5vw,76px);display:flex;align-items:center;gap:27px;background:rgba(239,245,236,.88);color:#4b6354;font-size:10px;overflow-x:auto;white-space:nowrap;border-bottom:1px solid rgba(255,255,255,.9)}
+    .department-nav a{font-weight:650}.department-nav a:hover,.department-nav a.active{color:#a77a3f}
     .mobile-menu-toggle{display:none}
     @media(max-width:760px){
       .site-header{padding:10px 14px;display:grid;grid-template-columns:1fr auto;gap:10px}
