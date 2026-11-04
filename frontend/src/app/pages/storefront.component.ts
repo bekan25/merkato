@@ -2,7 +2,7 @@ import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService, MerkatoProduct } from '../core/api.service';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 
 @Component({
   standalone: true,
@@ -55,7 +55,7 @@ import { RouterLink } from '@angular/router';
 
       <div class="market-toolbar" *ngIf="!loading && !error">
         <span>{{visibleProducts.length}} {{visibleProducts.length === 1 ? 'product' : 'products'}} found</span>
-        <button *ngIf="search || category !== 'All'" type="button" class="clear-filters" (click)="clearFilters()">Clear filters ×</button>
+        <button *ngIf="hasActiveFilters" type="button" class="clear-filters" (click)="clearFilters()">Clear filters ×</button>
       </div>
 
       <div *ngIf="loading" class="state-panel"><span class="loader"></span><strong>Finding good things...</strong><p>Loading products from the MERKATO marketplace.</p></div>
@@ -143,6 +143,7 @@ import { RouterLink } from '@angular/router';
 })
 export class StorefrontComponent implements OnInit, OnDestroy {
   private api = inject(ApiService);
+  private route = inject(ActivatedRoute);
   products: MerkatoProduct[] = [];
   loading = true;
   error = '';
@@ -181,6 +182,14 @@ export class StorefrontComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.restoreSavedProducts();
+    this.route.queryParamMap.subscribe(params => {
+      const nextSearch = params.get('q') || '';
+      const nextCategory = params.get('category') || 'All';
+      const changed = nextSearch !== this.search || nextCategory !== this.category;
+      this.search = nextSearch;
+      this.category = this.categoryOptions.includes(nextCategory) ? nextCategory : 'All';
+      if (changed) this.loadProducts();
+    });
     this.loadProducts();
   }
 
