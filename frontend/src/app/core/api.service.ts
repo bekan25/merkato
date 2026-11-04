@@ -15,7 +15,7 @@ export interface MerkatoProduct {
   createdAt: string;
 }
 
-export interface MerkatoDispute { id: number; orderId: number; buyerId: number; sellerId: number; reason: string; description: string; status: string; createdAt: string; }\n\nexport interface MerkatoOrder {
+export interface MerkatoOrder {
   id: number;
   orderNumber: string;
   buyerId: number;
@@ -28,6 +28,17 @@ export interface MerkatoDispute { id: number; orderId: number; buyerId: number; 
   deliveryAddress: string;
   escrowState: string | number;
   deliveryStatus: string | number;
+  createdAt: string;
+}
+
+export interface MerkatoDispute {
+  id: number;
+  orderId: number;
+  buyerId: number;
+  sellerId: number;
+  reason: string;
+  description: string;
+  status: string;
   createdAt: string;
 }
 
@@ -58,5 +69,13 @@ export class ApiService {
 
   getMyOrders(): Observable<MerkatoOrder[]> {
     return this.http.get<MerkatoOrder[]>(`${this.baseUrl}/orders/mine`);
+  }
+
+  getMerchantOrders(): Observable<MerkatoOrder[]> {
+    return this.http.get<MerkatoOrder[]>(`${this.baseUrl}/orders/merchant`);
+  }
+
+  getDisputes(): Observable<MerkatoDispute[]> {
+    return this.http.get<MerkatoDispute[]>(`${this.baseUrl}/disputes`);
   }
 }
