@@ -43,19 +43,32 @@ public class AuthController : ControllerBase
         if (string.IsNullOrWhiteSpace(dto.FullName))
             return BadRequest("FullName is required.");
 
-        var existingUser = await _db.Users
-            .FirstOrDefaultAsync(x => x.PhoneNumber == dto.PhoneNumber);
+        if (string.IsNullOrWhiteSpace(dto.Pin) ||
+            dto.Pin.Length < 4 ||
+            dto.Pin.Length > 8 ||
+            dto.Pin.Any(character => !char.IsDigit(character)))
+            return BadRequest("PIN must contain 4 to 8 digits.");
 
-        if (existingUser != null)
+        // Public registration must never be able to create privileged accounts.
+        if (dto.Role != UserRole.BUYER && dto.Role != UserRole.MERCHANT)
+            return BadRequest("Choose either BUYER or MERCHANT.");
+
+        var normalizedPhone = dto.PhoneNumber.Trim();
+        var existingUser = await _db.Users
+            .AnyAsync(x => x.PhoneNumber == normalizedPhone);
+
+        if (existingUser)
             return Conflict("User with this phone number already exists.");
 
         var user = new User
         {
-            PhoneNumber = dto.PhoneNumber.Trim(),
+            PhoneNumber = normalizedPhone,
             FullName = dto.FullName.Trim(),
-            FaydaIdNumber = dto.FaydaIdNumber,
+            PinHash = PinHasher.Hash(dto.Pin),
+            FaydaIdNumber = null,
             Role = dto.Role,
-            IsFaydaVerified = !string.IsNullOrWhiteSpace(dto.FaydaIdNumber),
+            // A submitted Fayda number is not proof of verification.
+            IsFaydaVerified = false,
             TrustScore = 50,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
