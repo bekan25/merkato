@@ -11,7 +11,7 @@ export interface AuthUser {
   trustScore: number;
   isFaydaVerified: boolean;
 }
-interface AuthResponse extends AuthUser { token: string; role: string | number; }
+interface AuthResponse extends Omit<AuthUser, 'role'> { token: string; role: string | number; }
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
