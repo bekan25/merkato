@@ -70,3 +70,44 @@ The existing Fayda-related service also needs a real, authenticated provider int
 ## CI
 
 GitHub Actions builds the Angular application and restores, builds and tests the .NET solution on pushes to the feature branch and pull requests targeting `main`.
+
+## Free preview deployment (GitHub + Render + Neon)
+
+This option provides a public preview URL without buying a domain. It serves the Angular app and ASP.NET Core API from one Render web service, so browser requests stay same-origin. Neon supplies the PostgreSQL database; do not use Render's Free Postgres for long-lived data because its free database expires after 30 days.
+
+### Services
+
+- **Render Free Web Service:** builds `backend/Dockerfile`, which compiles the Angular app and publishes it into ASP.NET Core `wwwroot`. The API also serves Angular client-side routes.
+- **Neon Free PostgreSQL:** use the pooled endpoint where available. The current free plan advertises 1 GB storage per project and 100 compute-hours per project per month; check its dashboard for current limits.
+- **GitHub:** source of truth. Render deploys the `feature/merkato-professional-marketplace` branch from the included `render.yaml`.
+
+### Deploy steps
+
+1. Create a Neon account at https://neon.com/ and create a PostgreSQL project. Choose a nearby region (Frankfurt / `eu-central-1` is a reasonable starting point for an Ethiopia-facing preview).
+2. In Neon, open **Connect** and copy the connection details for the pooled endpoint. Configure the value as an Npgsql key/value connection string, not a raw URL:
+   ```
+   Host=YOUR-NEON-POOLER-HOST;Port=5432;Database=neondb;Username=YOUR-DB-USER;Password=YOUR-DB-PASSWORD;SSL Mode=Require;Pooling=true;Maximum Pool Size=10
+   ```
+   Replace every placeholder with the values shown in Neon. Never commit this connection string.
+3. Open https://dashboard.render.com/ and sign in with GitHub. Authorize access to `bekan25/merkato`.
+4. In Render choose **New → Blueprint**, select the repository and the `feature/merkato-professional-marketplace` branch. Render reads `render.yaml`; confirm the service is named `merkato-bekan25` and the plan is **Free**.
+5. When Render asks for `ConnectionStrings__PostgreSql`, paste the Npgsql connection string from step 2. The blueprint generates a unique JWT signing key automatically.
+6. Create the service and watch its first deployment logs. The blueprint enables `MERKATO_APPLY_MIGRATIONS=true` for the initial database setup. Wait until the deployment is healthy and `/health/ready` returns `{"status":"ready"}`.
+7. After the first successful deployment, open the Render service's **Environment** settings and change `MERKATO_APPLY_MIGRATIONS` to `false`, then save/redeploy. Keep the setting false during normal operation; turn it on deliberately only when you intend to apply a reviewed EF migration.
+8. Open the generated Render URL, normally `https://merkato-bekan25.onrender.com`. Test registration, sign-in, buyer and merchant flows, product creation, and order creation. The API health endpoint is `/health`.
+
+### Optional first administrator
+
+Public registration can create only buyer and merchant accounts. To seed the first administrator, add `MERKATO_ADMIN_PHONE`, `MERKATO_ADMIN_PIN` (6–8 digits), and `MERKATO_ADMIN_NAME` in Render Environment settings after the database is migrated, then redeploy. Use a unique PIN; remove the seed variables after the administrator has been created. Do not share the PIN in chat or commit it to GitHub.
+
+### Free-tier limitations and safety
+
+- Render Free web services sleep after 15 minutes without inbound traffic; the first request after sleeping may wait about one minute. Free services can restart and have no persistent local filesystem. Keep uploads in durable object storage, not the app container.
+- Neon Free currently includes 1 GB storage and 100 compute-hours per project per month. Monitor usage and keep independent backups before storing important customer/order data.
+- This setup is for a **preview / learning / early testing environment**, not a commercial production launch. Render explicitly says its free instances are not for production applications.
+- Payment initiation currently records a pending transaction; no live Telebirr or CBE Birr checkout is implemented. Do not collect real customer money.
+- Fayda is not connected to an authenticated identity provider. Do not present users as Fayda-verified.
+- The repository currently targets .NET 8. Microsoft support for .NET 8 ends on **November 10, 2026**; upgrade the API, EF Core packages and Docker images to .NET 10 LTS before a production launch.
+- Resolve the dependency audit findings and complete security, inventory concurrency, refund, dispute, payment reconciliation, backup-restore and end-to-end tests before launch.
+
+For platform limits and setup details, see the official docs: https://render.com/docs/free, https://render.com/docs/blueprint-spec, and https://neon.com/pricing.
