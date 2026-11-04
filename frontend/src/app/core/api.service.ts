@@ -86,4 +86,16 @@ export class ApiService {
   getDisputes(): Observable<MerkatoDispute[]> {
     return this.http.get<MerkatoDispute[]>(`${this.baseUrl}/disputes`);
   }
+
+  startDisputeReview(id: number): Observable<unknown> {
+    return this.http.post(`${this.baseUrl}/disputes/${id}/review`, {});
+  }
+
+  refundDispute(id: number, notes: string): Observable<unknown> {
+    return this.http.post(`${this.baseUrl}/disputes/${id}/refund`, { notes });
+  }
+
+  releaseDispute(id: number, notes: string): Observable<unknown> {
+    return this.http.post(`${this.baseUrl}/disputes/${id}/release`, { notes });
+  }
 }
