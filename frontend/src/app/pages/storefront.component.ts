@@ -34,7 +34,7 @@ import { RouterLink } from '@angular/router';
       <div class="product-grid" *ngIf="!loading && !error">
         <article class="product-card" *ngFor="let product of products">
           <div class="product-visual"><img *ngIf="product.imageUrl" [src]="imageUrl(product.imageUrl)" [alt]="product.name"><span *ngIf="!product.imageUrl" class="product-emoji">{{product.emoji || '🛍️'}}</span><span class="product-category">{{product.category}}</span><button class="save-button" title="Save product" aria-label="Save product">♡</button></div>
-          <div class="product-info"><span class="product-location">⌖ {{product.location || 'Ethiopia'}}</span><h3>{{product.name}}</h3><div class="product-bottom"><strong>{{product.priceEtb | number:'1.2-2'}} <small>ETB</small></strong><button (click)="addToCart(product)" class="add-button" [attr.aria-label]="'Add '+product.name+' to cart">+</button></div></div>
+          <div class="product-info"><span class="product-location">⌖ {{product.location || 'Ethiopia'}}</span><h3>{{product.name}}</h3><div class="product-bottom"><strong>{{product.priceEtb | number:'1.2-2'}} <small>ETB</small></strong><button (click)="addToCart(product)" class="add-button" aria-label="Add product to cart">+</button></div></div>
         </article>
       </div>
     </section>
