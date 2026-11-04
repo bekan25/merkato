@@ -95,13 +95,20 @@ public class PaymentsController : ControllerBase
             });
         }
 
-        var transaction =
-            await _paymentService.InitiatePaymentAsync(
-                order.Id,
-                idempotencyKey,
-                expectedAmount,
-                request.PaymentRail,
-                ct);
+        PaymentTransaction transaction;
+        try
+        {
+            transaction = await _paymentService.InitiatePaymentAsync(
+                order.Id, idempotencyKey, expectedAmount, request.PaymentRail, ct);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { error = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
 
         return Ok(new
         {
