@@ -31,6 +31,17 @@ export interface MerkatoOrder {
   createdAt: string;
 }
 
+export interface SellerVerification {
+  sellerId: number;
+  status: 'NOT_SUBMITTED' | 'PENDING' | 'APPROVED' | 'REJECTED';
+  businessName?: string | null;
+  businessType?: string | null;
+  city?: string | null;
+  contactPhone?: string | null;
+  reviewerNote?: string | null;
+  submittedAt?: string | null;
+}
+
 export interface MerkatoDispute {
   id: number;
   orderId: number;
@@ -89,6 +100,22 @@ export class ApiService {
 
   getAdminAnalytics(): Observable<AdminAnalytics> {
     return this.http.get<AdminAnalytics>(`${this.baseUrl}/analytics/admin`);
+  }
+
+  getMySellerVerification(): Observable<SellerVerification> {
+    return this.http.get<SellerVerification>(`${this.baseUrl}/trust/seller-verification/me`);
+  }
+
+  submitSellerVerification(payload: { businessName: string; businessType: string; city: string; contactPhone: string }): Observable<unknown> {
+    return this.http.post(`${this.baseUrl}/trust/seller-verification`, payload);
+  }
+
+  getSellerVerifications(): Observable<SellerVerification[]> {
+    return this.http.get<SellerVerification[]>(`${this.baseUrl}/trust/seller-verifications`);
+  }
+
+  decideSellerVerification(sellerId: number, decision: 'APPROVED' | 'REJECTED', note = ''): Observable<unknown> {
+    return this.http.post(`${this.baseUrl}/trust/seller-verifications/${sellerId}/decision`, { decision, note });
   }
 
   getDisputes(): Observable<MerkatoDispute[]> {
