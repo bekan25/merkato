@@ -130,6 +130,7 @@ public class PaymentsController : ControllerBase
 
     [HttpPost("webhooks/{provider}")]
     [AllowAnonymous]
+    [RequestSizeLimit(64 * 1024)]
     public async Task<IActionResult> ProcessWebhook(
         string provider,
         [FromBody] JsonElement payload,
