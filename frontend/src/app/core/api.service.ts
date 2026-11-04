@@ -45,7 +45,7 @@ export interface MerkatoDispute {
 @Injectable({ providedIn: 'root' })
 export class ApiService {
   private http = inject(HttpClient);
-  private readonly baseUrl = 'http://localhost:5000/api';
+  private readonly baseUrl = '/api';
 
   getProducts(search = '', category = ''): Observable<MerkatoProduct[]> {
     let params = new HttpParams();
