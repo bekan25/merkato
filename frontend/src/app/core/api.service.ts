@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
-export interface MerkatoOrder { id: number; orderNumber: string; buyerId: number; sellerId: number; productTitle: string; totalAmountEtb: number; deliveryFeeEtb: number; paymentRail: number; deliveryCourier: string; deliveryAddress: string; escrowState: string | number; deliveryStatus: string | number; createdAt: string; }\n\nexport interface MerkatoProduct {
+export interface MerkatoProduct {
   id: number;
   sellerId: number;
   name: string;
@@ -12,6 +12,22 @@ export interface MerkatoOrder { id: number; orderNumber: string; buyerId: number
   emoji?: string;
   imageUrl?: string | null;
   isActive: boolean;
+  createdAt: string;
+}
+
+export interface MerkatoOrder {
+  id: number;
+  orderNumber: string;
+  buyerId: number;
+  sellerId: number;
+  productTitle: string;
+  totalAmountEtb: number;
+  deliveryFeeEtb: number;
+  paymentRail: number;
+  deliveryCourier: string;
+  deliveryAddress: string;
+  escrowState: string | number;
+  deliveryStatus: string | number;
   createdAt: string;
 }
 
@@ -29,5 +45,18 @@ export class ApiService {
 
   createProduct(payload: { name: string; priceEtb: number; location: string; category: string; emoji: string }): Observable<MerkatoProduct> {
     return this.http.post<MerkatoProduct>(`${this.baseUrl}/products`, payload);
+  }
+
+  createOrder(payload: { sellerId: number; productTitle: string; amountEtb: number; deliveryFeeEtb: number; paymentRail: number; deliveryCourier: string; deliveryAddress: string; cityArea: string }): Observable<MerkatoOrder> {
+    return this.http.post<MerkatoOrder>(`${this.baseUrl}/orders`, payload);
+  }
+
+  initiatePayment(orderId: number, amountEtb: number, paymentRail: number): Observable<unknown> {
+    const headers = new HttpHeaders({ 'Idempotency-Key': crypto.randomUUID() });
+    return this.http.post(`${this.baseUrl}/payments/initiate`, { orderId, amountEtb, paymentRail }, { headers });
+  }
+
+  getMyOrders(): Observable<MerkatoOrder[]> {
+    return this.http.get<MerkatoOrder[]>(`${this.baseUrl}/orders/mine`);
   }
 }
