@@ -199,7 +199,7 @@ var configuredOrigins =
     Environment.GetEnvironmentVariable("MERKATO_ALLOWED_ORIGINS")
     ?? builder.Configuration["MERKATO_ALLOWED_ORIGINS"];
 
-if (appEnvironmentIsProduction(builder.Environment) && string.IsNullOrWhiteSpace(configuredOrigins))
+if (builder.Environment.IsProduction() && string.IsNullOrWhiteSpace(configuredOrigins))
 {
     throw new InvalidOperationException("MERKATO_ALLOWED_ORIGINS must be configured in production.");
 }
