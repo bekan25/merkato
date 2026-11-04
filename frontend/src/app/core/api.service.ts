@@ -15,7 +15,7 @@ export interface MerkatoProduct {
   createdAt: string;
 }
 
-export interface MerkatoOrder {
+export interface MerkatoDispute { id: number; orderId: number; buyerId: number; sellerId: number; reason: string; description: string; status: string; createdAt: string; }\n\nexport interface MerkatoOrder {
   id: number;
   orderNumber: string;
   buyerId: number;
