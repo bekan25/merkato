@@ -182,3 +182,16 @@ tbody tr:hover{background:#fbfcfa}
  .workspace-card,.side-link{transition:none}
  .workspace-card:hover{transform:none}
 }
+
+
+/* Seller verification workflow */
+.trust-panel{background:#fbfcf8;border:1px solid #e7ece4;border-radius:14px;padding:25px;margin:24px 0}
+.trust-panel>p{color:#758079;font-size:12px;line-height:1.7}
+.trust-panel>small{display:block;color:#8a948d;font-size:10px;line-height:1.6;margin-top:14px}
+.verification-status{display:flex;flex-wrap:wrap;align-items:center;gap:12px;background:#f2f3ef;border-radius:9px;padding:13px 15px;margin:17px 0;color:#68756c;font-size:11px}
+.verification-status strong{font-size:10px;letter-spacing:.08em}
+.verification-status.pending{background:#fff6e8;color:#94651e}
+.verification-status.approved{background:#eaf5ec;color:#24613c}
+.trust-panel .product-form{margin-top:15px}
+.trust-panel .product-form label{min-width:180px}
+@media(max-width:640px){.trust-panel{padding:18px;margin:16px 0}.trust-panel .product-form{grid-template-columns:1fr}}
