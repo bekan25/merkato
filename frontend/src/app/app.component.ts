@@ -18,7 +18,7 @@ import { AuthService } from './core/auth.service';
           <a href="#how-it-works">How it works</a>
         </nav>
         <div class="header-actions">
-          <a class="dashboard-link" *ngIf="auth.isAuthenticated" [routerLink]="auth.dashboardPath()">My workspace</a>
+          <a class="cart-link" routerLink="/cart">Cart <span>{{cartCount}}</span></a><a class="dashboard-link" *ngIf="auth.isAuthenticated" [routerLink]="auth.dashboardPath()">My workspace</a>
           <a class="btn btn-outline" *ngIf="!auth.isAuthenticated" routerLink="/login">Sign in</a>
           <a class="btn btn-primary" *ngIf="!auth.isAuthenticated" routerLink="/login">Get started <span>↗</span></a>
           <button class="avatar-button" *ngIf="auth.isAuthenticated" (click)="goDashboard()">{{ auth.user?.fullName?.slice(0,1) || 'U' }}</button>
@@ -33,6 +33,7 @@ import { AuthService } from './core/auth.service';
 export class AppComponent {
   auth = inject(AuthService);
   private router = inject(Router);
+  get cartCount(): number { try { return (JSON.parse(sessionStorage.getItem('merkato_cart') || '[]') as Array<{quantity:number}>).reduce((sum, item) => sum + item.quantity, 0); } catch { return 0; } }
   goDashboard(): void { this.router.navigateByUrl(this.auth.dashboardPath()); }
   logout(): void { this.auth.logout(); this.router.navigateByUrl('/'); }
 }
