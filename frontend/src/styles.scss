@@ -305,3 +305,86 @@ input,select,textarea{transition:border-color .18s ease,box-shadow .18s ease}
 @media(prefers-reduced-motion:reduce){
  *,*:before,*:after{scroll-behavior:auto!important;transition:none!important;animation:none!important}
 }
+
+/* MERKATO premium glass layer — shared across storefront, account and workspaces */
+:root{
+  --glass-bg:rgba(255,255,255,.76);
+  --glass-border:rgba(255,255,255,.78);
+  --glass-shadow:0 16px 44px rgba(17,55,39,.085);
+  --glass-blur:blur(18px) saturate(145%);
+}
+@supports (backdrop-filter:blur(1px)){
+  .product-card,.cart-line,.checkout-panel,.workspace-card,.workspace-section,
+  .auth-form,.quick-view-dialog,.compare-bar,.state-panel{
+    backdrop-filter:var(--glass-blur);
+    -webkit-backdrop-filter:var(--glass-blur);
+  }
+}
+.product-card,.cart-line,.workspace-card,.workspace-section{
+  border:1px solid rgba(255,255,255,.82);
+  background:linear-gradient(145deg,rgba(255,255,255,.94),rgba(247,250,245,.82));
+  box-shadow:0 7px 25px rgba(18,59,47,.045);
+  transition:transform .24s ease,border-color .24s ease,box-shadow .24s ease;
+}
+.product-card:hover,.workspace-card:hover{
+  border-color:rgba(151,183,151,.55);
+  box-shadow:var(--glass-shadow);
+  transform:translateY(-4px);
+}
+.workspace-section{border-radius:16px;box-shadow:0 8px 30px rgba(18,59,47,.035)}
+.workspace-card{border-radius:14px}
+.checkout-panel{
+  border:1px solid rgba(255,255,255,.9);
+  background:linear-gradient(145deg,rgba(250,252,248,.94),rgba(238,245,236,.78));
+  box-shadow:0 16px 45px rgba(18,59,47,.07);
+  border-radius:16px;
+}
+.cart-line{border-radius:14px}
+.auth-form{
+  border:1px solid rgba(255,255,255,.82);
+  border-radius:20px;
+  padding:30px;
+  background:rgba(255,255,255,.76);
+  box-shadow:0 22px 65px rgba(18,59,47,.09);
+}
+.auth-form input,.auth-form select,.product-form input,.checkout-panel input,.checkout-panel select{
+  transition:border-color .18s ease,box-shadow .18s ease,background .18s ease;
+}
+.auth-form input:focus,.auth-form select:focus,.product-form input:focus,
+.checkout-panel input:focus,.checkout-panel select:focus{
+  border-color:#8eae96;
+  box-shadow:0 0 0 4px rgba(142,174,150,.17);
+  background:#fff;
+}
+.btn,.add-button,.side-link,.save-button{transition:transform .2s ease,box-shadow .2s ease,background .2s ease}
+.btn:focus-visible,.add-button:focus-visible,.side-link:focus-visible,
+.save-button:focus-visible,.quick-view-trigger:focus-visible,a:focus-visible,
+button:focus-visible,input:focus-visible,select:focus-visible{
+  outline:3px solid rgba(194,151,82,.58);
+  outline-offset:3px;
+}
+.btn-primary{box-shadow:0 7px 18px rgba(18,59,47,.16)}
+.btn-primary:hover{box-shadow:0 11px 24px rgba(18,59,47,.2)}
+.product-visual{background:linear-gradient(145deg,#f5f7f1,#eaf0e8)}
+.product-category{backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.8)}
+.save-button,.quick-view-trigger{box-shadow:0 6px 18px rgba(20,45,31,.12)}
+.quick-view-dialog{border:1px solid rgba(255,255,255,.75);box-shadow:0 28px 100px rgba(5,25,15,.32)}
+.quick-view-close{box-shadow:0 4px 16px rgba(20,45,31,.12)}
+.workspace{background:radial-gradient(ellipse at 88% 0%,rgba(219,232,215,.48),transparent 34%),#f6f8f4}
+.workspace-sidebar{background:rgba(255,255,255,.82);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+.welcome-panel{background:linear-gradient(120deg,#103d30,#1c6248 72%,#347b5a);box-shadow:0 15px 38px rgba(18,59,47,.15)}
+.state-panel{background:rgba(255,255,255,.64);border-color:rgba(178,198,177,.65);border-radius:16px}
+.toast{backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 15px 40px rgba(10,35,23,.2)}
+@media(max-width:680px){
+  .auth-form{padding:23px 19px;border-radius:16px}
+  .workspace-section{padding:17px;border-radius:13px}
+  .cart-line{align-items:flex-start;gap:10px;padding:11px}
+  .checkout-panel{padding:18px}
+}
+@media(prefers-reduced-motion:reduce){
+  .product-card,.workspace-card,.btn,.add-button,.side-link,.save-button,
+  .auth-form input,.auth-form select,.product-form input,.checkout-panel input,
+  .checkout-panel select{transition:none!important}
+  .product-card:hover,.workspace-card:hover,.btn-primary:hover{transform:none}
+}
+
