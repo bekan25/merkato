@@ -1,8 +1,8 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
-export interface MerkatoProduct {
+export interface MerkatoOrder { id: number; orderNumber: string; buyerId: number; sellerId: number; productTitle: string; totalAmountEtb: number; deliveryFeeEtb: number; paymentRail: number; deliveryCourier: string; deliveryAddress: string; escrowState: string | number; deliveryStatus: string | number; createdAt: string; }\n\nexport interface MerkatoProduct {
   id: number;
   sellerId: number;
   name: string;
