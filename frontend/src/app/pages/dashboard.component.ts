@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../core/auth.service';
-import { ApiService, MerkatoProduct, MerkatoOrder } from '../core/api.service';
+import { ApiService, MerkatoProduct, MerkatoOrder, MerkatoDispute } from '../core/api.service';
 
 @Component({
   standalone: true,
@@ -24,8 +24,9 @@ import { ApiService, MerkatoProduct, MerkatoOrder } from '../core/api.service';
           <div *ngIf="merchantProducts.length" class="table-wrap"><table><thead><tr><th>Product</th><th>Category</th><th>Price</th><th>Location</th><th>Status</th></tr></thead><tbody><tr *ngFor="let p of merchantProducts"><td>{{p.name}}</td><td>{{p.category}}</td><td>{{p.priceEtb | number:'1.2-2'}} ETB</td><td>{{p.location}}</td><td><span class="status-pill">Active</span></td></tr></tbody></table></div>
           <div class="empty-inline" *ngIf="!merchantProducts.length">No products are currently returned by the API. Add your first product when signed in as a merchant.</div>
         </section>
+        <section class="workspace-section" *ngIf="user?.role === 'MERCHANT' || user?.role === 'ADMIN'"><span class="eyebrow">ORDER FULFILMENT</span><h2>Incoming orders</h2><div *ngIf="merchantOrders.length" class="table-wrap"><table><thead><tr><th>Order</th><th>Product</th><th>Buyer</th><th>Total</th><th>Delivery</th></tr></thead><tbody><tr *ngFor="let order of merchantOrders"><td>{{order.orderNumber}}</td><td>{{order.productTitle}}</td><td>#{{order.buyerId}}</td><td>{{order.totalAmountEtb | number:'1.2-2'}} ETB</td><td>{{order.deliveryStatus}}</td></tr></tbody></table></div><div class="empty-inline" *ngIf="!merchantOrders.length">No incoming orders have been recorded yet.</div></section>
         <section class="workspace-section" *ngIf="user?.role === 'BUYER'"><div class="workspace-section-head"><div><span class="eyebrow">YOUR SHOPPING</span><h2>Your orders</h2><p>Recent orders created from your buyer account.</p></div><a routerLink="/cart" class="btn btn-outline">Open cart</a></div><div *ngIf="buyerOrders.length" class="table-wrap"><table><thead><tr><th>Order</th><th>Product</th><th>Total</th><th>Escrow</th><th>Date</th></tr></thead><tbody><tr *ngFor="let order of buyerOrders"><td>{{order.orderNumber}}</td><td>{{order.productTitle}}</td><td>{{order.totalAmountEtb | number:'1.2-2'}} ETB</td><td><span class="status-pill">{{order.escrowState}}</span></td><td>{{order.createdAt | date:'mediumDate'}}</td></tr></tbody></table></div><div class="empty-inline" *ngIf="!buyerOrders.length">No orders have been created yet. Browse the marketplace and add products to your cart.</div><a routerLink="/" class="btn btn-primary">Explore products ↗</a></section>
-        <section class="workspace-section" *ngIf="user?.role === 'ADMIN'" id="admin-note"><span class="eyebrow">PLATFORM OPERATIONS</span><h2>Administration</h2><p>Admin access is confirmed by the API role claim. Dispute resolution and platform reporting endpoints can be surfaced here as those workflows are wired into the dashboard.</p></section>
+        <section class="workspace-section" *ngIf="user?.role === 'ADMIN'" id="admin-note"><span class="eyebrow">PLATFORM OPERATIONS</span><h2>Dispute oversight</h2><p>Open disputes returned by the protected arbitration API.</p><div *ngIf="disputes.length" class="table-wrap"><table><thead><tr><th>Dispute</th><th>Order</th><th>Reason</th><th>Status</th><th>Created</th></tr></thead><tbody><tr *ngFor="let dispute of disputes"><td>#{{dispute.id}}</td><td>#{{dispute.orderId}}</td><td>{{dispute.reason}}</td><td><span class="status-pill">{{dispute.status}}</span></td><td>{{dispute.createdAt | date:'mediumDate'}}</td></tr></tbody></table></div><div class="empty-inline" *ngIf="!disputes.length">No disputes are currently returned by the API.</div></section>
         <div class="inline-error" *ngIf="loadError">{{loadError}}</div>
       </div>
     </section>
@@ -39,6 +40,8 @@ export class DashboardComponent implements OnInit {
   welcomeText = this.user?.role === 'ADMIN' ? 'Monitor your marketplace workspace and manage platform operations.' : this.user?.role === 'MERCHANT' ? 'Manage your catalogue and grow your reach across Ethiopia.' : 'Your marketplace journey starts here. Discover something worth sharing.';
   merchantProducts: MerkatoProduct[] = [];
   buyerOrders: MerkatoOrder[] = [];
+  merchantOrders: MerkatoOrder[] = [];
+  disputes: MerkatoDispute[] = [];
   loadError = '';
   showProductForm = false;
   saving = false;
@@ -48,7 +51,9 @@ export class DashboardComponent implements OnInit {
     if (this.user?.role === 'BUYER') this.api.getMyOrders().subscribe({ next: items => this.buyerOrders = items || [], error: () => this.loadError = 'Could not load order history.' });
     if (this.user?.role === 'MERCHANT' || this.user?.role === 'ADMIN') {
       this.api.getProducts().subscribe({ next: items => this.merchantProducts = (items || []).filter(p => this.user?.role === 'ADMIN' || p.sellerId === this.user?.userId), error: () => this.loadError = 'Could not load catalogue. Check the API connection.' });
+      this.api.getMerchantOrders().subscribe({ next: items => this.merchantOrders = items || [], error: () => this.loadError = 'Could not load order records.' });
     }
+    if (this.user?.role === 'ADMIN') this.api.getDisputes().subscribe({ next: items => this.disputes = items || [], error: () => this.loadError = 'Could not load dispute records.' });
   }
   createProduct(): void {
     this.productError = '';
