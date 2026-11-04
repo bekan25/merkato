@@ -67,12 +67,22 @@ var jwtKey =
     Environment.GetEnvironmentVariable("Jwt__Key")
     ?? builder.Configuration["Jwt:Key"];
 
-if (string.IsNullOrWhiteSpace(jwtKey))
+if (string.IsNullOrWhiteSpace(jwtKey) || Encoding.UTF8.GetByteCount(jwtKey) < 32)
 {
     throw new InvalidOperationException(
-        "JWT key is not configured."
+        "JWT key must be configured and contain at least 32 UTF-8 bytes."
     );
 }
+
+var jwtIssuer =
+    Environment.GetEnvironmentVariable("Jwt__Issuer")
+    ?? builder.Configuration["Jwt:Issuer"]
+    ?? "https://api.merkato.et";
+
+var jwtAudience =
+    Environment.GetEnvironmentVariable("Jwt__Audience")
+    ?? builder.Configuration["Jwt:Audience"]
+    ?? "https://merkato.et";
 
 builder.Services
     .AddAuthentication(
@@ -90,8 +100,10 @@ builder.Services
                         Encoding.UTF8.GetBytes(jwtKey)
                     ),
 
-                ValidateIssuer = false,
-                ValidateAudience = false,
+                ValidateIssuer = true,
+                ValidIssuer = jwtIssuer,
+                ValidateAudience = true,
+                ValidAudience = jwtAudience,
                 ValidateLifetime = true,
 
                 ClockSkew = TimeSpan.Zero
@@ -179,17 +191,19 @@ builder.Services.AddSwaggerGen(options =>
 // CORS
 // ============================================================
 
+var allowedOrigins = (
+    Environment.GetEnvironmentVariable("MERKATO_ALLOWED_ORIGINS")
+    ?? "http://localhost:4200;https://merkato.et;https://www.merkato.et"
+).Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(
         "MerkatoFrontend",
-        policy =>
-        {
-            policy
-                .AllowAnyOrigin()
-                .AllowAnyHeader()
-                .AllowAnyMethod();
-        }
+        policy => policy
+            .WithOrigins(allowedOrigins)
+            .AllowAnyHeader()
+            .AllowAnyMethod()
     );
 });
 
@@ -354,24 +368,24 @@ app.MapGet(
 // ADMIN SEED
 // ============================================================
 
-using (var scope = app.Services.CreateScope())
+var adminPhone = Environment.GetEnvironmentVariable("MERKATO_ADMIN_PHONE");
+var adminPin = Environment.GetEnvironmentVariable("MERKATO_ADMIN_PIN");
+var adminName = Environment.GetEnvironmentVariable("MERKATO_ADMIN_NAME");
+
+if (!string.IsNullOrWhiteSpace(adminPhone) &&
+    !string.IsNullOrWhiteSpace(adminPin) &&
+    !string.IsNullOrWhiteSpace(adminName))
 {
-    var db = scope.ServiceProvider
-        .GetRequiredService<Merkato.Infrastructure.Persistence.MerkatoDbContext>();
-
-    var adminPhone = Environment.GetEnvironmentVariable("MERKATO_ADMIN_PHONE") ?? "0922481727";
-    var adminPin = Environment.GetEnvironmentVariable("MERKATO_ADMIN_PIN") ?? "1234";
-    var adminName = Environment.GetEnvironmentVariable("MERKATO_ADMIN_NAME") ?? "admin";
-
-    var admin = await db.Users
-        .FirstOrDefaultAsync(x => x.PhoneNumber == adminPhone);
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<MerkatoDbContext>();
+    var admin = await db.Users.FirstOrDefaultAsync(x => x.PhoneNumber == adminPhone);
 
     if (admin == null)
     {
         admin = new Merkato.Domain.Entities.User
         {
-            PhoneNumber = adminPhone,
-            FullName = adminName,
+            PhoneNumber = adminPhone.Trim(),
+            FullName = adminName.Trim(),
             PinHash = Merkato.Api.Services.PinHasher.Hash(adminPin),
             Role = Merkato.Domain.Enums.UserRole.ADMIN,
             TrustScore = 100,
@@ -379,16 +393,12 @@ using (var scope = app.Services.CreateScope())
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
-
         db.Users.Add(admin);
     }
-    else
+    else if (admin.Role != Merkato.Domain.Enums.UserRole.ADMIN)
     {
-        admin.FullName = adminName;
-        admin.PinHash = Merkato.Api.Services.PinHasher.Hash(adminPin);
-        admin.Role = Merkato.Domain.Enums.UserRole.ADMIN;
-        admin.TrustScore = 100;
-        admin.UpdatedAt = DateTime.UtcNow;
+        throw new InvalidOperationException(
+            "Configured MERKATO_ADMIN_PHONE belongs to a non-admin account. Resolve this manually.");
     }
 
     await db.SaveChangesAsync();
