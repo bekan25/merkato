@@ -41,3 +41,13 @@ jobs:
         run: dotnet build backend/Merkato.sln --configuration Release --no-restore
       - name: Test
         run: dotnet test backend/Merkato.sln --configuration Release --no-build
+
+  containers:
+    name: Container image builds
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build API image
+        run: docker build --file backend/Dockerfile --tag merkato-api:ci .
+      - name: Build web image
+        run: docker build --file frontend/Dockerfile --tag merkato-web:ci .
