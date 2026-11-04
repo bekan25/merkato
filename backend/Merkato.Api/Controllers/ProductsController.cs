@@ -140,7 +140,7 @@ public class ProductsController : ControllerBase
             sellerId = request.SellerId;
 
         var sellerExists = await _db.Users
-            .AnyAsync(u => u.Id == sellerId);
+            .AnyAsync(u => u.Id == sellerId && u.Role == Merkato.Domain.Enums.UserRole.MERCHANT);
 
         if (!sellerExists)
             return BadRequest("Seller does not exist.");
