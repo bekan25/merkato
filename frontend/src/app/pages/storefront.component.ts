@@ -184,7 +184,7 @@ export class StorefrontComponent implements OnInit, OnDestroy {
 
   imageUrl(path: string): string {
     if (!path) return '';
-    if (/^https?:\\/\\//i.test(path)) {
+    if (/^https?:\/\//i.test(path)) {
       try {
         const parsed = new URL(path);
         if (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') return parsed.pathname + parsed.search;
