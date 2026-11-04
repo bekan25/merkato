@@ -100,7 +100,8 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
           <span class="eyebrow">{{product.category}} · {{product.location || 'Ethiopia'}}</span>
           <h2>{{product.name}}</h2>
           <strong class="quick-view-price">{{product.priceEtb | number:'1.2-2'}} ETB</strong>
-          <p>Discover this item from a local MERKATO merchant. Add it to your bag and continue shopping securely.</p>
+          <p>Discover this item from a local MERKATO merchant. Review the listing details below, then add it to your bag.</p>
+          <div class="quick-view-meta"><div><small>Category</small><strong>{{product.category}}</strong></div><div><small>Location</small><strong>{{product.location || 'Ethiopia'}}</strong></div><div><small>Listing date</small><strong>{{product.createdAt | date:'mediumDate'}}</strong></div><div><small>Availability</small><strong>{{product.isActive ? 'Active listing' : 'Unavailable'}}</strong></div></div>
           <div class="quick-view-actions"><button class="btn btn-primary" type="button" (click)="addToCart(product); closeQuickView()">Add to cart <span>＋</span></button><button class="btn btn-outline" type="button" (click)="toggleSaved(product)">{{isSaved(product.id) ? '♥ Saved' : '♡ Save item'}}</button></div>
         </div>
       </section>
@@ -135,6 +136,11 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
     .quick-view-content h2{font:800 29px/1.15 Manrope;color:var(--forest);letter-spacing:-1px;margin:15px 0}
     .quick-view-price{font:800 21px Manrope;color:var(--forest)}
     .quick-view-content p{font-size:13px;line-height:1.7;color:#758079;margin:18px 0 25px}
+    .quick-view-meta{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:18px 0 22px}
+    .quick-view-meta>div{padding:11px;border:1px solid #e8eee6;border-radius:10px;background:rgba(246,249,244,.8)}
+    .quick-view-meta small,.quick-view-meta strong{display:block}
+    .quick-view-meta small{margin-bottom:5px;color:#89968c;font-size:9px}
+    .quick-view-meta strong{color:#294b37;font-size:11px}
     .quick-view-actions{display:flex;flex-wrap:wrap;gap:9px}
     .toast{z-index:110}
     @media(max-width:650px){.quick-view-dialog{grid-template-columns:1fr;max-width:430px;max-height:90vh;overflow:auto}.quick-view-image{min-height:210px;max-height:230px}.quick-view-image img{min-height:210px}.quick-view-content{padding:25px}.quick-view-content h2{font-size:24px}.quick-view-trigger{opacity:1;transform:translate(-50%,0)}}
