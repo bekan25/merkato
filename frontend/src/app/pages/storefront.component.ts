@@ -71,7 +71,7 @@ import { RouterLink } from '@angular/router';
           <div class="product-info">
             <span class="product-location">⌖ {{product.location || 'Ethiopia'}}</span>
             <button class="product-title-button" type="button" (click)="openQuickView(product)">{{product.name}}</button>
-            <div class="product-bottom"><strong>{{product.priceEtb | number:'1.2-2'}} <small>ETB</small></strong><button (click)="addToCart(product)" class="add-button" type="button" [attr.aria-label]="'Add ' + product.name + ' to cart">+</button></div>
+            <div class="product-bottom"><strong>{{product.priceEtb | number:'1.2-2'}} <small>ETB</small></strong><button (click)="addToCart(product)" class="add-button" type="button" [attr.aria-label]="'Add ' + product.name + ' to cart'">+</button></div>
           </div>
         </article>
       </div>
