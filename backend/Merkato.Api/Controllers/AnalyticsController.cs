@@ -68,7 +68,7 @@ public sealed class AnalyticsController : ControllerBase
             activeProducts = await products.CountAsync(p => p.IsActive, ct),
             totalOrders = await orders.CountAsync(ct),
             grossOrderValueEtb = await orders.SumAsync(o => (decimal?)o.TotalAmountEtb, ct) ?? 0m,
-            openDisputes = await disputes.CountAsync(d => d.Status == "OPEN" || d.Status == "UNDER_REVIEW", ct),
+            openDisputes = await disputes.CountAsync(d => d.Status.ToString() == "OPEN" || d.Status.ToString() == "UNDER_REVIEW", ct),
             recentUsers
         });
     }
