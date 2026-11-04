@@ -16,7 +16,7 @@ interface AuthResponse extends Omit<AuthUser, 'role'> { token: string; role: str
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private http = inject(HttpClient);
-  private readonly api = 'http://localhost:5000/api/auth';
+  private readonly api = '/api/auth';
   private readonly tokenKey = 'merkato_access_token';
   private readonly userKey = 'merkato_user';
 
