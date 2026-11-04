@@ -20,8 +20,8 @@ import { ApiService, MerkatoProduct, MerkatoOrder, MerkatoDispute } from '../cor
           <article class="workspace-card"><span class="card-icon">✓</span><span class="card-label">FAYDA STATUS</span><strong>{{user?.isFaydaVerified ? 'Verified' : 'Not verified'}}</strong><small>Identity verification status</small></article>
         </div>
         <section class="workspace-section" *ngIf="user?.role === 'MERCHANT' || user?.role === 'ADMIN'" id="products"><div class="workspace-section-head"><div><span class="eyebrow">YOUR CATALOGUE</span><h2>Product management</h2><p>Products currently available in the marketplace API.</p></div><button class="btn btn-primary" (click)="showProductForm = !showProductForm">{{showProductForm ? 'Close form' : '+ Add product'}}</button></div>
-          <form class="product-form" *ngIf="showProductForm" (ngSubmit)="createProduct()"><label>Product name<input name="name" [(ngModel)]="draft.name" required></label><label>Price (ETB)<input name="price" [(ngModel)]="draft.priceEtb" type="number" min="0.01" required></label><label>Category<input name="category" [(ngModel)]="draft.category" required></label><label>Location<input name="location" [(ngModel)]="draft.location" required></label><button class="btn btn-primary" [disabled]="saving">{{saving ? 'Saving...' : 'Save product'}}</button><p class="form-error" *ngIf="productError">{{productError}}</p></form>
-          <div *ngIf="merchantProducts.length" class="table-wrap"><table><thead><tr><th>Product</th><th>Category</th><th>Price</th><th>Location</th><th>Status</th></tr></thead><tbody><tr *ngFor="let p of merchantProducts"><td>{{p.name}}</td><td>{{p.category}}</td><td>{{p.priceEtb | number:'1.2-2'}} ETB</td><td>{{p.location}}</td><td><span class="status-pill">Active</span></td></tr></tbody></table></div>
+          <form class="product-form" *ngIf="showProductForm" (ngSubmit)="createProduct()"><label>Product name<input name="name" [(ngModel)]="draft.name" required></label><label>Price (ETB)<input name="price" [(ngModel)]="draft.priceEtb" type="number" min="0.01" required></label><label>Category<input name="category" [(ngModel)]="draft.category" required></label><label>Location<input name="location" [(ngModel)]="draft.location" required></label><button class="btn btn-primary" [disabled]="saving">{{saving ? 'Saving...' : (editingProductId ? 'Update product' : 'Save product')}}</button><p class="form-error" *ngIf="productError">{{productError}}</p></form>
+          <div *ngIf="merchantProducts.length" class="table-wrap"><table><thead><tr><th>Product</th><th>Category</th><th>Price</th><th>Location</th><th>Status</th><th>Actions</th></tr></thead><tbody><tr *ngFor="let p of merchantProducts"><td>{{p.name}}</td><td>{{p.category}}</td><td>{{p.priceEtb | number:'1.2-2'}} ETB</td><td>{{p.location}}</td><td><span class="status-pill">Active</span></td><td class="product-actions"><button type="button" (click)="editProduct(p)">Edit</button><button type="button" (click)="removeProduct(p)">Archive</button></td></tr></tbody></table></div>
           <div class="empty-inline" *ngIf="!merchantProducts.length">No products are currently returned by the API. Add your first product when signed in as a merchant.</div>
         </section>
         <section class="workspace-section" *ngIf="user?.role === 'MERCHANT' || user?.role === 'ADMIN'"><span class="eyebrow">ORDER FULFILMENT</span><h2>Incoming orders</h2><div *ngIf="merchantOrders.length" class="table-wrap"><table><thead><tr><th>Order</th><th>Product</th><th>Buyer</th><th>Total</th><th>Delivery</th></tr></thead><tbody><tr *ngFor="let order of merchantOrders"><td>{{order.orderNumber}}</td><td>{{order.productTitle}}</td><td>#{{order.buyerId}}</td><td>{{order.totalAmountEtb | number:'1.2-2'}} ETB</td><td>{{order.deliveryStatus}}</td></tr></tbody></table></div><div class="empty-inline" *ngIf="!merchantOrders.length">No incoming orders have been recorded yet.</div></section>
@@ -44,6 +44,7 @@ export class DashboardComponent implements OnInit {
   disputes: MerkatoDispute[] = [];
   loadError = '';
   showProductForm = false;
+  editingProductId: number | null = null;
   saving = false;
   productError = '';
   draft = { name: '', priceEtb: 0, category: 'Other', location: 'Addis Ababa', emoji: '🛍️' };
@@ -59,9 +60,36 @@ export class DashboardComponent implements OnInit {
     this.productError = '';
     if (!this.draft.name.trim() || this.draft.priceEtb <= 0) { this.productError = 'Enter a product name and a price greater than zero.'; return; }
     this.saving = true;
-    this.api.createProduct(this.draft).subscribe({
-      next: product => { this.merchantProducts = [product, ...this.merchantProducts]; this.draft = {name:'',priceEtb:0,category:'Other',location:'Addis Ababa',emoji:'🛍️'}; this.saving = false; this.showProductForm = false; },
+    const request = this.editingProductId
+      ? this.api.updateProduct(this.editingProductId, this.draft)
+      : this.api.createProduct(this.draft);
+    request.subscribe({
+      next: product => {
+        this.merchantProducts = this.editingProductId
+          ? this.merchantProducts.map(item => item.id === product.id ? product : item)
+          : [product, ...this.merchantProducts];
+        this.cancelEdit();
+        this.saving = false;
+      },
       error: err => { this.saving = false; this.productError = err?.status === 0 ? 'Cannot reach the API.' : 'Product could not be saved. Check your merchant permissions and form values.'; }
+    });
+  }
+  editProduct(product: MerkatoProduct): void {
+    this.editingProductId = product.id;
+    this.draft = { name: product.name, priceEtb: product.priceEtb, category: product.category, location: product.location, emoji: product.emoji || '🛍️' };
+    this.showProductForm = true;
+    this.productError = '';
+  }
+  cancelEdit(): void {
+    this.editingProductId = null;
+    this.showProductForm = false;
+    this.draft = { name: '', priceEtb: 0, category: 'Other', location: 'Addis Ababa', emoji: '🛍️' };
+  }
+  removeProduct(product: MerkatoProduct): void {
+    if (!window.confirm('Archive ' + product.name + '? It will no longer appear in the public marketplace.')) return;
+    this.api.deleteProduct(product.id).subscribe({
+      next: () => this.merchantProducts = this.merchantProducts.filter(item => item.id !== product.id),
+      error: () => this.loadError = 'Could not archive this product. Check ownership and permissions.'
     });
   }
   logout(): void { this.auth.logout(); window.location.href = '/'; }
