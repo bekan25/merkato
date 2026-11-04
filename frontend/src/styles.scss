@@ -18,3 +18,85 @@
   .header-actions .dashboard-link,.header-actions .text-button{display:none}
 }
 @media(prefers-reduced-motion:reduce){.mobile-menu-toggle{scroll-behavior:auto}}
+
+
+/* MERKATO premium storefront refresh */
+:root{--forest:#103d30;--forest-2:#1c6248;--gold:#c99a53;--cream:#f7f7f1;--line:#e8ece5;--shadow:0 16px 44px rgba(16,61,48,.10)}
+body{background:#fff;color:#1c2d24}
+.announcement{height:32px;background:#103d30;font-size:10px;letter-spacing:.06em}
+.site-header{height:76px;box-shadow:0 4px 20px rgba(20,55,39,.035);backdrop-filter:blur(14px)}
+.brand{font-size:23px}.brand-mark{border-radius:10px;background:linear-gradient(145deg,#174f3c,#0d3026);box-shadow:0 5px 13px #103d3028}
+.main-nav{gap:30px}.main-nav a{font-weight:600;font-size:12px;position:relative}
+.main-nav a.active:after{content:"";position:absolute;left:0;right:0;bottom:2px;height:2px;background:var(--gold);border-radius:2px}
+.header-actions .btn{border-radius:7px}.btn-primary{background:linear-gradient(135deg,#174d3a,#0e3529);box-shadow:0 5px 13px #103d3020}
+.hero{min-height:545px;background:radial-gradient(circle at 82% 42%,#e8eee3 0,transparent 34%),linear-gradient(110deg,#f8f8f2 0%,#f2f5ed 100%);padding-top:76px;padding-bottom:65px}
+.hero h1{font-size:clamp(50px,6vw,78px);line-height:1.02;letter-spacing:-.055em}
+.hero-copy>p{max-width:430px;font-size:14px;line-height:1.9}
+.hero-actions{gap:18px}.hero-actions .btn{padding:15px 21px}
+.hero-art{height:410px}.art-card-main{width:290px;border-radius:18px;transform:rotate(-3deg);box-shadow:0 25px 70px #163c2b20}
+.art-image{height:230px;background:linear-gradient(140deg,#e1eadf,#f3e8d4)}
+.art-card-info{padding:18px 20px}.floating-tag{border:1px solid #edf0e8;border-radius:30px;padding:12px 17px}
+.trust-strip{background:#fff;padding-top:22px;padding-bottom:22px}
+.trust-strip div{font-size:10px;letter-spacing:.01em}.trust-strip strong{font-size:12px}
+.category-section{padding-top:78px;padding-bottom:56px}
+.section-heading h2{font-size:32px;letter-spacing:-1.5px}
+.category-list{gap:13px}.category-list button{height:100px;border-radius:12px;background:#fbfcf9;font-size:11px;box-shadow:0 3px 12px #173b2d06}
+.category-list button span{height:36px;width:36px;border-radius:11px;background:#edf3eb;display:grid;place-items:center;font-size:20px}
+.category-list button.selected{background:#eff5ed;border-color:#a9c0ac;box-shadow:inset 0 0 0 1px #dbe8d9}
+.market-section{background:linear-gradient(180deg,#fbfcf9 0,#fff 240px);padding-top:60px}
+.market-heading p{font-size:12px}.search-box{height:46px;border-radius:9px;background:#fff;box-shadow:0 3px 12px #183e2d08}
+.market-controls select{height:46px;border-radius:9px;background:#fff}
+.market-toolbar{font-size:11px}.product-grid{gap:19px;margin-top:23px}
+.product-card{border:1px solid #edf0ea;border-radius:13px;box-shadow:0 4px 18px #173b2d07}
+.product-card:hover{transform:translateY(-5px);box-shadow:0 18px 35px #173b2d12}
+.product-visual{height:205px;background:linear-gradient(145deg,#f3f5ef,#e9eee6)}
+.product-visual img{transition:transform .45s cubic-bezier(.2,.7,.2,1)}
+.product-category{top:13px;left:13px;padding:7px 10px;font-size:8px;letter-spacing:.04em}
+.save-button{height:34px;width:34px;right:12px;top:12px;font-size:18px;box-shadow:0 3px 12px #142d2010}
+.product-info{padding:16px}
+.product-location{font-size:9px;letter-spacing:.02em}
+.product-title-button{font-size:13px;line-height:1.45;min-height:38px;margin:8px 0 13px}
+.product-bottom>strong{font-size:15px}.add-button{height:35px;width:35px;border-radius:9px;font-size:22px;transition:.2s}
+.add-button:hover{background:var(--forest);color:#fff;transform:scale(1.04)}
+.seller-cta{background:radial-gradient(circle at 80% 20%,#28674e 0,transparent 35%),linear-gradient(120deg,#103d30,#0b3026);border-radius:18px;padding:58px 62px}
+.seller-cta .btn{border-radius:8px}.seller-illustration{filter:drop-shadow(0 12px 20px #071d1640)}
+.site-footer{background:#fbfcf9}
+.state-panel{background:#fff;border-style:solid;box-shadow:0 5px 22px #173b2d06;border-radius:14px}
+.quick-view-dialog{border-radius:18px;box-shadow:0 30px 100px #061c1450}
+.quick-view-close{box-shadow:0 3px 12px #183e2d14}
+.toast{border-radius:10px;box-shadow:0 12px 35px #10251d35}
+.btn:focus-visible,button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #d5ad70;outline-offset:3px}
+@media(max-width:900px){.hero{padding-left:6vw;padding-right:6vw}.section-wrap{padding-left:6vw;padding-right:6vw}.product-visual{height:185px}}
+@media(max-width:680px){
+ .announcement{height:29px;font-size:8px}
+ .site-header{height:65px;padding:0 15px}
+ .header-actions .cart-link{font-size:10px;padding:8px 5px}
+ .header-actions .btn{padding:9px 10px;font-size:9px}
+ .hero{padding:43px 21px 18px;min-height:unset}
+ .hero h1{font-size:51px;letter-spacing:-3.2px;margin:17px 0}
+ .hero-copy>p{font-size:13px}
+ .hero-proof{margin-top:32px}
+ .hero-art{height:285px;margin-top:16px}
+ .art-orbit{width:275px;height:275px}.orbit-two{width:215px;height:215px}
+ .art-card-main{width:205px}.art-image{height:155px}
+ .art-card-info{padding:13px 15px}
+ .tag-top{top:16px}.tag-bottom{bottom:12px}
+ .trust-strip{padding:17px 20px;gap:14px}
+ .trust-strip div{font-size:9px;gap:8px}
+ .category-section{padding:48px 20px 32px}
+ .section-heading h2{font-size:25px}
+ .category-list{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+ .category-list button{height:85px}
+ .market-section{padding:33px 17px 60px}
+ .market-heading{gap:15px}
+ .market-controls{gap:8px}
+ .product-grid{gap:10px;margin-top:18px}
+ .product-visual{height:145px}
+ .product-info{padding:11px}
+ .product-title-button{font-size:11px;min-height:34px}
+ .product-bottom>strong{font-size:12px}
+ .add-button{height:31px;width:31px}
+ .seller-cta{margin:0 15px 48px;padding:30px 23px;border-radius:14px}
+ .seller-cta h2{font-size:24px}
+ .site-footer{padding:18px 15px}
+}
