@@ -100,3 +100,85 @@ body{background:#fff;color:#1c2d24}
  .seller-cta h2{font-size:24px}
  .site-footer{padding:18px 15px}
 }
+
+
+/* MERKATO workspace refinement — buyer, merchant and admin */
+.workspace{background:#f5f7f3;min-height:calc(100vh - 108px)}
+.workspace-sidebar{position:sticky;top:0;height:calc(100vh - 0px);min-height:620px;padding:28px 18px 20px;background:#fff;border-right:1px solid #e8ede6}
+.workspace-sidebar>.brand{margin:0 0 15px 5px}
+.workspace-user{padding:22px 5px;margin-bottom:22px}
+.user-avatar{height:40px;width:40px;border:1px solid #dce9dc;font-size:14px}
+.side-label{padding:0 10px}
+.side-link{min-height:42px;padding:11px 12px;border-radius:9px;transition:background .18s ease,color .18s ease}
+.side-link.active{background:#eaf2e9;color:#174b38;box-shadow:inset 3px 0 #c99a53}
+.side-link:hover{background:#f0f5ef}
+.workspace-main{padding-top:42px;padding-bottom:70px}
+.workspace-topbar{margin-bottom:24px}
+.workspace-topbar h1{font-size:30px;letter-spacing:-1.1px}
+.workspace-date{padding:9px 12px;border:1px solid #e6ebe3;border-radius:30px;background:#fff}
+.welcome-panel{position:relative;overflow:hidden;min-height:150px;padding:30px 34px;border-radius:16px;background:radial-gradient(circle at 88% 15%,#2b7054 0,transparent 35%),linear-gradient(115deg,#103d30,#0d3328);box-shadow:0 14px 32px #103d3018}
+.welcome-panel:after{content:"";position:absolute;width:190px;height:190px;border:1px solid #ffffff18;border-radius:50%;right:45px;top:20px;box-shadow:0 0 0 24px #ffffff08,0 0 0 48px #ffffff05}
+.welcome-panel h2{font-size:27px;letter-spacing:-.8px}
+.welcome-panel p{font-size:12px;line-height:1.7;max-width:570px}
+.welcome-symbol{z-index:1;font-size:62px;color:#e0bd82}
+.workspace-grid{gap:16px;margin:19px 0 25px}
+.workspace-card{position:relative;min-height:142px;padding:20px 21px;border:1px solid #e8ede6;border-radius:13px;box-shadow:0 4px 16px #183c2a06;transition:transform .2s ease,box-shadow .2s ease}
+.workspace-card:hover{transform:translateY(-2px);box-shadow:0 12px 26px #183c2a0d}
+.card-icon{height:35px;width:35px;display:grid;place-items:center;margin-bottom:13px;border-radius:10px;background:#eef4ec;color:#286348;font-size:17px}
+.card-label{font-size:8px;letter-spacing:1.35px}
+.workspace-card>strong{font-size:23px;letter-spacing:-.5px}
+.workspace-section{padding:25px 26px;margin-bottom:18px;border:1px solid #e8ede6;border-radius:14px;box-shadow:0 4px 18px #183c2a05}
+.workspace-section h2{font:800 21px/1.25 Manrope;color:#153e30;letter-spacing:-.55px;margin:8px 0}
+.workspace-section>p,.workspace-section-head p{font-size:11px;line-height:1.7}
+.workspace-section-head{margin-bottom:18px}
+.workspace-section-head .btn{white-space:nowrap}
+.product-form{padding:17px;background:#f8faf6;border:1px solid #edf1eb;border-radius:10px;margin:14px 0 18px}
+.product-form label{font-size:10px}
+.product-form input{height:43px;background:#fff}
+.product-form .btn{min-height:42px}
+.table-wrap{border:1px solid #edf0eb;border-radius:10px}
+table{min-width:620px;font-size:11px}
+th{background:#f8faf7;color:#7d897f;font-size:8px;letter-spacing:1.1px;padding:14px}
+td{padding:14px 13px;font-size:10px}
+tbody tr:last-child td{border-bottom:0}
+tbody tr:hover{background:#fbfcfa}
+.status-pill{display:inline-flex;align-items:center;gap:5px;padding:6px 9px;border:1px solid #e0eddf;border-radius:30px;font-size:9px;font-weight:700;white-space:nowrap}
+.empty-inline{padding:25px 20px;border:1px dashed #dce5da;background:#fafbf8;line-height:1.7;text-align:center}
+.inline-error,.form-error{padding:11px 13px;border-radius:8px;background:#fff3f0;border:1px solid #f2d9d3;color:#a34538}
+.workspace .btn{min-height:39px;border-radius:8px}
+.workspace button:focus-visible,.workspace a:focus-visible,.workspace input:focus-visible{outline:3px solid #d6b477;outline-offset:3px}
+@media(max-width:900px){
+ .workspace-main{padding:28px 20px 55px}
+ .workspace-topbar h1{font-size:26px}
+ .workspace-section{padding:21px}
+}
+@media(max-width:680px){
+ .workspace{display:block}
+ .workspace-sidebar{display:none}
+ .workspace-main{padding:23px 15px 48px}
+ .workspace-topbar{align-items:flex-start;margin-bottom:17px}
+ .workspace-topbar h1{font-size:23px}
+ .welcome-panel{min-height:132px;padding:22px 19px;border-radius:13px}
+ .welcome-panel h2{font-size:21px}
+ .welcome-panel p{font-size:10px;max-width:245px}
+ .welcome-symbol{font-size:38px}
+ .welcome-panel:after{right:-65px;top:12px}
+ .workspace-grid{grid-template-columns:1fr;gap:9px;margin:12px 0 17px}
+ .workspace-card{min-height:unset;padding:14px 15px;display:grid;grid-template-columns:38px 1fr;column-gap:12px;align-items:center}
+ .card-icon{grid-row:span 2;margin:0}
+ .card-label{align-self:end}
+ .workspace-card>strong{font-size:17px;margin:3px 0 0}
+ .workspace-card>small{grid-column:2}
+ .workspace-section{padding:17px 14px;margin-bottom:13px;border-radius:11px}
+ .workspace-section h2{font-size:18px}
+ .workspace-section-head{gap:12px}
+ .workspace-section-head .btn{width:100%}
+ .product-form{padding:12px;grid-template-columns:1fr}
+ .product-form .btn{width:100%;margin:0 0 9px}
+ .table-wrap{margin-top:12px}
+ .empty-inline{padding:20px 13px;font-size:10px}
+}
+@media(prefers-reduced-motion:reduce){
+ .workspace-card,.side-link{transition:none}
+ .workspace-card:hover{transform:none}
+}
