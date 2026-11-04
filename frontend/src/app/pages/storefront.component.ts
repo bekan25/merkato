@@ -47,11 +47,14 @@ import { RouterLink } from '@angular/router';
         <div class="market-controls">
           <label class="search-box"><span>⌕</span><input [(ngModel)]="search" (ngModelChange)="onSearchChange()" placeholder="Search products, places..." aria-label="Search products"></label>
           <select [(ngModel)]="category" (ngModelChange)="loadProducts()" aria-label="Filter by category"><option *ngFor="let c of categoryOptions" [value]="c">{{c}}</option></select>
+          <input class="price-filter" type="number" min="0" [(ngModel)]="minPrice" placeholder="Min ETB" aria-label="Minimum price">
+          <input class="price-filter" type="number" min="0" [(ngModel)]="maxPrice" placeholder="Max ETB" aria-label="Maximum price">
+          <select [(ngModel)]="sortBy" aria-label="Sort products"><option value="newest">Newest</option><option value="price-low">Price: low to high</option><option value="price-high">Price: high to low</option><option value="name">Name A–Z</option></select>
         </div>
       </div>
 
       <div class="market-toolbar" *ngIf="!loading && !error">
-        <span>{{products.length}} {{products.length === 1 ? 'product' : 'products'}} found</span>
+        <span>{{visibleProducts.length}} {{visibleProducts.length === 1 ? 'product' : 'products'}} found</span>
         <button *ngIf="search || category !== 'All'" type="button" class="clear-filters" (click)="clearFilters()">Clear filters ×</button>
       </div>
 
@@ -59,14 +62,16 @@ import { RouterLink } from '@angular/router';
       <div *ngIf="error && !loading" class="state-panel"><span class="state-icon">⌁</span><strong>Marketplace connection unavailable</strong><p>{{error}}</p><small>Please try again in a moment.</small><button class="btn btn-outline" (click)="loadProducts()">Try again</button></div>
       <div *ngIf="!loading && !error && products.length === 0" class="state-panel"><span class="state-icon">⌕</span><strong>No products found yet</strong><p>Try another search or check back as merchants add their products.</p><button class="btn btn-outline" *ngIf="search || category !== 'All'" (click)="clearFilters()">Clear filters</button></div>
 
+      <div class="compare-bar" *ngIf="compareProducts.length"><span>{{compareProducts.length}} products selected to compare</span><button type="button" (click)="compareProducts = []">Clear comparison</button><div class="compare-items"><span *ngFor="let item of compareProducts">{{item.name}} · {{item.priceEtb | number:'1.2-2'}} ETB</span></div></div>
       <div class="product-grid" *ngIf="!loading && !error">
-        <article class="product-card" *ngFor="let product of products; trackBy: trackByProductId">
+        <article class="product-card" *ngFor="let product of visibleProducts; trackBy: trackByProductId">
           <div class="product-visual">
             <img *ngIf="product.imageUrl && !imageFailed(product.id)" [src]="imageUrl(product.imageUrl)" [alt]="product.name" loading="lazy" (error)="onImageError(product.id)">
             <span *ngIf="!product.imageUrl || imageFailed(product.id)" class="product-emoji">{{product.emoji || '🛍️'}}</span>
             <span class="product-category">{{product.category}}</span>
             <button class="save-button" type="button" (click)="toggleSaved(product, $event)" [class.saved]="isSaved(product.id)" [attr.aria-pressed]="isSaved(product.id)" [attr.aria-label]="isSaved(product.id) ? 'Remove from saved products' : 'Save product'">{{isSaved(product.id) ? '♥' : '♡'}}</button>
             <button class="quick-view-trigger" type="button" (click)="openQuickView(product)">Quick view</button>
+            <button class="compare-trigger" type="button" (click)="toggleCompare(product)" [class.active]="isCompared(product.id)">{{isCompared(product.id) ? '✓ Compare' : '⇄ Compare'}}</button>
           </div>
           <div class="product-info">
             <span class="product-location">⌖ {{product.location || 'Ethiopia'}}</span>
@@ -102,6 +107,13 @@ import { RouterLink } from '@angular/router';
     </div>
   `,
   styles: [`
+     .price-filter{width:100px;min-width:0;padding:10px;border:1px solid #e5e9e3;border-radius:10px;background:#fff;color:#34463a;font-size:11px}
+    .compare-bar{margin:18px 0;padding:14px 16px;border:1px solid #dce7dc;border-radius:14px;background:#f7faf5;color:#264634;font-size:12px}
+    .compare-bar>button{float:right;border:0;background:none;color:#8a5737;font-weight:700;cursor:pointer}
+    .compare-items{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+    .compare-items span{padding:6px 9px;border-radius:8px;background:#fff}
+    .compare-trigger{position:absolute;z-index:2;right:12px;bottom:12px;border:0;border-radius:18px;padding:8px 11px;background:#183d2d;color:#fff;font-size:10px;font-weight:800;cursor:pointer;opacity:0;transition:.2s}
+    .product-card:hover .compare-trigger,.compare-trigger:focus,.compare-trigger.active{opacity:1}
     .market-toolbar{display:flex;justify-content:space-between;align-items:center;margin-top:22px;color:#89938c;font-size:11px}
     .clear-filters,.link-button{border:0;background:none;color:var(--forest);font-weight:700;cursor:pointer}
     .product-visual{isolation:isolate}
@@ -136,6 +148,10 @@ export class StorefrontComponent implements OnInit, OnDestroy {
   error = '';
   search = '';
   category = 'All';
+  minPrice: number | null = null;
+  maxPrice: number | null = null;
+  sortBy: 'newest' | 'price-low' | 'price-high' | 'name' = 'newest';
+  compareProducts: MerkatoProduct[] = [];
   toast = '';
   selectedProduct: MerkatoProduct | null = null;
   private toastTimer?: ReturnType<typeof setTimeout>;
@@ -143,6 +159,17 @@ export class StorefrontComponent implements OnInit, OnDestroy {
   private savedIds = new Set<number>();
   private failedImageIds = new Set<number>();
   private readonly savedStorageKey = 'merkato_saved_products';
+
+  get visibleProducts(): MerkatoProduct[] {
+    let items = [...this.products].filter(item =>
+      (this.minPrice === null || this.minPrice === undefined || item.priceEtb >= this.minPrice) &&
+      (this.maxPrice === null || this.maxPrice === undefined || item.priceEtb <= this.maxPrice));
+    if (this.sortBy === 'price-low') items.sort((a,b) => a.priceEtb - b.priceEtb);
+    else if (this.sortBy === 'price-high') items.sort((a,b) => b.priceEtb - a.priceEtb);
+    else if (this.sortBy === 'name') items.sort((a,b) => a.name.localeCompare(b.name));
+    else items.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return items;
+  }
 
   categories = [{name:'Electronics',icon:'⌁'},{name:'Fashion',icon:'✳'},{name:'Home & Living',icon:'⌂'},{name:'Food',icon:'◈'},{name:'Beauty',icon:'✿'},{name:'Other',icon:'＋'}];
   categoryOptions = ['All', ...this.categories.map(x => x.name)];
@@ -174,6 +201,10 @@ export class StorefrontComponent implements OnInit, OnDestroy {
   clearFilters(): void {
     this.search = '';
     this.category = 'All';
+    this.minPrice = null;
+    this.maxPrice = null;
+    this.sortBy = 'newest';
+    this.compareProducts = [];
     if (this.searchTimer) clearTimeout(this.searchTimer);
     this.loadProducts();
   }
@@ -211,6 +242,14 @@ export class StorefrontComponent implements OnInit, OnDestroy {
   }
 
   isSaved(id: number): boolean { return this.savedIds.has(id); }
+
+  isCompared(id: number): boolean { return this.compareProducts.some(item => item.id === id); }
+
+  toggleCompare(product: MerkatoProduct): void {
+    if (this.isCompared(product.id)) { this.compareProducts = this.compareProducts.filter(item => item.id !== product.id); return; }
+    if (this.compareProducts.length >= 3) { this.toast = 'Compare up to three products at a time'; this.showToast(); return; }
+    this.compareProducts = [...this.compareProducts, product];
+  }
 
   toggleSaved(product: MerkatoProduct, event?: Event): void {
     event?.stopPropagation();
