@@ -368,10 +368,26 @@ app.MapGet("/health/ready", async (MerkatoDbContext db, CancellationToken ct) =>
     }
 }).AllowAnonymous();
 
+// Serve Angular client-side routes from the same origin as the API.
+app.MapFallbackToFile("index.html");
+
 // ============================================================
 // RUN
 // ============================================================
 
+// Apply EF Core migrations only when explicitly enabled by the deployment environment.
+// Disable MERKATO_APPLY_MIGRATIONS after the first successful schema deployment.
+if (string.Equals(
+    Environment.GetEnvironmentVariable("MERKATO_APPLY_MIGRATIONS"),
+    "true",
+    StringComparison.OrdinalIgnoreCase))
+{
+    app.Logger.LogInformation("Applying pending MERKATO database migrations.");
+    using var migrationScope = app.Services.CreateScope();
+    var migrationDb = migrationScope.ServiceProvider.GetRequiredService<MerkatoDbContext>();
+    await migrationDb.Database.MigrateAsync();
+    app.Logger.LogInformation("MERKATO database migrations completed.");
+}
 
 // ============================================================
 // ADMIN SEED
