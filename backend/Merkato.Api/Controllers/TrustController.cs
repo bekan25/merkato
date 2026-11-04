@@ -91,11 +91,20 @@ public sealed class TrustController : ControllerBase
         if (latest == null) return NotFound(new { message = "No seller verification request exists." });
         if (latest.Result != "PENDING") return Conflict(new { message = "This request has already been reviewed." });
 
+        using var submittedProfile = JsonDocument.Parse(string.IsNullOrWhiteSpace(latest.MetadataJson) ? "{}" : latest.MetadataJson);
+        var profile = submittedProfile.RootElement.Clone();
         _db.AuditLogs.Add(new AuditLog
         {
             ActorId = adminId, ActorRole = "ADMIN", Action = "SELLER_VERIFICATION_" + request.Decision,
             EntityType = VerificationType, EntityId = sellerId.ToString(), Result = request.Decision,
-            MetadataJson = JsonSerializer.Serialize(new { note = request.Note?.Trim(), reviewedRequestId = latest.Id }),
+            MetadataJson = JsonSerializer.Serialize(new {
+                businessName = profile.TryGetProperty("businessName", out var businessName) ? businessName.GetString() : null,
+                businessType = profile.TryGetProperty("businessType", out var businessType) ? businessType.GetString() : null,
+                city = profile.TryGetProperty("city", out var city) ? city.GetString() : null,
+                contactPhone = profile.TryGetProperty("contactPhone", out var contactPhone) ? contactPhone.GetString() : null,
+                note = request.Note?.Trim(),
+                reviewedRequestId = latest.Id
+            }),
             IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
             UserAgent = Request.Headers.UserAgent.ToString(), TraceId = HttpContext.TraceIdentifier
         });
