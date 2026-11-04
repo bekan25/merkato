@@ -27,12 +27,13 @@ import { AuthService } from './core/auth.service';
           <a class="cart-link" routerLink="/cart"><span class="cart-icon">🛒</span><strong>Cart</strong><span class="cart-count">{{cartCount}}</span></a>
         </div>
       </header>
-      <nav class="department-nav" aria-label="Main navigation">
-        <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}">☰ All departments</a>
-        <a routerLink="/" fragment="categories">Today's finds</a>
-        <a routerLink="/" fragment="marketplace">Shop products</a>
-        <a routerLink="/" fragment="how-it-works">Sell on MERKATO</a>
-        <a *ngIf="auth.isAuthenticated" [routerLink]="auth.dashboardPath()">My workspace</a>
+      <button class="mobile-menu-toggle" type="button" (click)="mobileNavOpen = !mobileNavOpen" [attr.aria-expanded]="mobileNavOpen" aria-controls="main-department-nav"><span>{{mobileNavOpen ? '×' : '☰'}}</span>{{mobileNavOpen ? 'Close menu' : 'Browse MERKATO'}}</button>
+      <nav id="main-department-nav" class="department-nav" [class.mobile-open]="mobileNavOpen" aria-label="Main navigation">
+        <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}" (click)="closeMobileNav()">☰ All departments</a>
+        <a routerLink="/" fragment="categories" (click)="closeMobileNav()">Today's finds</a>
+        <a routerLink="/" fragment="marketplace" (click)="closeMobileNav()">Shop products</a>
+        <a routerLink="/" fragment="how-it-works" (click)="closeMobileNav()">Sell on MERKATO</a>
+        <a *ngIf="auth.isAuthenticated" [routerLink]="auth.dashboardPath()" (click)="closeMobileNav()">My workspace</a>
       </nav>
       <main><router-outlet /></main>
       <footer class="site-footer"><a class="brand footer-brand" routerLink="/"><span class="brand-mark">M</span><span>merkato<small>ETHIOPIAN MARKETPLACE</small></span></a><span>Connecting Ethiopia, one marketplace.</span><span>© 2026 MERKATO</span></footer>
@@ -64,7 +65,12 @@ import { AuthService } from './core/auth.service';
       .header-actions{gap:11px}.delivery-link{display:none}
       .account-link small{font-size:8px}.account-link strong{font-size:10px}
       .cart-link{font-size:10px}.cart-icon{font-size:18px}
-      .department-nav{gap:19px;height:36px;padding:0 14px}
+      .mobile-menu-toggle{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;height:40px;border:0;border-bottom:1px solid #e4ebe2;background:rgba(239,245,236,.94);color:#315541;font-size:11px;font-weight:750;cursor:pointer}
+      .mobile-menu-toggle span{font-size:17px}
+      .department-nav{display:none;height:auto;min-height:0;padding:8px 14px 14px;gap:0;flex-direction:column;align-items:stretch;white-space:normal;background:rgba(249,251,247,.97);border-bottom:1px solid #e3ebe1}
+      .department-nav.mobile-open{display:flex}
+      .department-nav a{padding:12px 9px;border-bottom:1px solid #edf1eb;font-size:12px}
+      .department-nav a:last-child{border-bottom:0}
       .site-footer{gap:12px}
     }
   `]
@@ -74,6 +80,9 @@ export class AppComponent {
   private router = inject(Router);
   headerSearch = '';
   searchDepartment = 'All';
+  mobileNavOpen = false;
+
+  closeMobileNav(): void { this.mobileNavOpen = false; }
 
   get cartCount(): number {
     try {
