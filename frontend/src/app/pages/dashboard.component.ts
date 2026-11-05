@@ -11,6 +11,7 @@ import { ApiService, MerkatoProduct, MerkatoOrder, MerkatoDispute, MerchantAnaly
   imports: [CommonModule, FormsModule, RouterLink],
   styles: [`
     .product-editor{margin:22px 0 28px;padding:26px;background:#f7f8f7;border:1px solid #e7ebe7;border-radius:22px;color:#18231d}
+    .onboarding-steps{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0}.onboarding-steps span{padding:8px 11px;border-radius:10px;background:#f1f3f1;color:#78847b;font-size:11px;font-weight:750}.onboarding-steps span.done{background:#e4f5e8;color:#187343}.onboarding-form{display:grid;gap:8px}.listing-quality .row{display:flex;align-items:center;justify-content:space-between}.listing-quality h4{margin:0}.listing-quality .row strong{color:#16834f}.quality-track{height:8px;margin:13px 0;border-radius:10px;background:#edf1ed;overflow:hidden}.quality-track i{display:block;height:100%;background:linear-gradient(90deg,#c49a36,#16834f);transition:width .2s}.listing-quality ul{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:0;list-style:none}.listing-quality li{font-size:11px;color:#8a948c}.listing-quality li:before{content:'○';margin-right:7px}.listing-quality li.done{color:#187343}.listing-quality li.done:before{content:'✓'}.listing-quality small{color:#7d887f;font-size:10px}
     .editor-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:22px}
     .editor-heading h3{font-size:25px;margin:7px 0 5px;letter-spacing:-.7px}
     .editor-heading p,.editor-card-title p,.publish-card p{margin:0;color:#778179;font-size:13px}
@@ -90,12 +91,14 @@ import { ApiService, MerkatoProduct, MerkatoOrder, MerkatoDispute, MerchantAnaly
           <span class="eyebrow">SELLER TRUST</span><h2>Merchant verification</h2>
           <p>Submit your business profile for a manual review by MERKATO administrators.</p>
           <div class="verification-status" [class.approved]="sellerVerification?.status === 'APPROVED'" [class.pending]="sellerVerification?.status === 'PENDING'"><strong>{{sellerVerification?.status || 'Loading status...'}}</strong><span *ngIf="sellerVerification?.reviewerNote">Review note: {{sellerVerification?.reviewerNote}}</span></div>
-          <form class="product-form" *ngIf="sellerVerification?.status !== 'APPROVED' && sellerVerification?.status !== 'PENDING'" (ngSubmit)="submitSellerVerification()">
-            <label>Business / shop name<input name="businessName" [(ngModel)]="verificationDraft.businessName" required maxlength="160"></label>
-            <label>Business type<input name="businessType" [(ngModel)]="verificationDraft.businessType" required maxlength="80"></label>
-            <label>City<input name="verificationCity" [(ngModel)]="verificationDraft.city" required maxlength="100"></label>
-            <label>Business contact phone<input name="contactPhone" [(ngModel)]="verificationDraft.contactPhone" required maxlength="30"></label>
-            <button class="btn btn-primary" [disabled]="verificationSaving">{{verificationSaving ? 'Submitting...' : 'Submit for verification'}}</button>
+          <div class="onboarding-steps"><span class="done">1 · Account</span><span [class.done]="!!verificationDraft.businessName">2 · Business profile</span><span [class.done]="sellerVerification?.status === 'APPROVED'">3 · Admin review</span></div>
+          <form class="product-form onboarding-form" *ngIf="sellerVerification?.status !== 'APPROVED' && sellerVerification?.status !== 'PENDING'" (ngSubmit)="submitSellerVerification()">
+            <p class="editor-note"><strong>Step 2 — Tell buyers who you are</strong><span>Use your real shop details. MERKATO administrators review submissions before showing the verified seller status.</span></p>
+            <label>Business / shop name<input name="businessName" [(ngModel)]="verificationDraft.businessName" required minlength="2" maxlength="160" placeholder="e.g. Dera Electronics"></label>
+            <label>Business type<select name="businessType" [(ngModel)]="verificationDraft.businessType" required><option value="" disabled>Select business type</option><option *ngFor="let type of businessTypes" [value]="type">{{type}}</option></select></label>
+            <label>Primary city<select name="verificationCity" [(ngModel)]="verificationDraft.city" required><option *ngFor="let city of supportedCities" [value]="city">{{city}}</option></select></label>
+            <label>Business contact phone<input name="contactPhone" [(ngModel)]="verificationDraft.contactPhone" required maxlength="14" placeholder="09XXXXXXXX or +2519XXXXXXXX" pattern="^(\\+251|0)?[79][0-9]{8}$"></label>
+            <button class="btn btn-primary" [disabled]="verificationSaving">{{verificationSaving ? 'Submitting...' : 'Submit business for review'}}</button>
             <p class="form-error" *ngIf="verificationError">{{verificationError}}</p>
           </form>
           <small>Do not submit passwords, PINs or identity document numbers. This business review is separate from Fayda identity verification.</small>
@@ -107,8 +110,8 @@ import { ApiService, MerkatoProduct, MerkatoOrder, MerkatoDispute, MerchantAnaly
               <div class="editor-main">
                 <section class="editor-card"><div class="editor-card-title"><span class="editor-icon">▤</span><div><h4>General information</h4><p>Give your product a clear name and category.</p></div></div>
                   <label>Product name <input name="name" [(ngModel)]="draft.name" required maxlength="180" placeholder="e.g. Handmade leather bag"></label>
-                  <label>Category <input name="category" [(ngModel)]="draft.category" required maxlength="100" placeholder="e.g. Fashion, Electronics, Home"></label>
-                  <label>Store location <input name="location" [(ngModel)]="draft.location" required maxlength="160" placeholder="City or delivery area"></label>
+                  <label>Category <select name="category" [(ngModel)]="draft.category" required><option *ngFor="let category of productCategories" [value]="category">{{category}}</option></select></label>
+                  <label>Store city <select name="location" [(ngModel)]="draft.location" required><option *ngFor="let city of supportedCities" [value]="city">{{city}}</option></select></label>
                 </section>
                 <section class="editor-card"><div class="editor-card-title"><span class="editor-icon">◈</span><div><h4>Pricing & availability</h4><p>Set the selling price in Ethiopian birr.</p></div></div>
                   <label>Base price <div class="price-input"><span>ETB</span><input name="price" [(ngModel)]="draft.priceEtb" type="number" min="0.01" step="0.01" required placeholder="0.00"></div></label>
@@ -120,6 +123,7 @@ import { ApiService, MerkatoProduct, MerkatoOrder, MerkatoDispute, MerchantAnaly
                   <div class="product-image-preview editor-preview" *ngIf="imagePreviewUrl"><img [src]="imagePreviewUrl" alt="Selected product preview"><button type="button" class="btn btn-outline" (click)="clearSelectedImage()">Remove photo</button></div>
                   <div class="image-empty" *ngIf="!imagePreviewUrl"><span>▧</span><strong>Image preview</strong><small>Your selected image will appear here.</small></div>
                 </section>
+                <section class="editor-card listing-quality"><div class="row"><h4>Listing quality</h4><strong>{{listingQualityScore}} / 100</strong></div><div class="quality-track"><i [style.width.%]="listingQualityScore"></i></div><ul><li [class.done]="draft.name.trim().length >= 3">Clear product name</li><li [class.done]="draft.category && draft.category !== 'Other'">Specific category</li><li [class.done]="draft.priceEtb > 0">Valid ETB price</li><li [class.done]="draft.location">Store city selected</li><li [class.done]="!!selectedImage || !!(editingProductId && merchantProducts.find(p => p.id === editingProductId)?.imageUrl)">Product photo added</li></ul><small>Listings with clear photos and accurate details are easier for buyers to trust.</small></section>
                 <section class="editor-card publish-card"><h4>Ready to list?</h4><p>Check the product details before publishing to the marketplace.</p><button class="btn btn-primary publish-button" [disabled]="saving">{{saving ? 'Saving product...' : (editingProductId ? '✓ Save changes' : '＋ Publish product')}}</button><button type="button" class="btn btn-outline cancel-button" *ngIf="editingProductId" (click)="cancelEdit()">Cancel editing</button><p class="form-error" *ngIf="productError">{{productError}}</p></section>
               </aside>
             </div>
@@ -168,8 +172,20 @@ export class DashboardComponent implements OnInit {
   verificationSaving = false;
   verificationBusyId: number | null = null;
   verificationError = '';
+  readonly supportedCities = ['Addis Ababa','Adama','Hawassa','Bahir Dar','Dire Dawa','Jimma','Mekelle','Gondar','Dessie'];
+  readonly businessTypes = ['Retail shop','Wholesale','Manufacturer','Farmer / producer','Service provider','Online store','Other'];
+  readonly productCategories = ['Electronics','Fashion','Home & Living','Beauty & Personal Care','Food & Grocery','Agriculture','Automotive','Books & Education','Sports & Outdoors','Baby & Kids','Other'];
   verificationDraft = { businessName: '', businessType: '', city: 'Addis Ababa', contactPhone: '' };
   draft = { name: '', priceEtb: 0, category: 'Other', location: 'Addis Ababa', emoji: '🛍️' };
+  get listingQualityScore(): number {
+    let score = 0;
+    if (this.draft.name.trim().length >= 3) score += 20;
+    if (this.draft.category && this.draft.category !== 'Other') score += 15;
+    if (Number(this.draft.priceEtb) > 0) score += 20;
+    if (this.draft.location.trim()) score += 15;
+    if (this.selectedImage || (this.editingProductId && this.merchantProducts.some(p => p.id === this.editingProductId && !!p.imageUrl))) score += 30;
+    return score;
+  }
   get buyerSpend(): number { return this.buyerOrders.reduce((sum, order) => sum + Number(order.totalAmountEtb || 0), 0); }
   get buyerAverageOrder(): number { return this.buyerOrders.length ? this.buyerSpend / this.buyerOrders.length : 0; }
   get buyerCompletedCount(): number { return this.buyerOrders.filter(order => String(order.deliveryStatus).toLowerCase().includes('deliver') || String(order.deliveryStatus).toLowerCase().includes('complete')).length; }
@@ -192,7 +208,10 @@ export class DashboardComponent implements OnInit {
   }
   submitSellerVerification(): void {
     this.verificationError = '';
-    if (!this.verificationDraft.businessName.trim() || !this.verificationDraft.businessType.trim() || !this.verificationDraft.city.trim() || !this.verificationDraft.contactPhone.trim()) { this.verificationError = 'Complete all business profile fields.'; return; }
+    const phone = this.verificationDraft.contactPhone.trim().replace(/[\\s-]/g, '');
+    if (!this.verificationDraft.businessName.trim() || !this.verificationDraft.businessType.trim() || !this.verificationDraft.city.trim() || !phone) { this.verificationError = 'Complete all business profile fields.'; return; }
+    if (!/^(\\+251|0)?[79][0-9]{8}$/.test(phone)) { this.verificationError = 'Enter a valid Ethiopian mobile number, e.g. 0912345678 or +251912345678.'; return; }
+    this.verificationDraft.contactPhone = phone;
     this.verificationSaving = true;
     this.api.submitSellerVerification(this.verificationDraft).subscribe({
       next: () => { this.verificationSaving = false; this.api.getMySellerVerification().subscribe({ next: item => this.sellerVerification = item }); },
@@ -237,7 +256,8 @@ export class DashboardComponent implements OnInit {
   }
   createProduct(): void {
     this.productError = '';
-    if (!this.draft.name.trim() || this.draft.priceEtb <= 0) { this.productError = 'Enter a product name and a price greater than zero.'; return; }
+    if (this.draft.name.trim().length < 3 || this.draft.name.trim().length > 180 || this.draft.priceEtb <= 0 || !this.draft.category.trim() || !this.draft.location.trim()) { this.productError = 'Enter a clear product name, category, store city and a price greater than zero.'; return; }
+    if (!this.selectedImage && !(this.editingProductId && this.merchantProducts.some(p => p.id === this.editingProductId && !!p.imageUrl))) { this.productError = 'Add a clear product photo before publishing. Buyers need to see what they are ordering.'; return; }
     this.saving = true;
     const request = this.editingProductId
       ? this.api.updateProduct(this.editingProductId, this.draft)
