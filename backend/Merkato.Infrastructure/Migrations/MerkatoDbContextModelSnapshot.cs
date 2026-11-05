@@ -180,13 +180,7 @@ namespace Merkato.Infrastructure.Migrations
                     b.Property<DateTime?>("ResolvedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int>("Quantity")
-                        .HasColumnType("integer");
-
-                    b.Property<decimal>("UnitPriceEtb")
-                        .HasColumnType("numeric(18,4)");
-
-                    b.Property<long>("SellerId")
+b.Property<long>("SellerId")
                         .HasColumnType("bigint");
 
                     b.Property<int>("Status")
@@ -466,7 +460,13 @@ namespace Merkato.Infrastructure.Migrations
                         .IsConcurrencyToken()
                         .HasColumnType("integer");
 
-                    b.Property<long>("SellerId")
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("UnitPriceEtb")
+                        .HasColumnType("numeric(18,4)");
+
+                                        b.Property<long>("SellerId")
                         .HasColumnType("bigint");
 
                     b.Property<decimal>("TotalAmountEtb")
