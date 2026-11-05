@@ -112,7 +112,7 @@ export class AppComponent {
     } catch { return 'en'; }
   }
 
-  t(key: string): string { return this.translations[this.language]?.[key] || this.translations.en[key] || key; }
+  t(key: string): string { return this.translations[this.language]?.[key] || this.translations['en'][key] || key; }
 
   changeLanguage(value: string): void {
     this.language = value === 'om' || value === 'am' ? value : 'en';
