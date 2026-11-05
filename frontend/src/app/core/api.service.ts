@@ -200,8 +200,8 @@ export class ApiService {
     return this.http.post<{ code: string; title: string; discountEtb: number; subtotalEtb: number; totalEtb: number; expiresAt: string }>(`${this.baseUrl}/promotions/validate`, { code, productId });
   }
 
-  getActivePromotions(): Observable<Array<{ title: string; discountType: string; discountValue: number; maximumDiscountEtb?: number | null; minimumOrderEtb: number; expiresAt: string; merchantPromotion: boolean }>> {
-    return this.http.get<Array<{ title: string; discountType: string; discountValue: number; maximumDiscountEtb?: number | null; minimumOrderEtb: number; expiresAt: string; merchantPromotion: boolean }>>(`${this.baseUrl}/promotions/active`);
+  getActivePromotions(): Observable<Array<{ code: string; title: string; discountType: string; discountValue: number; maximumDiscountEtb?: number | null; minimumOrderEtb: number; expiresAt: string; merchantPromotion: boolean }>> {
+    return this.http.get<Array<{ code: string; title: string; discountType: string; discountValue: number; maximumDiscountEtb?: number | null; minimumOrderEtb: number; expiresAt: string; merchantPromotion: boolean }>>(`${this.baseUrl}/promotions/active`);
   }
 
   createPromotion(payload: { code: string; title: string; discountType: 'PERCENT' | 'FIXED'; discountValue: number; maximumDiscountEtb?: number | null; minimumOrderEtb: number; usageLimit?: number | null; perUserLimit: number; startsAt: string; expiresAt: string; sellerId?: number | null }): Observable<unknown> {
