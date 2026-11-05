@@ -486,6 +486,9 @@ b.Property<long>("SellerId")
 
                     b.HasIndex("SellerId");
 
+                    b.HasIndex("SourcingRequestId")
+                        .IsUnique();
+
                     b.HasIndex("InventoryReservationState", "InventoryReservationExpiresAt");
 
                     b.ToTable("Orders");
@@ -720,6 +723,12 @@ b.Property<long>("SellerId")
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
                     b.Property<DateTime>("CreatedAt").HasColumnType("timestamp with time zone");
                     b.Property<int>("MinimumQuantity").HasColumnType("integer");
+                    b.Property<long?>("SourcingOfferId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("SourcingRequestId")
+                        .HasColumnType("bigint");
+
                     b.Property<long>("ProductId").HasColumnType("bigint");
                     b.Property<long>("SellerId").HasColumnType("bigint");
                     b.Property<decimal>("UnitPriceEtb").HasColumnType("numeric(18,4)");
@@ -1031,12 +1040,17 @@ b.Property<long>("SellerId")
                 b.Property<DateTime>("CreatedAt").HasColumnType("timestamp with time zone");
                 b.Property<int?>("LeadTimeDays").HasColumnType("integer");
                 b.Property<string>("Note").HasMaxLength(1000).HasColumnType("character varying(1000)");
-                b.Property<long>("SellerId").HasColumnType("bigint");
+                b.Property<long?>("ProductId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("SellerId").HasColumnType("bigint");
                 b.Property<long>("SourcingRequestId").HasColumnType("bigint");
                 b.Property<string>("Status").IsRequired().HasMaxLength(24).HasColumnType("character varying(24)");
                 b.Property<decimal>("UnitPriceEtb").HasColumnType("numeric(18,4)");
                 b.Property<DateTime>("UpdatedAt").HasColumnType("timestamp with time zone");
                 b.HasKey("Id"); b.HasIndex("SourcingRequestId", "SellerId").IsUnique(); b.HasIndex("SellerId", "Status");
+
+                    b.HasIndex("ProductId");
                 b.ToTable("SourcingOffers");
             });
             modelBuilder.Entity("Merkato.Domain.Entities.SocialCommercePost", b =>
