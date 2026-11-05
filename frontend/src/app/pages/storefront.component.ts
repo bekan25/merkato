@@ -3,11 +3,12 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService, MerkatoProduct } from '../core/api.service';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ShoppingAssistantComponent } from '../components/shopping-assistant.component';
 
 @Component({
   standalone: true,
   selector: 'app-storefront',
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, ShoppingAssistantComponent],
   template: `
     <section class="hero">
       <div class="hero-copy">
@@ -86,6 +87,8 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
       <div><span class="eyebrow">GROW WITH MERKATO</span><h2>Your business deserves<br>to be discovered.</h2><p>Bring your products online and connect with customers across Ethiopia.</p><a routerLink="/login" class="btn btn-light">Become a merchant <span>↗</span></a></div>
       <div class="seller-illustration"><span>🛍️</span><span>✦</span><span>📦</span></div>
     </section>
+
+    <app-shopping-assistant></app-shopping-assistant>
 
     <div class="toast" *ngIf="toast" role="status" aria-live="polite">{{toast}}</div>
 
