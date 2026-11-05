@@ -98,7 +98,7 @@ public sealed class CommerceGrowthController(MerkatoDbContext db, IEscrowService
         await ExpireStaleGroupBuysAsync(ct);
         var now = DateTime.UtcNow;
         var rows = await db.GroupBuys.AsNoTracking().Where(x => (x.Status == GroupBuyStatus.OPEN || x.Status == GroupBuyStatus.TARGET_REACHED) && x.ExpiresAt > now)
-            .OrderBy(x => x.ExpiresAt).Select(x => new { x.Id, x.ProductId, productName = db.Products.Where(p => p.Id == x.ProductId).Select(p => p.Name).FirstOrDefault(), x.OrganizerId, x.TargetQuantity, x.JoinedQuantity, x.RegularUnitPriceEtb, x.DiscountUnitPriceEtb, x.ExpiresAt, progressPercent = Math.Min(100, (int)(100m * x.JoinedQuantity / x.TargetQuantity)) }).ToListAsync(ct);
+            .OrderBy(x => x.ExpiresAt).Select(x => new { x.Id, x.ProductId, productName = db.Products.Where(p => p.Id == x.ProductId).Select(p => p.Name).FirstOrDefault(), x.OrganizerId, x.TargetQuantity, x.JoinedQuantity, x.RegularUnitPriceEtb, x.DiscountUnitPriceEtb, status = x.Status.ToString(), x.ExpiresAt, progressPercent = Math.Min(100, (int)(100m * x.JoinedQuantity / x.TargetQuantity)) }).ToListAsync(ct);
         return Ok(rows);
     }
 
@@ -394,7 +394,7 @@ public sealed class CommerceGrowthController(MerkatoDbContext db, IEscrowService
                 join s in db.ProductListingDetails.AsNoTracking() on p.Id equals s.ProductId into details
                 from d in details.DefaultIfEmpty()
                 where p.IsActive && (isAdmin || p.SellerId == userId)
-                select new { p.Id, p.Name, p.SellerId, p.PriceEtb, stockQuantity = d == null ? 0 : d.StockQuantity, lowStockThreshold = d == null ? 5 : d.LowStockThreshold, condition = d == null ? "NEW" : d.Condition.ToString(), lowStock = d == null || d.StockQuantity <= d.LowStockThreshold };
+                select new { p.Id, p.Name, p.SellerId, p.PriceEtb, stockQuantity = d == null ? 0 : d.StockQuantity, reservedQuantity = d == null ? 0 : d.ReservedQuantity, availableQuantity = d == null ? 0 : d.StockQuantity - d.ReservedQuantity, lowStockThreshold = d == null ? 5 : d.LowStockThreshold, condition = d == null ? "NEW" : d.Condition.ToString(), lowStock = d == null || d.StockQuantity - d.ReservedQuantity <= d.LowStockThreshold };
         return Ok(await q.OrderBy(x => x.stockQuantity).ToListAsync(ct));
     }
 
