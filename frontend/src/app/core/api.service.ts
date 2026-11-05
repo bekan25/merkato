@@ -84,6 +84,11 @@ export class ApiService {
     );
   }
 
+  getDeliveryFeeQuote(cityArea: string): Observable<{ cityArea: string; feeEtb: number; currency: string; quoteType: string; note: string }> {
+    const params = new HttpParams().set('cityArea', cityArea.trim());
+    return this.http.get<{ cityArea: string; feeEtb: number; currency: string; quoteType: string; note: string }>(`${this.baseUrl}/orders/delivery-fee`, { params });
+  }
+
   getWholesaleTiers(productId: number): Observable<WholesalePriceTier[]> {
     return this.http.get<WholesalePriceTier[]>(`${this.baseUrl}/v1/wholesale/products/${productId}/tiers`);
   }
