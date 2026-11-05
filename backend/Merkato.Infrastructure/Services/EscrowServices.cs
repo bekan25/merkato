@@ -82,8 +82,29 @@ public class EscrowService : IEscrowService
             ?? throw new KeyNotFoundException($"Order {orderId} not found");
 
         var escrow = await _db.EscrowAccounts.FirstOrDefaultAsync(e => e.OrderId == orderId, ct);
+        // Replayed verified webhooks must not reserve stock or create a second ledger lock.
+        if (escrow?.Status == EscrowState.HELD)
+        {
+            return escrow;
+        }
+
         if (escrow == null)
         {
+            var product = await _db.Products.FirstOrDefaultAsync(p => p.SellerId == order.SellerId && p.Name == order.ProductTitle, ct);
+            if (product is not null)
+            {
+                var listing = await _db.ProductListingDetails.FirstOrDefaultAsync(x => x.ProductId == product.Id, ct);
+                if (listing is not null)
+                {
+                    if (listing.StockQuantity < 1)
+                    {
+                        throw new InvalidOperationException("This product is out of stock.");
+                    }
+                    listing.StockQuantity -= 1;
+                    listing.UpdatedAt = DateTime.UtcNow;
+                }
+            }
+
             escrow = new EscrowAccount
             {
                 OrderId = orderId,
