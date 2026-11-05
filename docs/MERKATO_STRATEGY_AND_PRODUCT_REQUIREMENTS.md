@@ -4,7 +4,7 @@
 **Positioning:** *Trust-first Ethiopian Commerce Network* — Buy with Confidence. Sell with Growth.  
 **Primary objective:** Deliver reliable, measurable orders before maximizing registrations, listings, or feature count.
 
-This is the product and execution source of truth for the current `feature/merkato-professional-marketplace` branch. It complements the Ethiopia adoption, delivery-fee, launch-readiness, and merchant-onboarding documents. It does not override provider contracts, legal advice, or operational evidence.
+This is the product and execution source of truth for the MERKATO repository; the current deployed-code source branch is `main`. It complements the Ethiopia adoption, delivery-fee, launch-readiness, and merchant-onboarding documents. It does not override provider contracts, legal advice, or operational evidence.
 
 ## 1. Strategy
 
@@ -342,7 +342,7 @@ Known external or release dependencies:
 - Production-grade hosting, backups, restore, monitoring, and incident response.
 - Browser E2E and real-user operational pilot evidence.
 
-The current PR must remain unmerged and the application must not be described as production-ready until the release gates are satisfied. Do not deploy or merge solely because a CI run is green.
+The professional marketplace PR has been merged into `main`. The application must not be described as production-ready until the release gates are satisfied. Do not deploy or merge solely because a CI run is green.
 
 ## 11. Definition of done for every feature
 
