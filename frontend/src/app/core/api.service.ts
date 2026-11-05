@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, map } from 'rxjs';
 
 export interface MerkatoProduct {
   id: number;
@@ -13,6 +13,12 @@ export interface MerkatoProduct {
   imageUrl?: string | null;
   isActive: boolean;
   createdAt: string;
+}
+
+interface DiscoveryProductsResponse {
+  items: Array<Pick<MerkatoProduct, 'id' | 'sellerId' | 'name' | 'priceEtb' | 'location' | 'category' | 'emoji' | 'imageUrl'>>;
+  count: number;
+  limit: number;
 }
 
 export interface MerkatoOrder {
@@ -58,11 +64,22 @@ export class ApiService {
   private http = inject(HttpClient);
   private readonly baseUrl = '/api';
 
+  /**
+   * Uses the bounded, public discovery endpoint used by the storefront.
+   * The API deliberately returns only catalogue fields; timestamps and
+   * listing state are not exposed by this public search contract.
+   */
   getProducts(search = '', category = ''): Observable<MerkatoProduct[]> {
-    let params = new HttpParams();
-    if (search.trim()) params = params.set('search', search.trim());
-    if (category && category !== 'All') params = params.set('category', category);
-    return this.http.get<MerkatoProduct[]>(`${this.baseUrl}/products`, { params });
+    let params = new HttpParams().set('limit', '24');
+    if (search.trim()) params = params.set('q', search.trim());
+    if (category && category !== 'All') params = params.set('category', category.trim());
+    return this.http.get<DiscoveryProductsResponse>(`${this.baseUrl}/v1/discovery/products`, { params }).pipe(
+      map(response => (response?.items ?? []).map(item => ({
+        ...item,
+        isActive: true,
+        createdAt: ''
+      })))
+    );
   }
 
   createProduct(payload: { name: string; priceEtb: number; location: string; category: string; emoji: string }): Observable<MerkatoProduct> {
