@@ -17,11 +17,14 @@ namespace Merkato.Api.Controllers;
 public class DeliveriesController : ControllerBase
 {
     private readonly IDeliveryService _deliveryService;
+    private readonly Merkato.Infrastructure.Persistence.MerkatoDbContext _db;
 
     public DeliveriesController(
-        IDeliveryService deliveryService)
+        IDeliveryService deliveryService,
+        Merkato.Infrastructure.Persistence.MerkatoDbContext db)
     {
         _deliveryService = deliveryService;
+        _db = db;
     }
 
     // ============================================================
@@ -32,14 +35,35 @@ public class DeliveriesController : ControllerBase
     [HttpPost]
     [Authorize(Roles = "BUYER,MERCHANT,ADMIN")]
     public async Task<IActionResult> CreateDelivery(
-        [FromBody] CreateDeliveryDto dto)
+        [FromBody] CreateDeliveryDto dto,
+        CancellationToken ct)
     {
+        if (dto.OrderId <= 0 || dto.FeeEtb < 0 ||
+            string.IsNullOrWhiteSpace(dto.CourierType) ||
+            string.IsNullOrWhiteSpace(dto.RawOtp) ||
+            dto.RawOtp.Length < 4 || dto.RawOtp.Length > 8 ||
+            !dto.RawOtp.All(char.IsDigit))
+            return BadRequest(new { message = "Provide a valid order, courier, non-negative fee and 4–8 digit delivery OTP." });
+
+        var order = await _db.Orders.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == dto.OrderId, ct);
+        if (order == null) return NotFound(new { message = "Order not found." });
+
+        var claim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!long.TryParse(claim, out var userId)) return Unauthorized();
+
+        if (!User.IsInRole("ADMIN") &&
+            !((User.IsInRole("BUYER") && order.BuyerId == userId) ||
+              (User.IsInRole("MERCHANT") && order.SellerId == userId)))
+            return Forbid();
+
         var delivery =
             await _deliveryService.CreateDeliveryAsync(
                 dto.OrderId,
-                dto.CourierType,
+                dto.CourierType.Trim(),
                 dto.FeeEtb,
-                dto.RawOtp);
+                dto.RawOtp,
+                ct);
 
         return Ok(new
         {
@@ -86,10 +110,11 @@ public class DeliveriesController : ControllerBase
     // ============================================================
 
     [HttpPost("{id}/verify-otp")]
-    [Authorize]
+    [Authorize(Roles = "BUYER,MERCHANT,COURIER,ADMIN")]
     public async Task<IActionResult> VerifyOtp(
         string id,
-        [FromBody] VerifyOtpDto dto)
+        [FromBody] VerifyOtpDto dto,
+        CancellationToken ct)
     {
         if (!string.Equals(
                 id,
@@ -117,12 +142,29 @@ public class DeliveriesController : ControllerBase
             });
         }
 
+        var deliveryOrder = await _db.Deliveries
+            .Where(x => x.DeliveryId == id)
+            .Join(_db.Orders, delivery => delivery.OrderId, order => order.Id,
+                (delivery, order) => new { order.BuyerId, order.SellerId })
+            .FirstOrDefaultAsync(ct);
+        if (deliveryOrder == null) return NotFound(new { message = "Delivery not found." });
+
+        if (!User.IsInRole("ADMIN") && !User.IsInRole("COURIER") &&
+            !((User.IsInRole("BUYER") && deliveryOrder.BuyerId == requesterId) ||
+              (User.IsInRole("MERCHANT") && deliveryOrder.SellerId == requesterId)))
+            return Forbid();
+
+        if (string.IsNullOrWhiteSpace(dto.OtpCode) || dto.OtpCode.Length < 4 ||
+            dto.OtpCode.Length > 8 || !dto.OtpCode.All(char.IsDigit))
+            return BadRequest(new { message = "OTP must contain 4–8 digits." });
+
         var delivery =
             await _deliveryService
                 .VerifyOtpAndCompleteHandoverAsync(
                     id,
                     requesterId,
-                    dto.OtpCode);
+                    dto.OtpCode,
+                    ct);
 
         return Ok(new
         {
