@@ -12,19 +12,19 @@ import { ShoppingAssistantComponent } from '../components/shopping-assistant.com
   template: `
     <section class="hero">
       <div class="hero-copy">
-        <div class="eyebrow"><span class="eyebrow-dot"></span> MADE FOR THE WAY ETHIOPIA SHOPS</div>
+        <div class="eyebrow hero-trust"><span class="eyebrow-dot"></span> TRUSTED MARKETPLACE IN ETHIOPIA</div>
         <h1>Good finds.<br><em>Great connections.</em></h1>
         <p>Discover products from local merchants, support Ethiopian businesses, and shop with more confidence.</p>
         <div class="hero-actions">
           <a class="btn btn-light" href="#marketplace">Explore marketplace <span>↘</span></a>
           <a class="hero-secondary" routerLink="/login">Start selling <span>↗</span></a>
         </div>
-        <div class="hero-proof"><div class="proof-avatars"><i>ሀ</i><i>አ</i><i>ደ</i></div><span><strong>Local sellers, real stories.</strong><small>One marketplace for everyday discovery.</small></span></div>
+        <div class="hero-proof"><div class="proof-avatars"><i>ሀ</i><i>አ</i><i>ደ</i></div><span><strong>Shop local. Grow together.</strong><small>Discover trusted Ethiopian merchants and products.</small></span></div>
       </div>
       <div class="hero-art" aria-label="Marketplace product collage">
         <div class="art-orbit orbit-one"></div><div class="art-orbit orbit-two"></div>
-        <div class="art-card art-card-main"><div class="art-image">🧺</div><div class="art-card-info"><span>HANDPICKED FINDS</span><strong>Made with care, found nearby.</strong><small>Explore local collections</small></div></div>
-        <div class="floating-tag tag-top"><span>✦</span> Local finds</div><div class="floating-tag tag-bottom"><span>✓</span> Shop with confidence</div>
+        <div class="art-card art-card-main"><div class="art-image"><span class="hero-bag">M</span><span class="hero-art-spark">✦</span></div><div class="art-card-info"><span>MADE FOR ETHIOPIA</span><strong>Great products. Real local sellers.</strong><small>Discover something worth sharing</small></div></div>
+        <div class="floating-tag tag-top"><span>✦</span> Local finds</div><div class="floating-tag tag-bottom"><span>✓</span> Secure shopping</div><div class="hero-feature-stack"><div><b>✓</b><span><strong>Trusted marketplace</strong><small>Shop with confidence</small></span></div><div><b>↗</b><span><strong>Support local</strong><small>Grow Ethiopian business</small></span></div><div><b>✦</b><span><strong>Great discoveries</strong><small>Find everyday essentials</small></span></div></div>
         <div class="art-spark spark-one">✳</div><div class="art-spark spark-two">✦</div>
       </div>
     </section>
@@ -149,6 +149,56 @@ import { ShoppingAssistantComponent } from '../components/shopping-assistant.com
     .quick-view-actions{display:flex;flex-wrap:wrap;gap:9px}
     .toast{z-index:110}
     @media(max-width:650px){.quick-view-dialog{grid-template-columns:1fr;max-width:430px;max-height:90vh;overflow:auto}.quick-view-image{min-height:210px;max-height:230px}.quick-view-image img{min-height:210px}.quick-view-content{padding:25px}.quick-view-content h2{font-size:24px}.quick-view-trigger{opacity:1;transform:translate(-50%,0)}}
+
+    .hero{min-height:490px;position:relative;isolation:isolate;background:radial-gradient(ellipse at 74% 45%,#d5ead9 0%,#edf5eb 36%,#f8faf4 72%);padding-top:58px;padding-bottom:48px}
+    .hero:before{content:"";position:absolute;inset:0;z-index:-1;opacity:.32;background:radial-gradient(circle at 8% 85%,#c8dfc9 0 1px,transparent 2px),radial-gradient(circle at 85% 18%,#b9d7bd 0 1px,transparent 2px);background-size:26px 26px}
+    .hero-trust{padding:8px 13px;border-radius:30px;background:#e3f1e5;color:#176b48;letter-spacing:.6px}
+    .hero h1{font-size:clamp(52px,6.3vw,82px);line-height:.99;letter-spacing:-5px;margin:20px 0 15px}
+    .hero h1 em{color:#e28a21}
+    .hero-copy>p{font-size:16px;max-width:480px;color:#50675a}
+    .hero-actions{gap:14px;margin-top:25px}
+    .hero-actions .btn-light{background:#087b4d;color:#fff;border-radius:30px;padding:15px 23px;box-shadow:0 10px 22px #087b4d25}
+    .hero-actions .btn-light:hover{background:#05633e;color:#fff}
+    .hero-secondary{border:1px solid #0a754c;border-radius:30px;padding:14px 22px;background:#ffffff9c}
+    .hero-proof{margin-top:30px}
+    .hero-art{height:410px;grid-template-columns:1fr;justify-items:center}
+    .art-orbit{border-color:#c7dfca}
+    .art-card-main{width:285px;transform:rotate(-3deg);border:1px solid #ffffffc9;box-shadow:0 25px 75px #174a3224}
+    .art-image{height:230px;position:relative;background:linear-gradient(145deg,#cde8d2,#f6e9d1);overflow:hidden}
+    .hero-bag{height:135px;width:112px;border-radius:20px 20px 28px 28px;background:linear-gradient(145deg,#087e50,#07573d);display:grid;place-items:center;color:#fff;font:800 66px Manrope;box-shadow:0 18px 30px #0c50352e;position:relative}
+    .hero-bag:before{content:"";position:absolute;width:48px;height:34px;border:8px solid #07573d;border-bottom:0;border-radius:30px 30px 0 0;top:-30px}
+    .hero-art-spark{position:absolute;right:38px;top:35px;color:#df9d39;font-size:36px}
+    .art-card-info{padding:18px 20px}
+    .art-card-info span{color:#168253;font-weight:800}
+    .floating-tag{border-radius:30px;padding:13px 17px;box-shadow:0 12px 35px #173b2d18}
+    .tag-top{top:55px;right:2%}.tag-bottom{bottom:35px;left:-2%}
+    .hero-feature-stack{position:absolute;right:-8%;top:72px;display:grid;gap:9px;width:190px}
+    .hero-feature-stack>div{display:flex;align-items:center;gap:11px;padding:13px;border-radius:15px;background:#ffffffeb;box-shadow:0 10px 30px #174a3210}
+    .hero-feature-stack b{height:32px;width:32px;border-radius:10px;background:#e7f3e8;color:#087b4d;display:grid;place-items:center}
+    .hero-feature-stack strong,.hero-feature-stack small{display:block}
+    .hero-feature-stack strong{font-size:10px;color:#173b2d}.hero-feature-stack small{font-size:8px;color:#849087;margin-top:3px}
+    .trust-strip{background:#fff;padding-top:20px;padding-bottom:20px}
+    .trust-strip strong{height:32px;width:32px;display:grid;place-items:center;background:#edf5ed;border-radius:50%;color:#087b4d}
+    .category-section{padding-top:58px;padding-bottom:50px;background:#fff}
+    .category-list{grid-template-columns:repeat(6,minmax(0,1fr));gap:14px}
+    .category-list button{height:112px;border-radius:15px;background:#f5f7f2;border-color:transparent;color:#263b30;font-size:12px;box-shadow:0 5px 16px #183b2b08}
+    .category-list button span{font-size:30px}
+    .category-list button:nth-child(2){background:#fbf0ee}.category-list button:nth-child(3){background:#eaf4f1}.category-list button:nth-child(4){background:#f1effa}.category-list button:nth-child(5){background:#fbf1e7}
+    .category-list button:hover,.category-list button.selected{border-color:#a6c9ae;background:#e9f4e9;transform:translateY(-3px)}
+    .market-section{background:#fbfcfa;padding-top:45px}
+    .market-heading h2{font-size:32px}
+    .product-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:15px}
+    .product-card{border-radius:16px;box-shadow:0 5px 20px #183b2b08}
+    .product-visual{height:205px;background:#f5f6f2}
+    .product-info{padding:16px}
+    .product-bottom>strong{color:#07804e}
+    .add-button{border-radius:50%;background:#087b4d;color:#fff}
+    .seller-cta{background:linear-gradient(115deg,#064b35,#08734b);border-radius:22px;box-shadow:0 20px 50px #0d57331c}
+    @media(max-width:1100px){.hero-feature-stack{right:-2%;width:165px}.hero-art{transform:scale(.94)}}
+    @media(max-width:760px){.hero{padding:42px 22px 25px;min-height:0}.hero h1{font-size:clamp(43px,12vw,58px);letter-spacing:-3px}.hero-copy>p{font-size:14px}.hero-art{height:330px;transform:none;margin-top:25px}.art-card-main{width:230px}.art-image{height:170px}.hero-bag{transform:scale(.78)}.hero-feature-stack{display:none}.tag-top{right:0;top:20px}.tag-bottom{left:0;bottom:16px}.category-list{grid-template-columns:repeat(3,minmax(0,1fr))}.category-list button{height:94px}.product-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.product-visual{height:155px}}
+    @media(max-width:390px){.category-list{grid-template-columns:repeat(2,minmax(0,1fr))}.product-grid{gap:9px}.product-visual{height:130px}}
+    @media(prefers-reduced-motion:reduce){.category-list button{transition:none}}
+
     @media(prefers-reduced-motion:reduce){.quick-view-trigger,.product-visual img{transition:none}}
   `]
 })
@@ -188,7 +238,7 @@ export class StorefrontComponent implements OnInit, OnDestroy {
     return items;
   }
 
-  categories = [{name:'Electronics',icon:'⌁'},{name:'Fashion',icon:'✳'},{name:'Home & Living',icon:'⌂'},{name:'Food',icon:'◈'},{name:'Beauty',icon:'✿'},{name:'Other',icon:'＋'}];
+  categories = [{name:'Electronics',icon:'💻'},{name:'Fashion',icon:'👕'},{name:'Home & Living',icon:'🛋️'},{name:'Food',icon:'🥑'},{name:'Beauty',icon:'💄'},{name:'Other',icon:'✦'}];
   categoryOptions = ['All', ...this.categories.map(x => x.name)];
 
   ngOnInit(): void {
