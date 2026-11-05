@@ -232,10 +232,12 @@ public sealed class CommerceGrowthController(MerkatoDbContext db) : ControllerBa
     [HttpGet("merchant/inventory")]
     public async Task<IActionResult> Inventory(CancellationToken ct)
     {
+        var isAdmin = User.IsInRole("ADMIN");
+        var userId = CurrentUserId;
         var q = from p in db.Products.AsNoTracking()
                 join s in db.ProductListingDetails.AsNoTracking() on p.Id equals s.ProductId into details
                 from d in details.DefaultIfEmpty()
-                where p.IsActive && (User.IsInRole("ADMIN") || p.SellerId == CurrentUserId)
+                where p.IsActive && (isAdmin || p.SellerId == userId)
                 select new { p.Id, p.Name, p.SellerId, p.PriceEtb, stockQuantity = d == null ? 0 : d.StockQuantity, lowStockThreshold = d == null ? 5 : d.LowStockThreshold, condition = d == null ? "NEW" : d.Condition.ToString(), lowStock = d == null || d.StockQuantity <= d.LowStockThreshold };
         return Ok(await q.OrderBy(x => x.stockQuantity).ToListAsync(ct));
     }
