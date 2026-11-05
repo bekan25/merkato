@@ -1,4 +1,5 @@
 import { Component, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
@@ -95,6 +96,7 @@ import { AuthService } from './core/auth.service';
 export class AppComponent {
   auth = inject(AuthService);
   private router = inject(Router);
+  private http = inject(HttpClient);
   headerSearch = '';
   searchDepartment = 'All';
   mobileNavOpen = false;
@@ -128,6 +130,21 @@ export class AppComponent {
       const cart = JSON.parse(sessionStorage.getItem('merkato_cart') || '[]') as Array<{ quantity: number }>;
       return cart.reduce((sum, item) => sum + (Number.isFinite(item.quantity) ? item.quantity : 0), 0);
     } catch { return 0; }
+  }
+
+  constructor() { this.trackReferralVisit(); }
+
+  private trackReferralVisit(): void {
+    const code = this.router.parseUrl(this.router.url).queryParams['ref'];
+    if (typeof code !== 'string' || !/^[A-Z0-9]{4,32}$/i.test(code)) return;
+    try {
+      let visitorKey = localStorage.getItem('merkato_visitor_key');
+      if (!visitorKey) {
+        visitorKey = crypto.randomUUID();
+        localStorage.setItem('merkato_visitor_key', visitorKey);
+      }
+      this.http.post('/api/commerce/referrals/' + encodeURIComponent(code) + '/click', { visitorKey }).subscribe({ error: () => undefined });
+    } catch { /* Referral tracking is optional when browser storage is unavailable. */ }
   }
 
   searchMarketplace(): void {
