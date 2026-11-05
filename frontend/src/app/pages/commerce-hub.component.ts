@@ -103,7 +103,7 @@ export class CommerceHubComponent implements OnInit {
   loadLoyalty(){this.call('get','/api/commerce/loyalty/me',null,x=>this.loyalty=x);}
   loadOrders(){const endpoint=this.auth.hasRole(['MERCHANT'])?'/api/orders/merchant':'/api/orders/mine';this.call('get',endpoint,null,x=>this.orders=x);}
   trackDelivery(){this.call('get',`/api/commerce/orders/${this.trackOrderId}/delivery`,null,x=>this.deliveryInfo=x);}
-  updateDelivery(){this.call('post',`/api/deliveries/${this.courierDeliveryId}/status`,this.courierStatus,()=>this.trackDelivery());}
+  updateDelivery(){this.call('post',`/api/deliveries/${this.courierDeliveryId}/status`,this.courierStatus,()=>{this.call('get',`/api/deliveries/${this.courierDeliveryId}`,null,x=>this.deliveryInfo=x);});}
   loadReferral(){this.call('get','/api/commerce/referrals/me',null,x=>this.referral=x);}
   createReferral(){this.call('post','/api/commerce/referrals/me',{},x=>this.referral=x);}
   claimReferral(){const visitorKey=localStorage.getItem('merkato_visitor_key')||'';this.call('post',`/api/commerce/referrals/${this.referralCode}/claim`,{visitorKey},()=>{this.referralCode='';this.loadReferral();});}
