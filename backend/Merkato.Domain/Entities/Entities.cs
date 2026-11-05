@@ -11,6 +11,9 @@ public class User
     public string PhoneNumber { get; set; } = string.Empty;
     public string FullName { get; set; } = string.Empty;
     public string PinHash { get; set; } = string.Empty;
+    public int FailedLoginAttempts { get; set; } = 0;
+    public DateTime? LoginLockedUntil { get; set; }
+    public bool IsSuspended { get; set; } = false;
     public UserRole Role { get; set; } = UserRole.BUYER;
     public bool IsFaydaVerified { get; set; } = false;
     public bool IsSellerVerified { get; set; } = false;
