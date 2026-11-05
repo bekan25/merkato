@@ -655,6 +655,92 @@ namespace Merkato.Infrastructure.Migrations
                 {
                     b.Navigation("Entries");
                 });
+
+            modelBuilder.Entity("Merkato.Domain.Entities.WholesalePriceTier", b =>
+                {
+                    b.Property<long>("Id").ValueGeneratedOnAdd().HasColumnType("bigint");
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+                    b.Property<DateTime>("CreatedAt").HasColumnType("timestamp with time zone");
+                    b.Property<int>("MinimumQuantity").HasColumnType("integer");
+                    b.Property<long>("ProductId").HasColumnType("bigint");
+                    b.Property<long>("SellerId").HasColumnType("bigint");
+                    b.Property<decimal>("UnitPriceEtb").HasColumnType("numeric(18,4)");
+                    b.Property<DateTime>("UpdatedAt").HasColumnType("timestamp with time zone");
+                    b.HasKey("Id");
+                    b.HasIndex("ProductId", "MinimumQuantity").IsUnique();
+                    b.ToTable("WholesalePriceTiers");
+                });
+
+            modelBuilder.Entity("Merkato.Domain.Entities.WholesaleRequest", b =>
+                {
+                    b.Property<long>("Id").ValueGeneratedOnAdd().HasColumnType("bigint");
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+                    b.Property<long>("BuyerId").HasColumnType("bigint");
+                    b.Property<DateTime>("CreatedAt").HasColumnType("timestamp with time zone");
+                    b.Property<long>("ProductId").HasColumnType("bigint");
+                    b.Property<decimal>("QuotedUnitPriceEtb").HasColumnType("numeric(18,4)");
+                    b.Property<string>("RequestNumber").IsRequired().HasColumnType("text");
+                    b.Property<decimal>("RequestedUnitPriceEtb").HasColumnType("numeric(18,4)");
+                    b.Property<long>("SellerId").HasColumnType("bigint");
+                    b.Property<string>("SellerNote").HasColumnType("text");
+                    b.Property<string>("BuyerNote").HasColumnType("text");
+                    b.Property<string>("Status").IsRequired().HasColumnType("text");
+                    b.Property<int>("Quantity").HasColumnType("integer");
+                    b.Property<DateTime>("UpdatedAt").HasColumnType("timestamp with time zone");
+                    b.HasKey("Id");
+                    b.HasIndex("RequestNumber").IsUnique();
+                    b.HasIndex("SellerId", "Status");
+                    b.ToTable("WholesaleRequests");
+                });
+
+            modelBuilder.Entity("Merkato.Domain.Entities.AffiliateProfile", b =>
+                {
+                    b.Property<long>("Id").ValueGeneratedOnAdd().HasColumnType("bigint");
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+                    b.Property<DateTime>("CreatedAt").HasColumnType("timestamp with time zone");
+                    b.Property<bool>("IsActive").HasColumnType("boolean");
+                    b.Property<string>("ReferralCode").IsRequired().HasColumnType("text");
+                    b.Property<long>("UserId").HasColumnType("bigint");
+                    b.HasKey("Id");
+                    b.HasIndex("ReferralCode").IsUnique();
+                    b.HasIndex("UserId").IsUnique();
+                    b.ToTable("AffiliateProfiles");
+                });
+
+            modelBuilder.Entity("Merkato.Domain.Entities.AffiliateReferral", b =>
+                {
+                    b.Property<long>("Id").ValueGeneratedOnAdd().HasColumnType("bigint");
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+                    b.Property<long>("AffiliateUserId").HasColumnType("bigint");
+                    b.Property<DateTime>("ClickedAt").HasColumnType("timestamp with time zone");
+                    b.Property<string>("ReferralCode").IsRequired().HasColumnType("text");
+                    b.Property<long?>("ReferredUserId").HasColumnType("bigint");
+                    b.Property<DateTime?>("RegisteredAt").HasColumnType("timestamp with time zone");
+                    b.Property<string>("VisitorKeyHash").IsRequired().HasColumnType("text");
+                    b.HasKey("Id");
+                    b.HasIndex("AffiliateUserId", "VisitorKeyHash").IsUnique();
+                    b.HasIndex("ReferredUserId").IsUnique();
+                    b.ToTable("AffiliateReferrals");
+                });
+
+            modelBuilder.Entity("Merkato.Domain.Entities.AffiliateCommission", b =>
+                {
+                    b.Property<long>("Id").ValueGeneratedOnAdd().HasColumnType("bigint");
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+                    b.Property<long>("AffiliateUserId").HasColumnType("bigint");
+                    b.Property<decimal>("CommissionEtb").HasColumnType("numeric(18,4)");
+                    b.Property<DateTime>("CreatedAt").HasColumnType("timestamp with time zone");
+                    b.Property<decimal>("EligibleAmountEtb").HasColumnType("numeric(18,4)");
+                    b.Property<long>("OrderId").HasColumnType("bigint");
+                    b.Property<DateTime?>("PaidAt").HasColumnType("timestamp with time zone");
+                    b.Property<string>("PayoutReference").HasColumnType("text");
+                    b.Property<decimal>("RatePercent").HasColumnType("numeric(7,4)");
+                    b.Property<string>("Status").IsRequired().HasColumnType("text");
+                    b.HasKey("Id");
+                    b.HasIndex("OrderId").IsUnique();
+                    b.ToTable("AffiliateCommissions");
+                });
+
 #pragma warning restore 612, 618
         }
     }
