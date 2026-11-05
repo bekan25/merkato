@@ -11,6 +11,8 @@ public sealed class ProductListingDetail
     public long ProductId { get; set; }
     public ProductCondition Condition { get; set; } = ProductCondition.NEW;
     public int StockQuantity { get; set; }
+    // Physical on-hand units already committed to active group-buy/order reservations.
+    public int ReservedQuantity { get; set; }
     public int LowStockThreshold { get; set; } = 5;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }
