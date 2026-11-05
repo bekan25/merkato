@@ -97,6 +97,7 @@ import { ShoppingAssistantComponent } from '../components/shopping-assistant.com
           </div>
           <div class="product-info">
             <span class="product-location">⌖ {{product.location || 'Ethiopia'}}</span>
+            <span *ngIf="product.sellerVerified" class="seller-verified-badge" title="Seller identity reviewed by MERKATO">✓ Verified seller</span>
             <button class="product-title-button" type="button" (click)="openQuickView(product)">{{product.name}}</button>
             <div class="product-bottom"><strong>{{product.priceEtb | number:'1.2-2'}} <small>ETB</small></strong><button (click)="addToCart(product)" class="add-button" type="button" [attr.aria-label]="'Add ' + product.name + ' to cart'">+</button></div>
             <a class="wholesale-link" [routerLink]="['/wholesale', product.id]">{{ t('wholesale') }} ↗</a>
@@ -153,6 +154,7 @@ import { ShoppingAssistantComponent } from '../components/shopping-assistant.com
     .save-button.saved{color:#b33e52;background:#fff}
     .quick-view-trigger{position:absolute;z-index:2;left:50%;bottom:12px;transform:translate(-50%,8px);opacity:0;border:0;border-radius:20px;padding:8px 15px;background:#fff;color:var(--forest);font-size:10px;font-weight:800;cursor:pointer;transition:.2s;box-shadow:0 5px 18px #173b2d20}
     .product-card:hover .quick-view-trigger,.quick-view-trigger:focus{opacity:1;transform:translate(-50%,0)}
+    .seller-verified-badge{display:inline-flex;align-items:center;gap:4px;margin:7px 0 0;padding:4px 8px;border-radius:999px;background:#e9f5ee;color:#176b3a;font-size:10px;font-weight:800;letter-spacing:.02em}
     .product-title-button{display:block;padding:0;border:0;background:none;text-align:left;font:700 14px Manrope;color:#24352b;cursor:pointer;margin:8px 0 15px}
     .product-title-button:hover{color:#a77c42}
     .quick-view-backdrop{position:fixed;inset:0;z-index:100;background:#10251dcc;display:grid;place-items:center;padding:20px;backdrop-filter:blur(5px)}
