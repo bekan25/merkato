@@ -34,7 +34,8 @@ public record CreateOrderDto(
     string DeliveryCourier,
     string DeliveryAddress,
     string CityArea,
-    string? CouponCode = null
+    string? CouponCode = null,
+    long? ProductId = null
 );
 
 public record OrderResponseDto(
