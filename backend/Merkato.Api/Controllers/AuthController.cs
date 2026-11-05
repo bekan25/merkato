@@ -148,7 +148,7 @@ public class AuthController : ControllerBase
         });
     }
 
-    private AuthResponseDto CreateAuthResponse(User user) =>
+    [Authorize]\n    [HttpPost("logout")]\n    public async Task<IActionResult> Logout()\n    {\n        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);\n        if (!long.TryParse(userIdClaim, out var userId)) return Unauthorized();\n        var user = await _db.Users.FindAsync(userId);\n        if (user is null) return Unauthorized();\n        user.TokenVersion++;\n        user.UpdatedAt = DateTime.UtcNow;\n        await _db.SaveChangesAsync();\n        return NoContent();\n    }\n\n    private AuthResponseDto CreateAuthResponse(User user) =>
         new(GenerateToken(user), user.Id, user.PhoneNumber, user.FullName,
             user.Role, user.TrustScore, user.IsFaydaVerified);
 
