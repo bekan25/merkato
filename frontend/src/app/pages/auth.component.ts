@@ -16,7 +16,7 @@ import { AuthService } from '../core/auth.service';
         <form (ngSubmit)="submit()">
           <label *ngIf="isRegister">Full name<input name="fullName" [(ngModel)]="fullName" required autocomplete="name" placeholder="Your full name"></label>
           <label>Phone number<input name="phone" [(ngModel)]="phoneNumber" required autocomplete="tel" placeholder="09XXXXXXXX" inputmode="tel"></label>
-          <label>PIN<input name="pin" [(ngModel)]="pin" required type="password" minlength="4" maxlength="8" autocomplete="current-password" placeholder="4–8 digit PIN"></label>
+          <label>PIN<input name="pin" [(ngModel)]="pin" required type="password" [minlength]="isRegister ? 6 : 4" maxlength="8" autocomplete="current-password" inputmode="numeric" [placeholder]="isRegister ? '6–8 digit PIN' : 'Your PIN'"></label>
           <label *ngIf="isRegister">I want to join as<select name="role" [(ngModel)]="role"><option value="BUYER">Buyer — discover and shop</option><option value="MERCHANT">Merchant — list my products</option></select></label>
           <p class="form-error" *ngIf="error">{{error}}</p><button class="btn btn-primary auth-submit" [disabled]="loading">{{loading ? 'Please wait...' : (isRegister ? 'Create account' : 'Sign in securely')}} <span>↗</span></button>
         </form>
@@ -71,7 +71,11 @@ export class AuthComponent {
     this.error = '';
     if (!this.phoneNumber.trim() || !this.pin.trim()) { this.error = 'Enter your phone number and PIN.'; return; }
     if (this.isRegister && !this.fullName.trim()) { this.error = 'Enter your full name.'; return; }
-    if (this.pin.length < 4 || this.pin.length > 8 || !/^\d+$/.test(this.pin)) { this.error = 'PIN must contain 4 to 8 digits.'; return; }
+    const minimumPinLength = this.isRegister ? 6 : 4;
+    if (this.pin.length < minimumPinLength || this.pin.length > 8 || !/^\d+$/.test(this.pin)) {
+      this.error = this.isRegister ? 'PIN must contain 6 to 8 digits.' : 'PIN must contain 4 to 8 digits.';
+      return;
+    }
     this.loading = true;
     const request = this.isRegister
       ? this.auth.register(this.fullName.trim(), this.phoneNumber.trim(), this.pin, this.role)
