@@ -638,6 +638,9 @@ namespace Merkato.Infrastructure.Migrations
                     b.Property<bool>("IsFaydaVerified")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsSellerVerified")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("PhoneNumber")
                         .IsRequired()
                         .HasColumnType("text");
