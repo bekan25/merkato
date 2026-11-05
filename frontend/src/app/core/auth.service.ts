@@ -49,7 +49,21 @@ export class AuthService {
   }
   get isAuthenticated(): boolean { return !!this.token && !!this.user; }
   hasRole(roles: string[]): boolean { return !!this.user && roles.includes(this.user.role); }
-  logout(): void { sessionStorage.removeItem(this.tokenKey); sessionStorage.removeItem(this.userKey); }
+  logout(): void {
+    const token = this.token;
+    const clearLocalSession = () => {
+      sessionStorage.removeItem(this.tokenKey);
+      sessionStorage.removeItem(this.userKey);
+    };
+    if (!token) {
+      clearLocalSession();
+      return;
+    }
+    this.http.post<void>(`${this.api}/logout`, {}).subscribe({
+      next: clearLocalSession,
+      error: clearLocalSession
+    });
+  }
   dashboardPath(): string {
     const role = this.user?.role;
     return role === 'ADMIN' ? '/admin' : role === 'MERCHANT' ? '/merchant' : '/dashboard';
