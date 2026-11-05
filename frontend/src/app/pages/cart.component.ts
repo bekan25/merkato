@@ -338,6 +338,7 @@ export class CartComponent implements OnInit, OnDestroy {
           const order = await firstValueFrom(this.api.createOrder({
             sellerId: line.product.sellerId,
             productTitle: line.product.name,
+            productId: line.product.id,
             amountEtb: line.product.priceEtb,
             deliveryFeeEtb: this.deliveryFeeEtb!,
             paymentRail: this.paymentRail,
