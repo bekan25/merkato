@@ -346,7 +346,7 @@ export class CartComponent implements OnInit, OnDestroy {
             cityArea: this.cityArea.trim(),
             ...(!couponConsumed && this.appliedCoupon && line.product.id === this.couponProductId ? { couponCode: this.appliedCoupon.code } : {})
           }));
-          if (!couponConsumed && this.appliedCoupon) couponConsumed = true;
+          if (!couponConsumed && this.appliedCoupon && line.product.id === this.couponProductId) couponConsumed = true;
           created++;
           try {
             await firstValueFrom(this.api.initiatePayment(order.id, order.totalAmountEtb, this.paymentRail));
