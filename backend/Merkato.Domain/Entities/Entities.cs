@@ -25,6 +25,8 @@ public class Order
     public string OrderNumber { get; set; } = string.Empty;
     public long BuyerId { get; set; }
     public long SellerId { get; set; }
+    // Nullable for historical orders created before product references were persisted.
+    public long? ProductId { get; set; }
     
     [Column(TypeName = "numeric(18,4)")]
     public decimal TotalAmountEtb { get; set; }
