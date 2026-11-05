@@ -1,4 +1,5 @@
 import { Component, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -54,6 +55,7 @@ import { AuthService } from '../core/auth.service';
 })
 export class AuthComponent {
   private auth = inject(AuthService);
+  private http = inject(HttpClient);
   private router = inject(Router);
   isRegister = false;
   fullName = '';
@@ -75,7 +77,18 @@ export class AuthComponent {
       ? this.auth.register(this.fullName.trim(), this.phoneNumber.trim(), this.pin, this.role)
       : this.auth.login(this.phoneNumber.trim(), this.pin);
     request.subscribe({
-      next: () => { this.loading = false; this.router.navigateByUrl(this.auth.dashboardPath()); },
+      next: () => {
+        this.loading = false;
+        const referralCode = localStorage.getItem('merkato_referral_code');
+        const visitorKey = localStorage.getItem('merkato_visitor_key');
+        if (referralCode && visitorKey) {
+          this.http.post(`/api/commerce/referrals/${encodeURIComponent(referralCode)}/claim`, { visitorKey }).subscribe({
+            next: () => localStorage.removeItem('merkato_referral_code'),
+            error: () => { /* Existing accounts or untracked visits can claim later in Commerce Hub. */ }
+          });
+        }
+        this.router.navigateByUrl(this.auth.dashboardPath());
+      },
       error: (err) => {
         this.loading = false;
         if (err?.status === 0) this.error = 'Cannot connect to MERKATO API. Check that the backend is running.';
