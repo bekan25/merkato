@@ -26,6 +26,8 @@ public class MerkatoDbContext : DbContext
     public DbSet<Product> Products => Set<Product>();
     public DbSet<WholesalePriceTier> WholesalePriceTiers => Set<WholesalePriceTier>();
     public DbSet<WholesaleRequest> WholesaleRequests => Set<WholesaleRequest>();
+    public DbSet<SourcingRequest> SourcingRequests => Set<SourcingRequest>();
+    public DbSet<SourcingOffer> SourcingOffers => Set<SourcingOffer>();
     public DbSet<AffiliateProfile> AffiliateProfiles => Set<AffiliateProfile>();
     public DbSet<AffiliateReferral> AffiliateReferrals => Set<AffiliateReferral>();
     public DbSet<AffiliateCommission> AffiliateCommissions => Set<AffiliateCommission>();
@@ -97,6 +99,8 @@ public class MerkatoDbContext : DbContext
             e.Property(x => x.RequestedUnitPriceEtb).HasColumnType("numeric(18,4)");
             e.Property(x => x.QuotedUnitPriceEtb).HasColumnType("numeric(18,4)");
         });
+        modelBuilder.Entity<SourcingRequest>(e => { e.HasIndex(x => x.RequestNumber).IsUnique(); e.HasIndex(x => new { x.BuyerId, x.CreatedAt }); e.HasIndex(x => new { x.Status, x.ExpiresAt }); e.Property(x => x.RequestNumber).HasMaxLength(24).IsRequired(); e.Property(x => x.Title).HasMaxLength(160).IsRequired(); e.Property(x => x.Description).HasMaxLength(2000).IsRequired(); e.Property(x => x.Category).HasMaxLength(100).IsRequired(); e.Property(x => x.City).HasMaxLength(100).IsRequired(); e.Property(x => x.Status).HasMaxLength(24).IsRequired(); e.Property(x => x.TargetUnitPriceEtb).HasColumnType("numeric(18,4)"); });
+        modelBuilder.Entity<SourcingOffer>(e => { e.HasIndex(x => new { x.SourcingRequestId, x.SellerId }).IsUnique(); e.HasIndex(x => new { x.SellerId, x.Status }); e.Property(x => x.UnitPriceEtb).HasColumnType("numeric(18,4)"); e.Property(x => x.Note).HasMaxLength(1000); e.Property(x => x.Status).HasMaxLength(24).IsRequired(); });
         modelBuilder.Entity<AffiliateProfile>(e => {
             e.HasIndex(x => x.UserId).IsUnique();
             e.HasIndex(x => x.ReferralCode).IsUnique();
