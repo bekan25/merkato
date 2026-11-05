@@ -56,6 +56,55 @@ public sealed class AssistantControllerTests
     }
 
     [Fact]
+    public async Task Chat_RejectsNonHttpsProviderEndpoint()
+    {
+        var previousKey = Environment.GetEnvironmentVariable("MERKATO_AI_API_KEY");
+        var previousEndpoint = Environment.GetEnvironmentVariable("MERKATO_AI_ENDPOINT");
+        try
+        {
+            Environment.SetEnvironmentVariable("MERKATO_AI_API_KEY", "unit-test-key");
+            Environment.SetEnvironmentVariable("MERKATO_AI_ENDPOINT", "http://insecure.example/chat");
+            using var db = CreateDb();
+            var controller = new AssistantController(db, new StubHttpClientFactory(), NullLogger<AssistantController>.Instance);
+
+            var result = await controller.Chat(new ShoppingAssistantRequest("Find a phone"), CancellationToken.None);
+
+            var unavailable = Assert.IsType<ObjectResult>(result);
+            Assert.Equal(StatusCodes.Status503ServiceUnavailable, unavailable.StatusCode);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("MERKATO_AI_API_KEY", previousKey);
+            Environment.SetEnvironmentVariable("MERKATO_AI_ENDPOINT", previousEndpoint);
+        }
+    }
+
+    [Fact]
+    public async Task Chat_ReturnsBadGatewayWhenProviderRejectsRequest()
+    {
+        var previousKey = Environment.GetEnvironmentVariable("MERKATO_AI_API_KEY");
+        var previousEndpoint = Environment.GetEnvironmentVariable("MERKATO_AI_ENDPOINT");
+        try
+        {
+            Environment.SetEnvironmentVariable("MERKATO_AI_API_KEY", "unit-test-key");
+            Environment.SetEnvironmentVariable("MERKATO_AI_ENDPOINT", "https://assistant.test/v1/chat/completions");
+            using var db = CreateDb();
+            var factory = new StubHttpClientFactory(new FailingHttpMessageHandler());
+            var controller = new AssistantController(db, factory, NullLogger<AssistantController>.Instance);
+
+            var result = await controller.Chat(new ShoppingAssistantRequest("Find a phone"), CancellationToken.None);
+
+            var failure = Assert.IsType<ObjectResult>(result);
+            Assert.Equal(StatusCodes.Status502BadGateway, failure.StatusCode);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("MERKATO_AI_API_KEY", previousKey);
+            Environment.SetEnvironmentVariable("MERKATO_AI_ENDPOINT", previousEndpoint);
+        }
+    }
+
+    [Fact]
     public async Task Chat_UsesConfiguredProviderAndReturnsAssistantMessage()
     {
         var previousKey = Environment.GetEnvironmentVariable("MERKATO_AI_API_KEY");
@@ -91,6 +140,15 @@ public sealed class AssistantControllerTests
         public StubHttpClientFactory() : this(new StubHttpMessageHandler()) { }
         public StubHttpClientFactory(HttpMessageHandler handler) => _handler = handler;
         public HttpClient CreateClient(string name) => new(_handler, disposeHandler: false);
+    }
+
+    private sealed class FailingHttpMessageHandler : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            Assert.Equal(HttpMethod.Post, request.Method);
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.ServiceUnavailable));
+        }
     }
 
     private sealed class StubHttpMessageHandler : HttpMessageHandler
