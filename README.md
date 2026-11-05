@@ -1,6 +1,6 @@
 # MERKATO — Ethiopian Digital Marketplace
 
-MERKATO is a full-stack marketplace that connects Ethiopian buyers and merchants. The repository uses Angular 18 for the web client and ASP.NET Core 8, Entity Framework Core and PostgreSQL for the API and persistence layer.
+MERKATO is a full-stack marketplace that connects Ethiopian buyers and merchants. The repository uses Angular 18 for the web client and ASP.NET Core 10 LTS, Entity Framework Core 10 and PostgreSQL for the API and persistence layer.
 
 ## Current workspace
 
@@ -16,7 +16,7 @@ The professional marketplace work is being developed on the `feature/merkato-pro
 - Typed API client and bearer-token HTTP interceptor
 
 ### API
-- ASP.NET Core 8 Web API with JWT bearer authentication
+- ASP.NET Core 10 Web API with JWT bearer authentication
 - PostgreSQL persistence through EF Core
 - Public registration limited to BUYER and MERCHANT roles
 - PINs hashed with PBKDF2; public registration cannot create privileged roles
@@ -29,7 +29,7 @@ The professional marketplace work is being developed on the `feature/merkato-pro
 ## Requirements
 
 - Node.js 20 or newer and npm
-- .NET SDK 8
+- .NET SDK 10
 - PostgreSQL 14 or newer
 
 ## Configure the backend
@@ -56,6 +56,7 @@ The local web client expects the API at `http://localhost:5000`. If your API lis
 ```powershell
 cd frontend
 npm ci
+npm test
 npm start
 ```
 
@@ -63,13 +64,13 @@ Open `http://localhost:4200`.
 
 ## Payments and production readiness
 
-The current checkout flow creates orders and records payment-initiation requests as pending. It does **not** yet redirect customers to Telebirr, CBE Birr or another live payment checkout. Live payment collection requires the relevant merchant credentials, provider-specific initiation adapters, webhook signature configuration and end-to-end verification. Do not describe pending transactions as paid.
+The current checkout flow creates orders and records payment-initiation requests as pending. It does **not** yet redirect customers to Telebirr, CBE Birr or another live payment checkout. No provider-specific live payment initiation adapter is configured. Live collection requires official merchant credentials, the provider's current integration specification and sandbox, signed webhook verification, reconciliation and end-to-end tests. Do not describe pending transactions as paid.
 
 The existing Fayda-related service also needs a real, authenticated provider integration and verification callback before it can be treated as production identity verification. Run security review, database migration checks, API tests and a real provider sandbox test before production deployment.
 
 ## CI
 
-GitHub Actions builds the Angular application and restores, builds and tests the .NET solution on pushes to the feature branch and pull requests targeting `main`.
+GitHub Actions runs frontend buyer/merchant/admin route and API contract tests, builds Angular, restores/builds/tests the .NET 10 solution, and builds the combined Docker image.
 
 ## Free preview deployment (GitHub + Render + Neon)
 
@@ -107,7 +108,7 @@ Public registration can create only buyer and merchant accounts. To seed the fir
 - This setup is for a **preview / learning / early testing environment**, not a commercial production launch. Render explicitly says its free instances are not for production applications.
 - Payment initiation currently records a pending transaction; no live Telebirr or CBE Birr checkout is implemented. Do not collect real customer money.
 - Fayda is not connected to an authenticated identity provider. Do not present users as Fayda-verified.
-- The repository currently targets .NET 8. Microsoft support for .NET 8 ends on **November 10, 2026**; upgrade the API, EF Core packages and Docker images to .NET 10 LTS before a production launch.
+- The API, EF Core provider, test project and Docker images now target .NET 10 LTS. Microsoft lists .NET 10 support through November 2028; keep the SDK and runtime on the latest servicing patch.
 - Resolve the dependency audit findings and complete security, inventory concurrency, refund, dispute, payment reconciliation, backup-restore and end-to-end tests before launch.
 
 For platform limits and setup details, see the official docs: https://render.com/docs/free, https://render.com/docs/blueprint-spec, and https://neon.com/pricing.
