@@ -117,6 +117,7 @@ export class AppComponent {
   changeLanguage(value: string): void {
     this.language = value === 'om' || value === 'am' ? value : 'en';
     try { localStorage.setItem('merkato_language', this.language); } catch { /* Storage may be unavailable. */ }
+    window.dispatchEvent(new CustomEvent('merkato-language-change', { detail: this.language }));
   }
 
   closeMobileNav(): void { this.mobileNavOpen = false; }
