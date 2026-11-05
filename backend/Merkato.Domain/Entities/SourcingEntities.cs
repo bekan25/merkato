@@ -20,7 +20,7 @@ public sealed class SourcingOffer
  public long Id { get; set; }
  public long SourcingRequestId { get; set; }
  public long SellerId { get; set; }
- public long ProductId { get; set; }
+ public long? ProductId { get; set; }
  public decimal UnitPriceEtb { get; set; }
  public int AvailableQuantity { get; set; }
  public string? Note { get; set; }
