@@ -97,6 +97,7 @@ public sealed class TrustController : ControllerBase
 
         using var submittedProfile = JsonDocument.Parse(string.IsNullOrWhiteSpace(latest.MetadataJson) ? "{}" : latest.MetadataJson);
         var profile = submittedProfile.RootElement.Clone();
+        seller.IsSellerVerified = request.Decision == "APPROVED";
         _db.AuditLogs.Add(new AuditLog
         {
             ActorId = adminId, ActorRole = "ADMIN", Action = "SELLER_VERIFICATION_" + request.Decision,
