@@ -130,3 +130,13 @@ test('checkout and verified-purchase reviews retain the exact product identity',
   assert.match(growth, /x\.ProductId == product\.Id/);
   assert.match(migration, /IX_Orders_ProductId/);
 });
+
+
+test('registration PIN validation matches the API while legacy sign-in remains compatible', async () => {
+  const authPage = await read('../src/app/pages/auth.component.ts');
+  const authApi = await read('../../backend/Merkato.Api/Controllers/AuthController.cs');
+
+  assert.match(authPage, /\[minlength\]="isRegister \? 6 : 4"/);
+  assert.match(authPage, /this\.isRegister \? 'PIN must contain 6 to 8 digits\.' : 'PIN must contain 4 to 8 digits\.'/);
+  assert.match(authApi, /dto\.Pin\.Length is < 6 or > 8/);
+});
