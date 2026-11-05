@@ -38,10 +38,22 @@ public sealed class WholesaleController(MerkatoDbContext db) : ControllerBase
             request.Tiers.Select(t => t.MinimumQuantity).Distinct().Count() != request.Tiers.Count)
             return BadRequest("Provide unique quantity tiers (minimum 2) with positive ETB prices.");
 
-        var old = await db.WholesalePriceTiers.Where(x => x.ProductId == productId).ToListAsync(ct);
-        db.WholesalePriceTiers.RemoveRange(old);
-        foreach (var tier in request.Tiers.OrderBy(t => t.MinimumQuantity))
-            db.WholesalePriceTiers.Add(new WholesalePriceTier { ProductId = productId, SellerId = product.SellerId, MinimumQuantity = tier.MinimumQuantity, UnitPriceEtb = tier.UnitPriceEtb });
+        var existing = await db.WholesalePriceTiers.Where(x => x.ProductId == productId).ToListAsync(ct);
+        var submittedQuantities = request.Tiers.Select(t => t.MinimumQuantity).ToHashSet();
+        db.WholesalePriceTiers.RemoveRange(existing.Where(x => !submittedQuantities.Contains(x.MinimumQuantity)));
+        foreach (var tier in request.Tiers)
+        {
+            var row = existing.FirstOrDefault(x => x.MinimumQuantity == tier.MinimumQuantity);
+            if (row is null)
+            {
+                db.WholesalePriceTiers.Add(new WholesalePriceTier { ProductId = productId, SellerId = product.SellerId, MinimumQuantity = tier.MinimumQuantity, UnitPriceEtb = tier.UnitPriceEtb });
+            }
+            else
+            {
+                row.UnitPriceEtb = tier.UnitPriceEtb;
+                row.UpdatedAt = DateTime.UtcNow;
+            }
+        }
         await db.SaveChangesAsync(ct);
         return Ok(new { productId, count = request.Tiers.Count });
     }
