@@ -70,16 +70,42 @@ public sealed class CommerceGrowthController(MerkatoDbContext db, IEscrowService
         var product = await db.Products.FirstOrDefaultAsync(x => x.Id == productId, ct);
         if (product is null) return NotFound();
         if (!User.IsInRole("ADMIN") && product.SellerId != CurrentUserId) return Forbid();
-        var detail = await db.ProductListingDetails.FirstOrDefaultAsync(x => x.ProductId == productId, ct);
-        if (detail is null) { detail = new ProductListingDetail { ProductId = productId }; db.ProductListingDetails.Add(detail); }
-        if (input.Quantity < detail.ReservedQuantity)
-            return Conflict(new { message = "Stock cannot be reduced below units already reserved for active group buys.", reservedQuantity = detail.ReservedQuantity });
-        detail.StockQuantity = input.Quantity;
-        detail.LowStockThreshold = input.LowStockThreshold;
-        if (Enum.TryParse<ProductCondition>(input.Condition, true, out var condition)) detail.Condition = condition;
-        else return BadRequest("Condition must be NEW, USED or REFURBISHED.");
-        detail.UpdatedAt = DateTime.UtcNow;
-        await db.SaveChangesAsync(ct);
+        if (!Enum.TryParse<ProductCondition>(input.Condition, true, out var condition))
+            return BadRequest("Condition must be NEW, USED or REFURBISHED.");
+
+        var now = DateTime.UtcNow;
+        var updated = await db.ProductListingDetails
+            .Where(x => x.ProductId == productId && x.ReservedQuantity <= input.Quantity)
+            .ExecuteUpdateAsync(update => update
+                .SetProperty(x => x.StockQuantity, input.Quantity)
+                .SetProperty(x => x.LowStockThreshold, input.LowStockThreshold)
+                .SetProperty(x => x.Condition, condition)
+                .SetProperty(x => x.UpdatedAt, now), ct);
+
+        if (updated == 0)
+        {
+            if (await db.ProductListingDetails.AnyAsync(x => x.ProductId == productId, ct))
+            {
+                var current = await db.ProductListingDetails.AsNoTracking()
+                    .Where(x => x.ProductId == productId)
+                    .Select(x => new { x.ReservedQuantity })
+                    .FirstAsync(ct);
+                return Conflict(new { message = "Stock cannot be reduced below units already reserved for active group buys.", reservedQuantity = current.ReservedQuantity });
+            }
+
+            db.ProductListingDetails.Add(new ProductListingDetail
+            {
+                ProductId = productId,
+                StockQuantity = input.Quantity,
+                LowStockThreshold = input.LowStockThreshold,
+                Condition = condition,
+                UpdatedAt = now
+            });
+            try { await db.SaveChangesAsync(ct); }
+            catch (DbUpdateException) { return Conflict("Inventory was updated by another request. Refresh and try again."); }
+        }
+
+        var detail = await db.ProductListingDetails.AsNoTracking().FirstAsync(x => x.ProductId == productId, ct);
         return Ok(new { detail.ProductId, detail.StockQuantity, detail.ReservedQuantity, availableQuantity = detail.StockQuantity - detail.ReservedQuantity, detail.LowStockThreshold, condition = detail.Condition.ToString(), lowStock = detail.StockQuantity - detail.ReservedQuantity <= detail.LowStockThreshold });
     }
 
