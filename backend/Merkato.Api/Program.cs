@@ -437,7 +437,7 @@ if (adminBootstrapRequested)
 // ============================================================
 // A bounded, database-backed discovery endpoint for storefront search.
 // It deliberately returns public catalogue fields only.
-app.MapGet("/api/v1/discovery/products", async (
+app.MapGet("/api/v1/discovery/products", async Task<IResult> (
     MerkatoDbContext db,
     string? q,
     string? category,
