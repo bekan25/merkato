@@ -3,17 +3,45 @@ import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../core/auth.service';
+import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-commerce-hub',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   template: `
     <section class="hub">
       <header class="hero">
         <div><span class="eyebrow">MERKATO COMMERCE NETWORK</span><h1>{{ tx.title }}</h1><p>{{ tx.subtitle }}</p></div>
         <select aria-label="Language" [(ngModel)]="language" (ngModelChange)="setLanguage()"><option value="en">English</option><option value="om">Afaan Oromoo</option><option value="am">አማርኛ</option></select>
       </header>
+      <section class="growth-engines" aria-label="MERKATO growth engines">
+        <article class="engine-card">
+          <span class="engine-kicker">01 · FIND IT</span><h2>One Request</h2>
+          <p>Ask a merchant for a product-specific wholesale quote, then review the response in your account.</p>
+          <label>Product ID<input type="number" min="1" [(ngModel)]="productId" placeholder="Enter a listed product ID"></label>
+          <a class="engine-action" [routerLink]="productId > 0 ? ['/wholesale', productId] : ['/']">Open product request <span>↗</span></a>
+          <small>Current connection: existing product-specific wholesale RFQ. Multi-merchant open sourcing is a separate backend milestone.</small>
+        </article>
+        <article class="engine-card">
+          <span class="engine-kicker">02 · COMPARE IT</span><h2>Smart Price</h2>
+          <p>Review seller prices, recorded price history, stock and product condition using the existing commerce APIs.</p>
+          <button class="engine-action" type="button" (click)="active='prices'">Compare prices <span>↗</span></button>
+          <small>Only recorded observations and currently available seller offers are shown.</small>
+        </article>
+        <article class="engine-card">
+          <span class="engine-kicker">03 · SHARE IT</span><h2>Social Commerce</h2>
+          <p>Create and share your existing MERKATO referral link to bring customers and track eligible referrals.</p>
+          <button class="engine-action" type="button" (click)="active='referral';loadReferral()">Open sharing tools <span>↗</span></button>
+          <small>Product-video publishing and creator feed are not yet connected.</small>
+        </article>
+        <article class="engine-card engine-featured">
+          <span class="engine-kicker">04 · ALL IN ONE</span><h2>Super Marketplace</h2>
+          <p>Return to the full marketplace to discover products, sellers, offers and shopping assistance.</p>
+          <a class="engine-action" routerLink="/">Explore marketplace <span>↗</span></a>
+          <small>Reviews, group buying, loyalty, delivery and returns remain available in this hub.</small>
+        </article>
+      </section>
       <nav class="tabs"><button *ngFor="let tab of tabs" [class.active]="active===tab.key" (click)="active=tab.key">{{ tab.label }}</button></nav>
       <p class="notice" *ngIf="message" [class.error]="isError">{{ message }}</p>
       <section class="panel" *ngIf="active==='reviews'">
