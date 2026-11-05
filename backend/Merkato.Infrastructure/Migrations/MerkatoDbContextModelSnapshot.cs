@@ -470,6 +470,8 @@ namespace Merkato.Infrastructure.Migrations
                     b.HasIndex("OrderNumber")
                         .IsUnique();
 
+                    b.HasIndex("ProductId");
+
                     b.HasIndex("SellerId");
 
                     b.ToTable("Orders");
