@@ -70,12 +70,46 @@ jobs:
           dotnet ef database update --project backend/Merkato.Infrastructure --startup-project backend/Merkato.Api
 
   containers:
-    name: Container image and Compose validation
+    name: Container image, PostgreSQL and smoke validation
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: merkato_ci
+          POSTGRES_USER: merkato_ci
+          POSTGRES_PASSWORD: ci-password-not-for-production
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U merkato_ci -d merkato_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
       - name: Build combined API and storefront image
         run: docker build --file backend/Dockerfile --tag merkato:ci .
+      - name: Run container smoke test against PostgreSQL
+        run: |
+          docker run --detach --network host --name merkato-smoke \
+            -e ASPNETCORE_ENVIRONMENT=Production \
+            -e ConnectionStrings__PostgreSql="Host=127.0.0.1;Port=5432;Database=merkato_ci;Username=merkato_ci;Password=ci-password-not-for-production" \
+            -e Jwt__Key="ci-only-key-with-more-than-thirty-two-random-characters" \
+            -e Jwt__Issuer="https://api.merkato.test" \
+            -e Jwt__Audience="https://merkato.test" \
+            -e MERKATO_ALLOWED_ORIGINS="https://merkato.test" \
+            -e MERKATO_APPLY_MIGRATIONS="true" merkato:ci
+          for attempt in $(seq 1 40); do
+            if curl --fail --silent http://127.0.0.1:8080/health/ready; then
+              break
+            fi
+            sleep 3
+          done
+          curl --fail --silent http://127.0.0.1:8080/health
+          curl --fail --silent --output /dev/null http://127.0.0.1:8080/
+          docker logs merkato-smoke
+          docker rm --force merkato-smoke
       - name: Validate Compose deployment configuration
         env:
           POSTGRES_DB: merkato_ci
