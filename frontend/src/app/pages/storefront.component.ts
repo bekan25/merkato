@@ -29,6 +29,15 @@ import { ShoppingAssistantComponent } from '../components/shopping-assistant.com
       </div>
     </section>
 
+    <section class="public-promotion-strip" *ngIf="activePromotions.length">
+      <div class="promotion-intro"><span>✦ MERKATO OFFERS</span><strong>Shop more. Save more.</strong><small>Limited-time offers from participating merchants.</small></div>
+      <article *ngFor="let offer of activePromotions">
+        <b>{{offer.title}}</b>
+        <strong>{{offer.discountType === 'PERCENT' ? (offer.discountValue + '% OFF') : ((offer.discountValue | number:'1.0-2') + ' ETB OFF')}}</strong>
+        <small *ngIf="offer.minimumOrderEtb > 0">From {{offer.minimumOrderEtb | number:'1.0-2'}} ETB · </small><small>Until {{offer.expiresAt | date:'mediumDate'}}</small>
+      </article>
+    </section>
+
     <section class="trust-strip">
       <div><strong>01</strong><span>{{ t('discoverLocal') }}</span></div><div><strong>02</strong><span>{{ t('connectMerchants') }}</span></div><div><strong>03</strong><span>{{ t('checkoutConfidence') }}</span></div><div><strong>04</strong><span>{{ t('supportBusiness') }}</span></div>
     </section>
@@ -125,7 +134,8 @@ import { ShoppingAssistantComponent } from '../components/shopping-assistant.com
     </div>
   `,
   styles: [`
-     .market-toolbar-actions{display:flex;align-items:center;gap:10px}.notification-trigger{border:1px solid #e5dfd2;border-radius:20px;background:#fff;padding:8px 12px;color:#5d4a24;font-size:11px;font-weight:800;cursor:pointer}.notification-trigger span{display:inline-grid;place-items:center;min-width:18px;height:18px;margin-left:5px;border-radius:50%;background:#c49a32;color:#211b0e}.notification-panel{margin:14px 0 22px;padding:17px;border:1px solid #e9e2d4;border-radius:15px;background:#fff;box-shadow:0 12px 30px #2b25120a}.notification-heading,.notification-item{display:flex;justify-content:space-between;align-items:flex-start;gap:14px}.notification-heading{padding-bottom:12px;border-bottom:1px solid #eee9df}.notification-heading strong,.notification-heading small{display:block}.notification-heading small,.notification-item small,.notification-empty{color:#897f6c;font-size:11px}.notification-heading button,.notification-item button{border:0;background:none;color:#8a671e;font-size:11px;font-weight:800;cursor:pointer}.notification-item{padding:13px 0;border-bottom:1px solid #f0ece4}.notification-item.unread{background:#fcfaf4}.notification-item p{margin:5px 0;color:#625b4c;font-size:12px}.notification-item strong{font-size:12px;color:#2e3028}.price-alert-form{display:grid;gap:10px;margin-top:18px;padding:14px;border:1px solid #eee8da;border-radius:12px;background:#fbfaf6}.price-alert-form label{display:grid;gap:7px;color:#756b57;font-size:11px;font-weight:700}.price-alert-form input{padding:10px;border:1px solid #e5dfd2;border-radius:8px}
+     .public-promotion-strip{display:flex;gap:12px;align-items:stretch;overflow-x:auto;padding:16px clamp(18px,5vw,76px);background:linear-gradient(100deg,#fffaf0,#fffdf8);border-top:1px solid #f0e6d1;border-bottom:1px solid #f0e6d1}.promotion-intro{display:grid;align-content:center;gap:4px;min-width:190px}.promotion-intro>span{color:#a17a2d;font-size:9px;font-weight:900;letter-spacing:1px}.promotion-intro strong{color:#4a3a1c;font-size:15px}.promotion-intro small{color:#8d826d;font-size:10px}.public-promotion-strip article{min-width:180px;padding:12px 15px;border:1px solid #eee2c7;border-radius:12px;background:#fff;display:grid;gap:5px}.public-promotion-strip article b{color:#574723;font-size:11px}.public-promotion-strip article strong{color:#b17d1d;font-size:16px}.public-promotion-strip article small{color:#8d826d;font-size:9px}
+    .market-toolbar-actions{display:flex;align-items:center;gap:10px}.notification-trigger{border:1px solid #e5dfd2;border-radius:20px;background:#fff;padding:8px 12px;color:#5d4a24;font-size:11px;font-weight:800;cursor:pointer}.notification-trigger span{display:inline-grid;place-items:center;min-width:18px;height:18px;margin-left:5px;border-radius:50%;background:#c49a32;color:#211b0e}.notification-panel{margin:14px 0 22px;padding:17px;border:1px solid #e9e2d4;border-radius:15px;background:#fff;box-shadow:0 12px 30px #2b25120a}.notification-heading,.notification-item{display:flex;justify-content:space-between;align-items:flex-start;gap:14px}.notification-heading{padding-bottom:12px;border-bottom:1px solid #eee9df}.notification-heading strong,.notification-heading small{display:block}.notification-heading small,.notification-item small,.notification-empty{color:#897f6c;font-size:11px}.notification-heading button,.notification-item button{border:0;background:none;color:#8a671e;font-size:11px;font-weight:800;cursor:pointer}.notification-item{padding:13px 0;border-bottom:1px solid #f0ece4}.notification-item.unread{background:#fcfaf4}.notification-item p{margin:5px 0;color:#625b4c;font-size:12px}.notification-item strong{font-size:12px;color:#2e3028}.price-alert-form{display:grid;gap:10px;margin-top:18px;padding:14px;border:1px solid #eee8da;border-radius:12px;background:#fbfaf6}.price-alert-form label{display:grid;gap:7px;color:#756b57;font-size:11px;font-weight:700}.price-alert-form input{padding:10px;border:1px solid #e5dfd2;border-radius:8px}
     .wholesale-link{display:inline-flex;margin-top:10px;color:#087653;font-size:12px;font-weight:700;text-decoration:none}.wholesale-link:hover{text-decoration:underline}
     .price-filter{width:100px;min-width:0;padding:10px;border:1px solid #e5e9e3;border-radius:10px;background:#fff;color:#34463a;font-size:11px}
     .compare-bar{margin:18px 0;padding:14px 16px;border:1px solid #dce7dc;border-radius:14px;background:#f7faf5;color:#264634;font-size:12px}
@@ -220,6 +230,7 @@ export class StorefrontComponent implements OnInit, OnDestroy {
   private api = inject(ApiService);
   private route = inject(ActivatedRoute);
   products: MerkatoProduct[] = [];
+  activePromotions: Array<{title:string;discountType:string;discountValue:number;maximumDiscountEtb?:number|null;minimumOrderEtb:number;expiresAt:string;merchantPromotion:boolean}> = [];
   loading = true;
   error = '';
   search = '';
@@ -282,6 +293,7 @@ export class StorefrontComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     window.addEventListener('merkato-language-change', this.languageListener);
     this.restoreSavedProducts();
+    this.api.getActivePromotions().subscribe({ next: items => this.activePromotions = (items || []).slice(0, 4), error: () => this.activePromotions = [] });
     this.route.queryParamMap.subscribe(params => {
       const nextSearch = params.get('q') || '';
       const nextCategory = params.get('category') || 'All';
