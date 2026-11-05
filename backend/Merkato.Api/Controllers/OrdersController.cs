@@ -118,11 +118,16 @@ public class OrdersController : ControllerBase
         if (seller == null || seller.Role != UserRole.MERCHANT)
             return BadRequest(new { message = "The selected seller is not an active merchant account." });
 
+        if (request.ProductId is <= 0)
+            return BadRequest(new { message = "ProductId must be a positive identifier when supplied." });
+
         var product = await _db.Products.AsNoTracking()
             .FirstOrDefaultAsync(item =>
                 item.SellerId == request.SellerId &&
                 item.IsActive &&
-                item.Name == request.ProductTitle, ct);
+                (request.ProductId.HasValue
+                    ? item.Id == request.ProductId.Value
+                    : item.Name == request.ProductTitle), ct);
 
         if (product == null)
             return NotFound(new { message = "The selected product is no longer available." });
@@ -166,6 +171,7 @@ public class OrdersController : ControllerBase
             OrderNumber = $"MK-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..8].ToUpperInvariant()}",
             BuyerId = buyerId,
             SellerId = request.SellerId,
+            ProductId = product.Id,
             ProductTitle = product.Name,
             TotalAmountEtb = request.AmountEtb - discountEtb + expectedDeliveryFee,
             DeliveryFeeEtb = expectedDeliveryFee,
