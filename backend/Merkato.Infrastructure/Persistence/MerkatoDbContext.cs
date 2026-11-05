@@ -10,6 +10,9 @@ public class MerkatoDbContext : DbContext
     }
 
     public DbSet<User> Users => Set<User>();
+    public DbSet<WishlistItem> WishlistItems => Set<WishlistItem>();
+    public DbSet<PriceAlert> PriceAlerts => Set<PriceAlert>();
+    public DbSet<UserNotification> UserNotifications => Set<UserNotification>();
     public DbSet<ProductListingDetail> ProductListingDetails => Set<ProductListingDetail>();
     public DbSet<ProductReview> ProductReviews => Set<ProductReview>();
     public DbSet<ProductPriceSnapshot> ProductPriceSnapshots => Set<ProductPriceSnapshot>();
@@ -39,6 +42,11 @@ public class MerkatoDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        // Buyer engagement: persisted, user-scoped records with unique active relationships.
+        modelBuilder.Entity<WishlistItem>(e => { e.HasIndex(x => new { x.BuyerId, x.ProductId }).IsUnique(); e.HasIndex(x => x.BuyerId); });
+        modelBuilder.Entity<PriceAlert>(e => { e.HasIndex(x => new { x.BuyerId, x.ProductId, x.IsActive }); e.Property(x => x.TargetPriceEtb).HasColumnType("numeric(18,4)"); });
+        modelBuilder.Entity<UserNotification>(e => { e.HasIndex(x => new { x.UserId, x.IsRead, x.CreatedAt }); e.Property(x => x.Title).HasMaxLength(160).IsRequired(); e.Property(x => x.Message).HasMaxLength(1000).IsRequired(); e.Property(x => x.Type).HasMaxLength(40).IsRequired(); });
 
         // Extended commerce features
         modelBuilder.Entity<ProductListingDetail>(e => { e.HasKey(x => x.ProductId); e.Property(x => x.ProductId).ValueGeneratedNever(); e.HasIndex(x => x.StockQuantity); });
