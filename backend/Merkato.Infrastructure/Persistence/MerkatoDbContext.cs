@@ -10,6 +10,14 @@ public class MerkatoDbContext : DbContext
     }
 
     public DbSet<User> Users => Set<User>();
+    public DbSet<ProductListingDetail> ProductListingDetails => Set<ProductListingDetail>();
+    public DbSet<ProductReview> ProductReviews => Set<ProductReview>();
+    public DbSet<ProductPriceSnapshot> ProductPriceSnapshots => Set<ProductPriceSnapshot>();
+    public DbSet<GroupBuy> GroupBuys => Set<GroupBuy>();
+    public DbSet<GroupBuyMember> GroupBuyMembers => Set<GroupBuyMember>();
+    public DbSet<ReturnRequest> ReturnRequests => Set<ReturnRequest>();
+    public DbSet<LoyaltyAccount> LoyaltyAccounts => Set<LoyaltyAccount>();
+    public DbSet<LoyaltyTransaction> LoyaltyTransactions => Set<LoyaltyTransaction>();
     public DbSet<Product> Products => Set<Product>();
     public DbSet<WholesalePriceTier> WholesalePriceTiers => Set<WholesalePriceTier>();
     public DbSet<WholesaleRequest> WholesaleRequests => Set<WholesaleRequest>();
@@ -31,6 +39,16 @@ public class MerkatoDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        // Extended commerce features
+        modelBuilder.Entity<ProductListingDetail>(e => { e.HasKey(x => x.ProductId); e.HasIndex(x => x.StockQuantity); });
+        modelBuilder.Entity<ProductReview>(e => { e.HasIndex(x => new { x.ProductId, x.BuyerId }).IsUnique(); e.HasIndex(x => x.OrderId); });
+        modelBuilder.Entity<ProductPriceSnapshot>(e => { e.HasIndex(x => new { x.ProductId, x.RecordedAt }); e.Property(x => x.PriceEtb).HasColumnType("numeric(18,4)"); });
+        modelBuilder.Entity<GroupBuy>(e => { e.HasIndex(x => new { x.Status, x.ExpiresAt }); e.Property(x => x.RegularUnitPriceEtb).HasColumnType("numeric(18,4)"); e.Property(x => x.DiscountUnitPriceEtb).HasColumnType("numeric(18,4)"); });
+        modelBuilder.Entity<GroupBuyMember>(e => { e.HasIndex(x => new { x.GroupBuyId, x.BuyerId }).IsUnique(); });
+        modelBuilder.Entity<ReturnRequest>(e => { e.HasIndex(x => x.OrderId).IsUnique(); });
+        modelBuilder.Entity<LoyaltyAccount>(e => { e.HasKey(x => x.UserId); });
+        modelBuilder.Entity<LoyaltyTransaction>(e => { e.HasIndex(x => new { x.UserId, x.CreatedAt }); });
 
         // User
         modelBuilder.Entity<User>(entity =>
