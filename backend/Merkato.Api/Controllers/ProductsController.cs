@@ -239,6 +239,7 @@ public class ProductsController : ControllerBase
             request.Location.Trim().Length > 160)
             return BadRequest("A city or store location is required (max 160 characters).");
 
+        var previousPriceEtb = product.PriceEtb;
         product.Name = request.Name.Trim();
         product.PriceEtb = request.PriceEtb;
         product.Location = string.IsNullOrWhiteSpace(request.Location)
@@ -251,6 +252,29 @@ public class ProductsController : ControllerBase
             ? "??"
             : request.Emoji.Trim();
         product.UpdatedAt = DateTime.UtcNow;
+
+        // Trigger each matching buyer alert exactly once in the same database save.
+        if (request.PriceEtb < previousPriceEtb)
+        {
+            var matchedAlerts = await _db.PriceAlerts
+                .Where(x => x.ProductId == product.Id && x.IsActive && x.TargetPriceEtb >= request.PriceEtb)
+                .ToListAsync();
+            var now = DateTime.UtcNow;
+            foreach (var alert in matchedAlerts)
+            {
+                alert.IsActive = false;
+                alert.TriggeredAt = now;
+                _db.UserNotifications.Add(new UserNotification
+                {
+                    UserId = alert.BuyerId,
+                    Type = "PRICE_DROP",
+                    Title = "Price drop: " + product.Name,
+                    Message = $"The price is now {request.PriceEtb:0.00} ETB, at or below your target of {alert.TargetPriceEtb:0.00} ETB.",
+                    ActionUrl = "/products/" + product.Id,
+                    CreatedAt = now
+                });
+            }
+        }
 
         await _db.SaveChangesAsync();
 
