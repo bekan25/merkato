@@ -110,13 +110,9 @@ public sealed class CommerceGrowthController(MerkatoDbContext db, IEscrowService
         if (input.RegularUnitPriceEtb != product.PriceEtb) return Conflict("The group regular price must match the current product listing price.");
         var availableStock = await db.ProductListingDetails.AsNoTracking().FirstOrDefaultAsync(x => x.ProductId == product.Id, ct);
         if (availableStock is not null && availableStock.StockQuantity < 1) return Conflict("The product is out of stock.");
-        var group = new GroupBuy { ProductId = product.Id, OrganizerId = CurrentUserId, TargetQuantity = input.TargetQuantity, JoinedQuantity = 1, RegularUnitPriceEtb = input.RegularUnitPriceEtb, DiscountUnitPriceEtb = input.DiscountUnitPriceEtb, ExpiresAt = input.ExpiresAt };
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        var group = new GroupBuy { ProductId = product.Id, OrganizerId = CurrentUserId, TargetQuantity = input.TargetQuantity, RegularUnitPriceEtb = input.RegularUnitPriceEtb, DiscountUnitPriceEtb = input.DiscountUnitPriceEtb, ExpiresAt = input.ExpiresAt };
         db.GroupBuys.Add(group);
         await db.SaveChangesAsync(ct);
-        db.GroupBuyMembers.Add(new GroupBuyMember { GroupBuyId = group.Id, BuyerId = CurrentUserId, Quantity = 1 });
-        await db.SaveChangesAsync(ct);
-        await tx.CommitAsync(ct);
         return CreatedAtAction(nameof(GroupBuys), new { id = group.Id }, new { group.Id, group.Status, group.TargetQuantity });
     }
 
