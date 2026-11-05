@@ -997,6 +997,73 @@ namespace Merkato.Infrastructure.Migrations
                 b.ToTable("LoyaltyTransactions");
             });
 
+
+            modelBuilder.Entity("Merkato.Domain.Entities.SourcingRequest", b =>
+            {
+                b.Property<long>("Id").ValueGeneratedOnAdd().HasColumnType("bigint");
+                NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+                b.Property<long>("BuyerId").HasColumnType("bigint");
+                b.Property<string>("Category").IsRequired().HasMaxLength(100).HasColumnType("character varying(100)");
+                b.Property<string>("City").IsRequired().HasMaxLength(100).HasColumnType("character varying(100)");
+                b.Property<DateTime>("CreatedAt").HasColumnType("timestamp with time zone");
+                b.Property<string>("Description").IsRequired().HasMaxLength(2000).HasColumnType("character varying(2000)");
+                b.Property<DateTime>("ExpiresAt").HasColumnType("timestamp with time zone");
+                b.Property<int>("Quantity").HasColumnType("integer");
+                b.Property<string>("RequestNumber").IsRequired().HasMaxLength(24).HasColumnType("character varying(24)");
+                b.Property<string>("Status").IsRequired().HasMaxLength(24).HasColumnType("character varying(24)");
+                b.Property<decimal?>("TargetUnitPriceEtb").HasColumnType("numeric(18,4)");
+                b.Property<string>("Title").IsRequired().HasMaxLength(160).HasColumnType("character varying(160)");
+                b.Property<DateTime>("UpdatedAt").HasColumnType("timestamp with time zone");
+                b.HasKey("Id"); b.HasIndex("RequestNumber").IsUnique(); b.HasIndex("BuyerId", "CreatedAt"); b.HasIndex("Status", "ExpiresAt");
+                b.ToTable("SourcingRequests");
+            });
+            modelBuilder.Entity("Merkato.Domain.Entities.SourcingOffer", b =>
+            {
+                b.Property<long>("Id").ValueGeneratedOnAdd().HasColumnType("bigint");
+                NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+                b.Property<int>("AvailableQuantity").HasColumnType("integer");
+                b.Property<DateTime>("CreatedAt").HasColumnType("timestamp with time zone");
+                b.Property<int?>("LeadTimeDays").HasColumnType("integer");
+                b.Property<string>("Note").HasMaxLength(1000).HasColumnType("character varying(1000)");
+                b.Property<long>("SellerId").HasColumnType("bigint");
+                b.Property<long>("SourcingRequestId").HasColumnType("bigint");
+                b.Property<string>("Status").IsRequired().HasMaxLength(24).HasColumnType("character varying(24)");
+                b.Property<decimal>("UnitPriceEtb").HasColumnType("numeric(18,4)");
+                b.Property<DateTime>("UpdatedAt").HasColumnType("timestamp with time zone");
+                b.HasKey("Id"); b.HasIndex("SourcingRequestId", "SellerId").IsUnique(); b.HasIndex("SellerId", "Status");
+                b.ToTable("SourcingOffers");
+            });
+            modelBuilder.Entity("Merkato.Domain.Entities.SocialCommercePost", b =>
+            {
+                b.Property<long>("Id").ValueGeneratedOnAdd().HasColumnType("bigint");
+                NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+                b.Property<string>("Caption").IsRequired().HasMaxLength(1200).HasColumnType("character varying(1200)");
+                b.Property<int>("ClickCount").HasColumnType("integer");
+                b.Property<DateTime>("CreatedAt").HasColumnType("timestamp with time zone");
+                b.Property<long>("CreatorId").HasColumnType("bigint");
+                b.Property<string>("MediaType").IsRequired().HasMaxLength(8).HasColumnType("character varying(8)");
+                b.Property<string>("MediaUrl").IsRequired().HasMaxLength(2048).HasColumnType("character varying(2048)");
+                b.Property<string>("ModerationNote").HasMaxLength(1000).HasColumnType("character varying(1000)");
+                b.Property<DateTime?>("PublishedAt").HasColumnType("timestamp with time zone");
+                b.Property<long>("ProductId").HasColumnType("bigint");
+                b.Property<string>("Status").IsRequired().HasMaxLength(16).HasColumnType("character varying(16)");
+                b.Property<DateTime>("UpdatedAt").HasColumnType("timestamp with time zone");
+                b.Property<int>("ViewCount").HasColumnType("integer");
+                b.HasKey("Id"); b.HasIndex("Status", "PublishedAt"); b.HasIndex("CreatorId", "CreatedAt");
+                b.ToTable("SocialCommercePosts");
+            });
+            modelBuilder.Entity("Merkato.Domain.Entities.SocialCommerceClick", b =>
+            {
+                b.Property<long>("Id").ValueGeneratedOnAdd().HasColumnType("bigint");
+                NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+                b.Property<DateTime>("CreatedAt").HasColumnType("timestamp with time zone");
+                b.Property<long>("PostId").HasColumnType("bigint");
+                b.Property<string>("VisitorHash").IsRequired().HasMaxLength(64).HasColumnType("character varying(64)");
+                b.Property<long?>("ViewerId").HasColumnType("bigint");
+                b.HasKey("Id"); b.HasIndex("PostId", "VisitorHash").IsUnique();
+                b.ToTable("SocialCommerceClicks");
+            });
+
 #pragma warning restore 612, 618
         }
     }
