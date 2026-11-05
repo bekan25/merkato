@@ -52,7 +52,7 @@ public class MerkatoDbContext : DbContext
 
         // Coupon inventory and redemption constraints.
         modelBuilder.Entity<PromotionCoupon>(e => {
-            e.HasIndex(x => x.Code).IsUnique();
+            e.HasIndex(x => x.Code).IsUnique(); e.HasIndex(x => x.SourceReferralId).IsUnique();
             e.Property(x => x.Code).HasMaxLength(40).IsRequired();
             e.Property(x => x.Title).HasMaxLength(120).IsRequired();
             e.Property(x => x.DiscountType).HasMaxLength(12).IsRequired();
