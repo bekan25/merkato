@@ -22,7 +22,7 @@ public sealed class PromotionsController(MerkatoDbContext db) : ControllerBase
         var rows = await db.PromotionCoupons.AsNoTracking()
             .Where(x => x.IsActive && x.AssignedUserId == null && x.StartsAt <= now && x.ExpiresAt > now)
             .OrderBy(x => x.ExpiresAt)
-            .Select(x => new { x.Title, x.DiscountType, x.DiscountValue, x.MaximumDiscountEtb, x.MinimumOrderEtb, x.ExpiresAt, merchantPromotion = x.SellerId != null })
+            .Select(x => new { x.Code, x.Title, x.DiscountType, x.DiscountValue, x.MaximumDiscountEtb, x.MinimumOrderEtb, x.ExpiresAt, merchantPromotion = x.SellerId != null })
             .Take(20).ToListAsync(ct);
         return Ok(rows);
     }
