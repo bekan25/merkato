@@ -57,8 +57,19 @@ import { ShoppingAssistantComponent } from '../components/shopping-assistant.com
 
       <div class="market-toolbar" *ngIf="!loading && !error">
         <span>{{visibleProducts.length}} {{visibleProducts.length === 1 ? 'product' : 'products'}} found</span>
-        <button *ngIf="hasActiveFilters" type="button" class="clear-filters" (click)="clearFilters()">{{ t('clearFilters') }}</button>
+        <div class="market-toolbar-actions">
+          <button type="button" class="notification-trigger" (click)="toggleNotifications()">Notifications <span *ngIf="unreadNotificationCount">{{unreadNotificationCount}}</span></button>
+          <button *ngIf="hasActiveFilters" type="button" class="clear-filters" (click)="clearFilters()">{{ t('clearFilters') }}</button>
+        </div>
       </div>
+      <section class="notification-panel" *ngIf="showNotifications">
+        <div class="notification-heading"><div><strong>Notifications</strong><small>{{unreadNotificationCount}} unread</small></div><button type="button" (click)="markAllNotificationsRead()" [disabled]="unreadNotificationCount===0">Mark all as read</button></div>
+        <article class="notification-item" *ngFor="let item of notificationItems" [class.unread]="!item.isRead">
+          <div><strong>{{item.title}}</strong><p>{{item.message}}</p><small>{{item.createdAt | date:'medium'}}</small></div>
+          <button *ngIf="!item.isRead" type="button" (click)="markNotificationRead(item.id)">Mark read</button>
+        </article>
+        <p class="notification-empty" *ngIf="notificationItems.length===0">No notifications yet. Price-drop alerts will appear here.</p>
+      </section>
 
       <div *ngIf="loading" class="state-panel"><span class="loader"></span><strong>{{ t('finding') }}</strong><p>{{ t('loadingProducts') }}</p></div>
       <div *ngIf="error && !loading" class="state-panel"><span class="state-icon">⌁</span><strong>{{ t('connectionUnavailable') }}</strong><p>{{error}}</p><small>{{ t('tryAgainMoment') }}</small><button class="btn btn-outline" (click)="loadProducts()">{{ t('tryAgain') }}</button></div>
@@ -114,7 +125,7 @@ import { ShoppingAssistantComponent } from '../components/shopping-assistant.com
     </div>
   `,
   styles: [`
-     .price-alert-form{display:grid;gap:10px;margin-top:18px;padding:14px;border:1px solid #eee8da;border-radius:12px;background:#fbfaf6}.price-alert-form label{display:grid;gap:7px;color:#756b57;font-size:11px;font-weight:700}.price-alert-form input{padding:10px;border:1px solid #e5dfd2;border-radius:8px}
+     .market-toolbar-actions{display:flex;align-items:center;gap:10px}.notification-trigger{border:1px solid #e5dfd2;border-radius:20px;background:#fff;padding:8px 12px;color:#5d4a24;font-size:11px;font-weight:800;cursor:pointer}.notification-trigger span{display:inline-grid;place-items:center;min-width:18px;height:18px;margin-left:5px;border-radius:50%;background:#c49a32;color:#211b0e}.notification-panel{margin:14px 0 22px;padding:17px;border:1px solid #e9e2d4;border-radius:15px;background:#fff;box-shadow:0 12px 30px #2b25120a}.notification-heading,.notification-item{display:flex;justify-content:space-between;align-items:flex-start;gap:14px}.notification-heading{padding-bottom:12px;border-bottom:1px solid #eee9df}.notification-heading strong,.notification-heading small{display:block}.notification-heading small,.notification-item small,.notification-empty{color:#897f6c;font-size:11px}.notification-heading button,.notification-item button{border:0;background:none;color:#8a671e;font-size:11px;font-weight:800;cursor:pointer}.notification-item{padding:13px 0;border-bottom:1px solid #f0ece4}.notification-item.unread{background:#fcfaf4}.notification-item p{margin:5px 0;color:#625b4c;font-size:12px}.notification-item strong{font-size:12px;color:#2e3028}.price-alert-form{display:grid;gap:10px;margin-top:18px;padding:14px;border:1px solid #eee8da;border-radius:12px;background:#fbfaf6}.price-alert-form label{display:grid;gap:7px;color:#756b57;font-size:11px;font-weight:700}.price-alert-form input{padding:10px;border:1px solid #e5dfd2;border-radius:8px}
     .wholesale-link{display:inline-flex;margin-top:10px;color:#087653;font-size:12px;font-weight:700;text-decoration:none}.wholesale-link:hover{text-decoration:underline}
     .price-filter{width:100px;min-width:0;padding:10px;border:1px solid #e5e9e3;border-radius:10px;background:#fff;color:#34463a;font-size:11px}
     .compare-bar{margin:18px 0;padding:14px 16px;border:1px solid #dce7dc;border-radius:14px;background:#f7faf5;color:#264634;font-size:12px}
@@ -228,6 +239,9 @@ export class StorefrontComponent implements OnInit, OnDestroy {
   private searchTimer?: ReturnType<typeof setTimeout>;
   private savedIds = new Set<number>();
   priceAlertTarget = 0;
+  showNotifications = false;
+  unreadNotificationCount = 0;
+  notificationItems: Array<{id:number;type:string;title:string;message:string;actionUrl?:string|null;isRead:boolean;createdAt:string}> = [];
   private failedImageIds = new Set<number>();
   private readonly savedStorageKey = 'merkato_saved_products';
 
@@ -372,6 +386,26 @@ export class StorefrontComponent implements OnInit, OnDestroy {
     }
     try { localStorage.setItem(this.savedStorageKey, JSON.stringify([...this.savedIds])); } catch { /* Storage may be unavailable. */ }
     this.showToast();
+  }
+
+  toggleNotifications(): void {
+    this.showNotifications = !this.showNotifications;
+    if (this.showNotifications) this.loadNotifications();
+  }
+
+  loadNotifications(): void {
+    this.api.getNotifications().subscribe({
+      next: result => { this.notificationItems = result.notifications || []; this.unreadNotificationCount = result.unreadCount || 0; },
+      error: () => { this.notificationItems = []; this.unreadNotificationCount = 0; this.toast = 'Sign in as a buyer to view notifications'; this.showToast(); }
+    });
+  }
+
+  markNotificationRead(id: number): void {
+    this.api.markNotificationRead(id).subscribe({ next: () => this.loadNotifications() });
+  }
+
+  markAllNotificationsRead(): void {
+    this.api.markAllNotificationsRead().subscribe({ next: () => this.loadNotifications() });
   }
 
   createPriceAlert(product: MerkatoProduct): void {
