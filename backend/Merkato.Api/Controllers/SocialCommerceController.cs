@@ -52,6 +52,7 @@ public sealed class SocialCommerceController(MerkatoDbContext db):ControllerBase
  [HttpPost("posts/{id:long}/moderate")]
  public async Task<IActionResult> Moderate(long id,ModerateSocialPost input,CancellationToken ct)
  {
+  if(!User.IsInRole("ADMIN"))return Forbid();
   if(input.Decision is not ("APPROVE" or "REJECT")||input.Note?.Length>1000)return BadRequest("Decision must be APPROVE or REJECT; note max 1000 characters.");
   var post=await db.SocialCommercePosts.FirstOrDefaultAsync(x=>x.Id==id,ct);if(post is null)return NotFound();if(post.Status!="PENDING")return Conflict("Only pending posts can be moderated.");
   post.Status=input.Decision=="APPROVE"?"APPROVED":"REJECTED";post.ModerationNote=input.Note?.Trim();post.UpdatedAt=DateTime.UtcNow;post.PublishedAt=post.Status=="APPROVED"?DateTime.UtcNow:null;await db.SaveChangesAsync(ct);return Ok(new{post.Id,post.Status,post.PublishedAt});
