@@ -216,7 +216,7 @@ public class PaymentsController : ControllerBase
                                 CreatedAt = DateTime.UtcNow
                             });
                             try { await _db.SaveChangesAsync(ct); }
-                            catch (DbUpdateException) { _db.ChangeTracker.Clear(); }
+                            catch (DbUpdateException ex) when (ex.InnerException is Npgsql.PostgresException { SqlState: Npgsql.PostgresErrorCodes.UniqueViolation }) { _db.Entry(_db.CreatorCommissions.Local.First(x => x.OrderId == paidOrder.Id)).State = EntityState.Detached; }
                         }
                     }
 
