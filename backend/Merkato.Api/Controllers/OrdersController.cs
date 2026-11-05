@@ -39,7 +39,7 @@ public class OrdersController : ControllerBase
             .OrderByDescending(order => order.CreatedAt)
             .Select(order => new OrderResponseDto(
                 order.Id, order.OrderNumber, order.BuyerId, order.SellerId,
-                order.ProductTitle, order.TotalAmountEtb, order.DeliveryFeeEtb,
+                order.ProductTitle, order.Quantity, order.UnitPriceEtb, order.TotalAmountEtb, order.DeliveryFeeEtb,
                 order.PaymentRail, order.DeliveryCourier, order.DeliveryAddress,
                 order.EscrowState, order.DeliveryStatus, order.CreatedAt))
             .ToListAsync(ct);
@@ -103,6 +103,7 @@ public class OrdersController : ControllerBase
             string.IsNullOrWhiteSpace(request.DeliveryAddress) ||
             string.IsNullOrWhiteSpace(request.CityArea) ||
             request.AmountEtb <= 0 ||
+            request.Quantity is < 1 or > 100000 ||
             !Enum.IsDefined(request.PaymentRail))
             return BadRequest(new { message = "Provide a valid product, amount, payment method, delivery address and city." });
 
@@ -132,8 +133,9 @@ public class OrdersController : ControllerBase
         if (product == null)
             return NotFound(new { message = "The selected product is no longer available." });
 
-        if (request.AmountEtb != product.PriceEtb)
-            return Conflict(new { message = "The product price has changed. Refresh the marketplace and try again.", currentPriceEtb = product.PriceEtb });
+        var expectedProductAmount = product.PriceEtb * request.Quantity;
+        if (request.AmountEtb != expectedProductAmount)
+            return Conflict(new { message = "The product price or quantity total has changed. Refresh the marketplace and try again.", currentUnitPriceEtb = product.PriceEtb, quantity = request.Quantity, expectedProductAmountEtb = expectedProductAmount });
 
         await using var checkoutTransaction = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
         PromotionCoupon? appliedCoupon = null;
@@ -168,9 +170,9 @@ public class OrdersController : ControllerBase
 
         var reservationTime = DateTime.UtcNow;
         var reservedStock = await _db.ProductListingDetails
-            .Where(x => x.ProductId == product.Id && x.StockQuantity - x.ReservedQuantity >= 1)
+            .Where(x => x.ProductId == product.Id && x.StockQuantity - x.ReservedQuantity >= request.Quantity)
             .ExecuteUpdateAsync(update => update
-                .SetProperty(x => x.ReservedQuantity, x => x.ReservedQuantity + 1)
+                .SetProperty(x => x.ReservedQuantity, x => x.ReservedQuantity + request.Quantity)
                 .SetProperty(x => x.UpdatedAt, reservationTime), ct);
         if (reservedStock != 1)
             return Conflict(new { message = "This product is out of available stock or inventory has not been configured. Refresh the listing before checkout." });
@@ -181,6 +183,8 @@ public class OrdersController : ControllerBase
             BuyerId = buyerId,
             SellerId = request.SellerId,
             ProductId = product.Id,
+            Quantity = request.Quantity,
+            UnitPriceEtb = product.PriceEtb,
             InventoryReservationState = InventoryReservationState.RESERVED,
             InventoryReservationExpiresAt = reservationTime.AddMinutes(15),
             ProductTitle = product.Name,
@@ -248,9 +252,9 @@ public class OrdersController : ControllerBase
             if (claimed == 1)
             {
                 var released = await _db.ProductListingDetails
-                    .Where(x => x.ProductId == order.ProductId && x.ReservedQuantity >= 1)
+                    .Where(x => x.ProductId == order.ProductId && x.ReservedQuantity >= order.Quantity)
                     .ExecuteUpdateAsync(update => update
-                        .SetProperty(x => x.ReservedQuantity, x => x.ReservedQuantity - 1)
+                        .SetProperty(x => x.ReservedQuantity, x => x.ReservedQuantity - order.Quantity)
                         .SetProperty(x => x.UpdatedAt, DateTime.UtcNow), ct);
                 if (released != 1)
                     return Conflict(new { message = "Inventory reservation could not be safely released. Contact support." });
