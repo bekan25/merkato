@@ -21,7 +21,7 @@ public sealed class BuyerEngagementController(MerkatoDbContext db) : ControllerB
                           join product in db.Products.AsNoTracking() on item.ProductId equals product.Id
                           where item.BuyerId == BuyerId && product.IsActive
                           orderby item.CreatedAt descending
-                          select new { item.Id, product.Id, product.Name, product.PriceEtb, product.Location, product.Category, product.ImageUrl, item.CreatedAt })
+                          select new { item.Id, productId = product.Id, productName = product.Name, product.PriceEtb, product.Location, product.Category, product.ImageUrl, item.CreatedAt })
             .ToListAsync(ct);
         return Ok(rows);
     }
