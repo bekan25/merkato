@@ -50,6 +50,30 @@ public sealed class SocialCommerceController(MerkatoDbContext db):ControllerBase
    .ToListAsync(ct);
   return Ok(new{totalEtb=total,items});
  }
+ [Authorize(Roles="ADMIN")]
+ [HttpGet("commissions/admin")]
+ public async Task<IActionResult> AdminCommissions([FromQuery]int page=1,[FromQuery]int pageSize=50,CancellationToken ct=default)
+ {
+  page=Math.Clamp(page,1,10000);pageSize=Math.Clamp(pageSize,1,100);
+  var query=db.CreatorCommissions.AsNoTracking();
+  var totals=await query.GroupBy(_=>1).Select(g=>new{
+   commissionCount=g.Count(),
+   heldEtb=g.Where(x=>x.Status=="HELD").Sum(x=>(decimal?)x.CommissionEtb)??0m,
+   availableEtb=g.Where(x=>x.Status=="AVAILABLE").Sum(x=>(decimal?)x.CommissionEtb)??0m,
+   reversedEtb=g.Where(x=>x.Status=="REVERSED").Sum(x=>(decimal?)x.CommissionEtb)??0m
+  }).FirstOrDefaultAsync(ct);
+  var items=await (from commission in query
+   join creator in db.Users.AsNoTracking() on commission.CreatorId equals creator.Id
+   join order in db.Orders.AsNoTracking() on commission.OrderId equals order.Id
+   orderby commission.CreatedAt descending
+   select new{
+    commission.Id,commission.CreatorId,creatorName=creator.FullName,
+    commission.OrderId,order.OrderNumber,commission.PostId,
+    commission.EligibleAmountEtb,commission.RatePercent,commission.CommissionEtb,
+    commission.Status,commission.CreatedAt,commission.ReleasedAt
+   }).Skip((page-1)*pageSize).Take(pageSize).ToListAsync(ct);
+  return Ok(new{page,pageSize,totals=totals??new{commissionCount=0,heldEtb=0m,availableEtb=0m,reversedEtb=0m},items});
+ }
  [Authorize]
  [HttpGet("posts/mine")]
  public async Task<IActionResult> MyPosts(CancellationToken ct)
