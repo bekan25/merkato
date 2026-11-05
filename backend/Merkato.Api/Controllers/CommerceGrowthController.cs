@@ -258,8 +258,32 @@ public sealed class CommerceGrowthController(MerkatoDbContext db, IEscrowService
         var role = User.FindFirstValue(ClaimTypes.Role) ?? "";
         if (role is not ("ADMIN" or "COURIER") && order.BuyerId != CurrentUserId && order.SellerId != CurrentUserId) return Forbid();
         var delivery = await db.Deliveries.AsNoTracking().FirstOrDefaultAsync(x => x.OrderId == orderId, ct);
-        if (delivery is null) return NotFound("No delivery has been assigned to this order yet.");
-        return Ok(new { delivery.DeliveryId, delivery.OrderId, status = delivery.Status.ToString(), delivery.CourierType, delivery.RiderName, delivery.RiderPhone, delivery.FeeEtb, delivery.DispatchedAt, delivery.DeliveredAt, delivery.UpdatedAt });
+        if (delivery is null)
+        {
+            // Keep order tracking useful before a courier record has been created.
+            return Ok(new
+            {
+                deliveryId = (string?)null,
+                orderId = order.Id,
+                status = order.DeliveryStatus.ToString(),
+                courierType = order.DeliveryCourier,
+                riderName = (string?)null,
+                riderPhone = (string?)null,
+                feeEtb = order.DeliveryFeeEtb,
+                dispatchedAt = (DateTime?)null,
+                deliveredAt = (DateTime?)null,
+                createdAt = order.CreatedAt,
+                updatedAt = order.UpdatedAt,
+                deliveryAssigned = false
+            });
+        }
+        return Ok(new
+        {
+            deliveryId = delivery.DeliveryId, delivery.OrderId, status = delivery.Status.ToString(),
+            delivery.CourierType, delivery.RiderName, delivery.RiderPhone, feeEtb = delivery.FeeEtb,
+            delivery.DispatchedAt, delivery.DeliveredAt, delivery.CreatedAt,
+            delivery.UpdatedAt, deliveryAssigned = true
+        });
     }
 
     [Authorize(Roles = "MERCHANT,ADMIN")]
