@@ -241,6 +241,64 @@ public sealed class CommerceGrowthController(MerkatoDbContext db) : ControllerBa
                 select new { p.Id, p.Name, p.SellerId, p.PriceEtb, stockQuantity = d == null ? 0 : d.StockQuantity, lowStockThreshold = d == null ? 5 : d.LowStockThreshold, condition = d == null ? "NEW" : d.Condition.ToString(), lowStock = d == null || d.StockQuantity <= d.LowStockThreshold };
         return Ok(await q.OrderBy(x => x.stockQuantity).ToListAsync(ct));
     }
+
+    [Authorize]
+    [HttpGet("referrals/me")]
+    public async Task<IActionResult> MyReferral(CancellationToken ct)
+    {
+        var profile = await db.AffiliateProfiles.AsNoTracking().FirstOrDefaultAsync(x => x.UserId == CurrentUserId && x.IsActive, ct);
+        if (profile is null) return Ok(new { referralCode = (string?)null, referrals = 0, message = "Create a referral profile to start sharing." });
+        var referrals = await db.AffiliateReferrals.AsNoTracking().CountAsync(x => x.AffiliateUserId == CurrentUserId && x.ReferredUserId != null, ct);
+        var commissions = await db.AffiliateCommissions.AsNoTracking().Where(x => x.AffiliateUserId == CurrentUserId)
+            .Select(x => new { x.CommissionEtb, x.Status, x.CreatedAt }).ToListAsync(ct);
+        return Ok(new { profile.ReferralCode, referrals, commissions, totalCommissionEtb = commissions.Sum(x => x.CommissionEtb) });
+    }
+
+    [Authorize]
+    [HttpPost("referrals/me")]
+    public async Task<IActionResult> CreateReferralProfile(CancellationToken ct)
+    {
+        var existing = await db.AffiliateProfiles.FirstOrDefaultAsync(x => x.UserId == CurrentUserId, ct);
+        if (existing is not null) return Ok(new { existing.ReferralCode, existing.IsActive });
+        var code = "MK" + Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(6));
+        var profile = new AffiliateProfile { UserId = CurrentUserId, ReferralCode = code };
+        db.AffiliateProfiles.Add(profile);
+        await db.SaveChangesAsync(ct);
+        return CreatedAtAction(nameof(MyReferral), new { }, new { profile.ReferralCode, profile.IsActive });
+    }
+
+    [AllowAnonymous]
+    [HttpPost("referrals/{code}/click")]
+    public async Task<IActionResult> TrackReferralClick(string code, ReferralClickInput input, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(input.VisitorKey) || input.VisitorKey.Length > 200) return BadRequest("A visitor key is required.");
+        var profile = await db.AffiliateProfiles.AsNoTracking().FirstOrDefaultAsync(x => x.ReferralCode == code && x.IsActive, ct);
+        if (profile is null) return NotFound("Referral code not found.");
+        var hash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(input.VisitorKey)));
+        if (!await db.AffiliateReferrals.AnyAsync(x => x.AffiliateUserId == profile.UserId && x.VisitorKeyHash == hash, ct))
+        {
+            db.AffiliateReferrals.Add(new AffiliateReferral { AffiliateUserId = profile.UserId, ReferralCode = code, VisitorKeyHash = hash });
+            await db.SaveChangesAsync(ct);
+        }
+        return Ok(new { tracked = true });
+    }
+
+    [Authorize]
+    [HttpPost("referrals/{code}/claim")]
+    public async Task<IActionResult> ClaimReferral(string code, CancellationToken ct)
+    {
+        var profile = await db.AffiliateProfiles.AsNoTracking().FirstOrDefaultAsync(x => x.ReferralCode == code && x.IsActive, ct);
+        if (profile is null) return NotFound("Referral code not found.");
+        if (profile.UserId == CurrentUserId) return BadRequest("You cannot claim your own referral code.");
+        if (await db.AffiliateReferrals.AnyAsync(x => x.ReferredUserId == CurrentUserId, ct)) return Conflict("This account has already used a referral code.");
+        var pending = await db.AffiliateReferrals.Where(x => x.AffiliateUserId == profile.UserId && x.ReferredUserId == null).OrderByDescending(x => x.ClickedAt).FirstOrDefaultAsync(ct);
+        if (pending is null) return Conflict("No tracked referral visit was found for this account.");
+        pending.ReferredUserId = CurrentUserId;
+        pending.RegisteredAt = DateTime.UtcNow;
+        await db.SaveChangesAsync(ct);
+        return Ok(new { claimed = true, referrerUserId = profile.UserId });
+    }
+
 }
 
 public sealed record ReviewInput(long OrderId, int Rating, string? Comment);
@@ -251,3 +309,5 @@ public sealed record ReturnInput(string Reason, string? EvidenceUrl);
 public sealed record ReturnDecisionInput(string Decision, string? Note);
 public sealed record RefundConfirmationInput(string ProviderReference);
 public sealed record LoyaltyAwardInput(long UserId, int Points, string Reason, long? OrderId);
+
+public sealed record ReferralClickInput(string VisitorKey);
