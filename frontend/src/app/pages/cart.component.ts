@@ -58,13 +58,21 @@ interface CartLine { product: MerkatoProduct; quantity: number; }
           <h2>{{ t('almostYours') }}</h2>
           <div class="summary-row"><span>Items ({{itemCount}})</span><strong>{{subtotal | number:'1.2-2'}} ETB</strong></div>
           <div class="summary-row"><span>{{ t('deliveryFee') }} ({{itemCount}} {{ t('orders') }})</span><strong>{{deliveryFeeEtb === null ? t('quoteRequired') : (deliveryFeeEtb * itemCount | number:'1.2-2') + ' ETB'}}</strong></div>
-          <div class="summary-total"><span>{{ t('estimatedTotal') }}</span><strong>{{(subtotal + (deliveryFeeEtb || 0) * itemCount) | number:'1.2-2'}} ETB</strong></div>
+          <div class="summary-row" *ngIf="couponDiscountEtb > 0"><span>Coupon discount</span><strong>−{{couponDiscountEtb | number:'1.2-2'}} ETB</strong></div>
+          <div class="summary-total"><span>{{ t('estimatedTotal') }}</span><strong>{{(subtotal - couponDiscountEtb + (deliveryFeeEtb || 0) * itemCount) | number:'1.2-2'}} ETB</strong></div>
           <form (ngSubmit)="checkout()">
             <label>{{ t('deliveryAddress') }}<textarea name="address" [(ngModel)]="address" required rows="3" placeholder="{{ t('addressPlaceholder') }}"></textarea></label>
             <label>{{ t('cityArea') }}<select name="city" [(ngModel)]="cityArea" (ngModelChange)="onCityChange()" required>
               <option *ngFor="let city of supportedCities" [value]="city">{{city}}</option>
             </select></label>
             <div class="delivery-quote" *ngIf="deliveryFeeEtb !== null"><strong>{{deliveryFeeEtb | number:'1.2-2'}} ETB / order</strong><small>MERKATO indicative estimate · final courier charge may differ</small></div>
+            <div class="coupon-box">
+              <label for="coupon-code">Discount or referral coupon</label>
+              <div class="coupon-input-row"><input id="coupon-code" name="couponCode" [(ngModel)]="couponCode" maxlength="40" placeholder="e.g. WELCOME1234" [disabled]="couponValidating || !!appliedCoupon"><button type="button" (click)="applyCoupon()" [disabled]="couponValidating || !couponCode.trim() || !lines.length || !!appliedCoupon">{{couponValidating ? 'Checking…' : appliedCoupon ? 'Applied ✓' : 'Apply'}}</button></div>
+              <p class="coupon-success" *ngIf="appliedCoupon">{{appliedCoupon.title}} · −{{appliedCoupon.discountEtb | number:'1.2-2'}} ETB <button type="button" (click)="removeCoupon()">Remove</button></p>
+              <p class="form-error" *ngIf="couponError">{{couponError}}</p>
+              <small>One coupon is applied to one eligible order in this cart. Referral coupons are account-specific.</small>
+            </div>
             <p class="form-error" *ngIf="deliveryQuoteError">{{deliveryQuoteError}}</p>
             <fieldset class="payment-methods">
               <legend>{{ t('paymentMethod') }}</legend>
@@ -152,6 +160,7 @@ interface CartLine { product: MerkatoProduct; quantity: number; }
     .checkout-panel label{display:grid;gap:7px;color:#43594a;font-size:11px;font-weight:750}
     .checkout-panel input,.checkout-panel select,.checkout-panel textarea{width:100%;min-height:44px;padding:11px 12px;border:1px solid #dfe8de;border-radius:10px;background:rgba(250,252,249,.94);color:#253c2e;font:12px 'DM Sans',sans-serif;outline:none;resize:vertical}
     .checkout-panel input:focus,.checkout-panel select:focus,.checkout-panel textarea:focus{border-color:#94b499;box-shadow:0 0 0 4px rgba(148,180,153,.16)}
+    .coupon-box{display:grid;gap:8px;padding:13px;border:1px dashed #d8c28c;border-radius:12px;background:#fffdf7}.coupon-box>label{color:#695323;font-weight:800}.coupon-input-row{display:flex;gap:8px}.coupon-input-row input{min-width:0;flex:1;text-transform:uppercase}.coupon-input-row button{border:0;border-radius:9px;padding:0 14px;background:#b58a25;color:#fff;font-size:11px;font-weight:800;cursor:pointer}.coupon-input-row button:disabled{opacity:.55;cursor:not-allowed}.coupon-box small{color:#887d67;font-size:9px;line-height:1.5}.coupon-success{margin:0;color:#267245;font-size:11px}.coupon-success button{margin-left:8px;border:0;background:none;color:#a14e4e;font-size:10px;font-weight:800;cursor:pointer}
     .checkout-note{padding:12px;border-radius:10px;background:#f7f5ee;color:#7d725f;font-size:10px;line-height:1.65}
     .checkout-button{width:100%;min-height:48px;border-radius:11px}
     .checkout-success{padding:12px;border:1px solid #cce4d1;border-radius:10px;background:#f0f8f1;color:#28623b;font-size:11px;line-height:1.6}
@@ -177,6 +186,11 @@ export class CartComponent implements OnInit, OnDestroy {
   deliveryQuoteError = '';
   deliveryQuoteLoading = false;
   paymentRail = 0;
+  couponCode = '';
+  couponValidating = false;
+  couponError = '';
+  appliedCoupon: { code: string; title: string; discountEtb: number; subtotalEtb: number; totalEtb: number; expiresAt: string } | null = null;
+  get couponDiscountEtb(): number { return this.appliedCoupon?.discountEtb || 0; }
   private failedImageIds = new Set<number>();
 
   language: 'en' | 'om' | 'am' = this.currentLanguage();
@@ -282,6 +296,24 @@ export class CartComponent implements OnInit, OnDestroy {
     this.persist();
   }
 
+  async applyCoupon(): Promise<void> {
+    this.couponError = '';
+    this.appliedCoupon = null;
+    if (!this.lines.length) return;
+    if (!this.auth.isAuthenticated || this.auth.user?.role !== 'BUYER') { this.couponError = 'Sign in as a buyer to use a coupon.'; return; }
+    this.couponValidating = true;
+    try {
+      this.appliedCoupon = await firstValueFrom(this.api.validateCoupon(this.couponCode.trim().toUpperCase(), this.lines[0].product.id));
+      this.couponCode = this.appliedCoupon.code;
+    } catch (err: any) {
+      this.couponError = err?.error?.message || err?.error || 'This coupon could not be validated for the first product in your cart.';
+    } finally {
+      this.couponValidating = false;
+    }
+  }
+
+  removeCoupon(): void { this.appliedCoupon = null; this.couponCode = ''; this.couponError = ''; }
+
   async checkout(): Promise<void> {
     this.error = '';
     this.success = '';
@@ -296,6 +328,7 @@ export class CartComponent implements OnInit, OnDestroy {
     this.submitting = true;
     let created = 0;
     let pending = 0;
+    let couponConsumed = false;
     try {
       for (const line of this.lines) {
         for (let unit = 0; unit < line.quantity; unit++) {
@@ -307,8 +340,10 @@ export class CartComponent implements OnInit, OnDestroy {
             paymentRail: this.paymentRail,
             deliveryCourier: 'BEU_DELIVERY',
             deliveryAddress: this.address.trim(),
-            cityArea: this.cityArea.trim()
+            cityArea: this.cityArea.trim(),
+            ...(!couponConsumed && this.appliedCoupon ? { couponCode: this.appliedCoupon.code } : {})
           }));
+          if (!couponConsumed && this.appliedCoupon) couponConsumed = true;
           created++;
           try {
             await firstValueFrom(this.api.initiatePayment(order.id, order.totalAmountEtb, this.paymentRail));
@@ -320,6 +355,7 @@ export class CartComponent implements OnInit, OnDestroy {
       }
       sessionStorage.removeItem('merkato_cart');
       this.lines = [];
+      this.removeCoupon();
       this.success = `${created} order request(s) created. ${pending} payment initiation request(s) recorded as pending. Complete payment when the configured provider checkout is enabled.`;
     } catch (err: any) {
       this.error = err?.error?.message || 'The order could not be completed. Some earlier orders may already have been saved; check order history before retrying.';
