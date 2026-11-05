@@ -106,6 +106,9 @@ test('group buying reserves physical stock atomically and releases it on expiry 
   assert.match(migration, /CK_ProductListingDetails_StockNonNegative/);
   assert.match(growth, /StockQuantity - x\.ReservedQuantity >= input\.Quantity/);
   assert.match(growth, /SetProperty\(x => x\.ReservedQuantity, x => x\.ReservedQuantity \+ input\.Quantity\)/);
+  assert.match(growth, /x\.JoinedQuantity \+ input\.Quantity <= x\.TargetQuantity/);
+  assert.match(growth, /SetProperty\(x => x\.JoinedQuantity, x => x\.JoinedQuantity \+ input\.Quantity\)/);
+  assert.match(growth, /ReservedQuantity <= input\.Quantity/);
   assert.match(growth, /ExpireStaleGroupBuysAsync/);
   assert.match(growth, /group-buys\/\{id:long\}\/cancel/);
   assert.match(hub, /reservedQuantity/);
