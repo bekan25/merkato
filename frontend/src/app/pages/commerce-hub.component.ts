@@ -19,7 +19,7 @@ import { RouterLink } from '@angular/router';
         <article class="engine-card">
           <span class="engine-kicker">01 · FIND IT</span><h2>One Request</h2>
           <p>Post one open product request and receive comparable offers from multiple merchants.</p>
-          <label>Product ID<input type="number" min="1" [(ngModel)]="productId" placeholder="Enter a listed product ID"></label>
+          
           <a class="engine-action" routerLink="/sourcing">Open One Request <span>↗</span></a>
           <small>Multi-merchant request, seller offers, buyer comparison and offer selection are available in One Request.</small>
         </article>
