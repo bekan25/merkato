@@ -6,6 +6,7 @@ using Merkato.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 namespace Merkato.Api.Controllers;
 [ApiController]
 [Route("api/v1/social")]
@@ -60,9 +61,22 @@ public sealed class SocialCommerceController(MerkatoDbContext db):ControllerBase
  public async Task<IActionResult> Click(long id,SocialClickInput input,CancellationToken ct)
  {
   if(string.IsNullOrWhiteSpace(input.VisitorKey)||input.VisitorKey.Length>200)return BadRequest("Visitor key required.");
-  var post=await db.SocialCommercePosts.FirstOrDefaultAsync(x=>x.Id==id&&x.Status=="APPROVED",ct);if(post is null)return NotFound();
+  var post=await db.SocialCommercePosts.AsNoTracking().FirstOrDefaultAsync(x=>x.Id==id&&x.Status=="APPROVED",ct);if(post is null)return NotFound();
   var hash=Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(input.VisitorKey)));
-  if(!await db.SocialCommerceClicks.AnyAsync(x=>x.PostId==id&&x.VisitorHash==hash,ct)){db.SocialCommerceClicks.Add(new SocialCommerceClick{PostId=id,ViewerId=UserId(),VisitorHash=hash});post.ClickCount++;await db.SaveChangesAsync(ct);}
+  await using var tx=await db.Database.BeginTransactionAsync(ct);
+  db.SocialCommerceClicks.Add(new SocialCommerceClick{PostId=id,ViewerId=UserId(),VisitorHash=hash});
+  try
+  {
+   await db.SaveChangesAsync(ct);
+  }
+  catch(DbUpdateException ex) when(ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
+  {
+   await tx.RollbackAsync(ct);
+   db.Entry(db.ChangeTracker.Entries<SocialCommerceClick>().First(x=>x.Entity.PostId==id&&x.Entity.VisitorHash==hash).Entity).State=EntityState.Detached;
+   return Ok(new{tracked=false,productId=post.ProductId,message="This visitor click was already counted."});
+  }
+  await db.SocialCommercePosts.Where(x=>x.Id==id).ExecuteUpdateAsync(s=>s.SetProperty(x=>x.ClickCount,x=>x.ClickCount+1),ct);
+  await tx.CommitAsync(ct);
   return Ok(new{tracked=true,productId=post.ProductId});
  }
 }
