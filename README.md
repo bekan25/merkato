@@ -8,7 +8,7 @@ The approved direction is an all-in-one, trust-first Ethiopian commerce ecosyste
 
 ## Current workspace
 
-The professional marketplace work is being developed on the `feature/merkato-professional-marketplace` branch. The `main` branch remains unchanged until the work is reviewed and merged.
+The professional marketplace implementation has been merged into `main`. The `main` branch is the current source of truth; verify the latest commit and CI run before each release.
 
 ### Web client
 - Responsive marketplace storefront, category filters and product search
@@ -87,7 +87,9 @@ The existing Fayda-related service also needs a real, authenticated provider int
 
 GitHub Actions runs frontend buyer/merchant/admin route and API contract tests, builds Angular, restores/builds/tests the .NET 10 solution, and builds the combined Docker image.
 
-## Free preview deployment (GitHub + Render + Neon)
+## Free preview deployment (GitHub + Render + PostgreSQL)
+
+The current preview service is `https://merkato-bekan25.onrender.com`; its `/health/ready` endpoint has returned `{"status":"ready"}`. This confirms readiness only, not end-to-end checkout, provider payments, courier integrations, or production launch approval.
 
 This option provides a public preview URL without buying a domain. It serves the Angular app and ASP.NET Core API from one Render web service, so browser requests stay same-origin. Neon supplies the PostgreSQL database; do not use Render's Free Postgres for long-lived data because its free database expires after 30 days.
 
@@ -95,18 +97,18 @@ This option provides a public preview URL without buying a domain. It serves the
 
 - **Render Free Web Service:** builds `backend/Dockerfile`, which compiles the Angular app and publishes it into ASP.NET Core `wwwroot`. The API also serves Angular client-side routes.
 - **Neon Free PostgreSQL:** use the pooled endpoint where available. Check the provider dashboard for current plan limits.
-- **GitHub:** source of truth. Render deploys the `feature/merkato-professional-marketplace` branch from the included `render.yaml`.
+- **GitHub:** source of truth. The current `render.yaml` deploys the `main` branch.
 
 ### Deploy steps
 
 1. Create a Neon account at https://neon.com/ and create a PostgreSQL project. Choose a nearby region.
 2. In Neon, open **Connect** and copy the pooled endpoint connection details. Configure the value as an Npgsql key/value connection string, not a raw URL. Never commit this connection string.
 3. Open https://dashboard.render.com/ and sign in with GitHub. Authorize access to `bekan25/merkato`.
-4. In Render choose **New → Blueprint**, select the repository and the `feature/merkato-professional-marketplace` branch. Render reads `render.yaml`.
+4. In Render choose **New → Blueprint**, select `bekan25/merkato` and the `main` branch. Render reads `render.yaml`.
 5. Configure `ConnectionStrings__PostgreSql` using the Neon connection string. Keep all credentials in Render environment settings.
 6. Configure Cloudinary environment values for durable product-image storage; never paste API secrets into GitHub or chat.
 7. Wait for deployment health and verify `/health/ready`.
-8. Keep automatic migrations disabled during normal operation; apply only reviewed migrations deliberately.
+8. The current preview Blueprint enables `MERKATO_APPLY_MIGRATIONS=true` for the initial schema deployment. After confirming the migration completed and taking a backup, set it to `false` for routine restarts; run reviewed migrations as a deliberate release operation.
 9. Test registration, sign-in, buyer and merchant flows, product creation, and order creation.
 
 ### Preview limitations
