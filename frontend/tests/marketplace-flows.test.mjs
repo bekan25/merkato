@@ -95,3 +95,20 @@ test('delivery tracking exposes a role-protected shipment timeline and courier r
   assert.match(controller, /Authorize\(Roles = "BUYER,MERCHANT,COURIER,ADMIN"\)/);
   assert.match(growth, /orders\/\{orderId:long\}\/delivery/);
 });
+
+test('group buying reserves physical stock atomically and releases it on expiry or cancellation', async () => {
+  const growth = await read('../../backend/Merkato.Api/Controllers/CommerceGrowthController.cs');
+  const hub = await read('../src/app/pages/commerce-hub.component.ts');
+  const model = await read('../../backend/Merkato.Domain/Entities/CommerceFeatureEntities.cs');
+  const migration = await read('../../backend/Merkato.Infrastructure/Migrations/20261105180000_AddReservedInventory.cs');
+
+  assert.match(model, /ReservedQuantity/);
+  assert.match(migration, /CK_ProductListingDetails_StockNonNegative/);
+  assert.match(growth, /StockQuantity - x\.ReservedQuantity >= input\.Quantity/);
+  assert.match(growth, /SetProperty\(x => x\.ReservedQuantity, x => x\.ReservedQuantity \+ input\.Quantity\)/);
+  assert.match(growth, /ExpireStaleGroupBuysAsync/);
+  assert.match(growth, /group-buys\/\{id:long\}\/cancel/);
+  assert.match(hub, /reservedQuantity/);
+  assert.match(hub, /availableQuantity/);
+  assert.match(hub, /cancelGroup\(id:number\)/);
+});
