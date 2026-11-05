@@ -31,6 +31,9 @@ public class Order
     public long SellerId { get; set; }
     // Nullable for historical orders created before product references were persisted.
     public long? ProductId { get; set; }
+    public int Quantity { get; set; } = 1;
+    [Column(TypeName = "numeric(18,4)")]
+    public decimal UnitPriceEtb { get; set; }
     public InventoryReservationState InventoryReservationState { get; set; } = Merkato.Domain.Enums.InventoryReservationState.NONE;
     public DateTime? InventoryReservationExpiresAt { get; set; }
     
