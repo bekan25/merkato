@@ -33,7 +33,7 @@ public sealed class CommerceGrowthController(MerkatoDbContext db, IEscrowService
         if (input.Rating is < 1 or > 5 || input.Comment?.Length > 2000) return BadRequest("Rating must be 1-5 and comment max 2000 characters.");
         var product = await db.Products.AsNoTracking().FirstOrDefaultAsync(x => x.Id == productId && x.IsActive, ct);
         if (product is null) return NotFound();
-        var order = await db.Orders.AsNoTracking().FirstOrDefaultAsync(x => x.Id == input.OrderId && x.BuyerId == CurrentUserId && x.SellerId == product.SellerId && x.DeliveryStatus == DeliveryStatus.DELIVERED && x.ProductTitle == product.Name, ct);
+        var order = await db.Orders.AsNoTracking().FirstOrDefaultAsync(x => x.Id == input.OrderId && x.BuyerId == CurrentUserId && x.SellerId == product.SellerId && x.DeliveryStatus == DeliveryStatus.DELIVERED && (x.ProductId == product.Id || (!x.ProductId.HasValue && x.ProductTitle == product.Name)), ct);
         if (order is null) return Conflict("A delivered purchase of this product is required before reviewing.");
         var review = new ProductReview { ProductId = productId, BuyerId = CurrentUserId, OrderId = order.Id, Rating = input.Rating, Comment = (input.Comment ?? "").Trim() };
         db.ProductReviews.Add(review);
