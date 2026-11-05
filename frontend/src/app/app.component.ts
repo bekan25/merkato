@@ -34,6 +34,7 @@ import { AuthService } from './core/auth.service';
         <a routerLink="/" fragment="categories" (click)="closeMobileNav()">{{ t('finds') }}</a>
         <a routerLink="/" fragment="marketplace" (click)="closeMobileNav()">{{ t('shopProducts') }}</a>
         <a routerLink="/" fragment="how-it-works" (click)="closeMobileNav()">{{ t('sell') }}</a>
+        <a *ngIf="auth.isAuthenticated" routerLink="/commerce" (click)="closeMobileNav()">{{ t('commerceHub') }}</a>
         <a *ngIf="auth.isAuthenticated" [routerLink]="auth.dashboardPath()" (click)="closeMobileNav()">{{ t('workspace') }}</a>
       </nav>
       <main><router-outlet /></main>
@@ -100,9 +101,9 @@ export class AppComponent {
   language: 'en' | 'om' | 'am' = this.restoreLanguage();
 
   private readonly translations: Record<string, Record<string, string>> = {
-    en: { announcement: 'Discover local stores. Shop with confidence.', searchPlaceholder: 'Search MERKATO Ethiopia', delivering: 'Delivering across', helloSignIn: 'Hello, sign in', account: 'Account', myAccount: 'My account', cart: 'Cart', language: 'Choose language', departments: 'All departments', finds: "Today's finds", shopProducts: 'Shop products', sell: 'Sell on MERKATO', workspace: 'My workspace' },
-    om: { announcement: 'Daldaliittiwwan naannoo argadhaa. Ofitti amanamummaa waliin bitadhaa.', searchPlaceholder: 'Oomishaalee MERKATO keessatti barbaadi', delivering: 'Geejjibni', helloSignIn: 'Akkam, seeni', account: 'Herrega', myAccount: 'Herrega koo', cart: 'Gaarii bittaa', language: 'Afaan filadhu', departments: 'Ramaddiiwwan', finds: 'Har’a kan argaman', shopProducts: 'Oomishaalee bitadhu', sell: 'MERKATO irratti gurguri', workspace: 'Iddoo hojii koo' },
-    am: { announcement: 'የአካባቢ መደብሮችን ያግኙ። በመተማመን ይግዙ።', searchPlaceholder: 'በMERKATO ኢትዮጵያ ይፈልጉ', delivering: 'የሚያደርሰው', helloSignIn: 'ሰላም፣ ይግቡ', account: 'መለያ', myAccount: 'የእኔ መለያ', cart: 'ጋሪ', language: 'ቋንቋ ይምረጡ', departments: 'ሁሉም ዘርፎች', finds: 'የዛሬ ምርጦች', shopProducts: 'ምርቶችን ይግዙ', sell: 'በMERKATO ይሽጡ', workspace: 'የእኔ የሥራ ቦታ' }
+    en: { announcement: 'Discover local stores. Shop with confidence.', searchPlaceholder: 'Search MERKATO Ethiopia', delivering: 'Delivering across', helloSignIn: 'Hello, sign in', account: 'Account', myAccount: 'My account', cart: 'Cart', language: 'Choose language', departments: 'All departments', finds: "Today's finds", shopProducts: 'Shop products', sell: 'Sell on MERKATO', workspace: 'My workspace', commerceHub: 'Commerce Hub' },
+    om: { announcement: 'Daldaliittiwwan naannoo argadhaa. Ofitti amanamummaa waliin bitadhaa.', searchPlaceholder: 'Oomishaalee MERKATO keessatti barbaadi', delivering: 'Geejjibni', helloSignIn: 'Akkam, seeni', account: 'Herrega', myAccount: 'Herrega koo', cart: 'Gaarii bittaa', language: 'Afaan filadhu', departments: 'Ramaddiiwwan', finds: 'Har’a kan argaman', shopProducts: 'Oomishaalee bitadhu', sell: 'MERKATO irratti gurguri', workspace: 'Iddoo hojii koo', commerceHub: 'Gidduu Daldalaa' },
+    am: { announcement: 'የአካባቢ መደብሮችን ያግኙ። በመተማመን ይግዙ።', searchPlaceholder: 'በMERKATO ኢትዮጵያ ይፈልጉ', delivering: 'የሚያደርሰው', helloSignIn: 'ሰላም፣ ይግቡ', account: 'መለያ', myAccount: 'የእኔ መለያ', cart: 'ጋሪ', language: 'ቋንቋ ይምረጡ', departments: 'ሁሉም ዘርፎች', finds: 'የዛሬ ምርጦች', shopProducts: 'ምርቶችን ይግዙ', sell: 'በMERKATO ይሽጡ', workspace: 'የእኔ የሥራ ቦታ', commerceHub: 'የንግድ ማዕከል' }
   };
 
   private restoreLanguage(): 'en' | 'om' | 'am' {
