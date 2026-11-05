@@ -71,7 +71,7 @@ public class MerkatoDbContext : DbContext
         });
 
         // Extended commerce features
-        modelBuilder.Entity<ProductListingDetail>(e => { e.HasKey(x => x.ProductId); e.Property(x => x.ProductId).ValueGeneratedNever(); e.HasIndex(x => x.StockQuantity); e.ToTable(t => t.HasCheckConstraint("CK_ProductListingDetails_StockNonNegative", "\"StockQuantity\" >= 0 AND \"ReservedQuantity\" >= 0 AND \"ReservedQuantity\" <= \"StockQuantity\"")); });
+        modelBuilder.Entity<ProductListingDetail>(e => { e.HasKey(x => x.ProductId); e.Property(x => x.ProductId).ValueGeneratedNever(); e.HasIndex(x => x.StockQuantity); });
         modelBuilder.Entity<ProductReview>(e => { e.HasIndex(x => new { x.ProductId, x.BuyerId }).IsUnique(); e.HasIndex(x => x.OrderId); });
         modelBuilder.Entity<ProductPriceSnapshot>(e => { e.HasIndex(x => new { x.ProductId, x.RecordedAt }); e.Property(x => x.PriceEtb).HasColumnType("numeric(18,4)"); });
         modelBuilder.Entity<GroupBuy>(e => { e.HasIndex(x => new { x.Status, x.ExpiresAt }); e.Property(x => x.RegularUnitPriceEtb).HasColumnType("numeric(18,4)"); e.Property(x => x.DiscountUnitPriceEtb).HasColumnType("numeric(18,4)"); });
