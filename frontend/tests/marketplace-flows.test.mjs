@@ -53,3 +53,45 @@ test('role guard redirects authenticated users without the required role', async
   const guards = await read('../src/app/core/route.guards.ts');
   assert.match(guards, /auth\.hasRole\(roles\)\s*\?\s*true\s*:\s*router\.createUrlTree\(\['\/dashboard'\]\)/);
 });
+
+
+test('checkout quotes and validates city-based delivery fees instead of submitting zero', async () => {
+  const api = await read('../src/app/core/api.service.ts');
+  const cart = await read('../src/app/pages/cart.component.ts');
+  const orders = await read('../../backend/Merkato.Api/Controllers/OrdersController.cs');
+
+  assert.match(api, /getDeliveryFeeQuote\(cityArea: string\)/);
+  assert.match(cart, /getDeliveryFeeQuote\(this\.cityArea\)/);
+  assert.match(cart, /deliveryFeeEtb: this\.deliveryFeeEtb!/);
+  assert.match(cart, /estimatedTotal/);
+  assert.match(orders, /HttpGet\("delivery-fee"\)/);
+  assert.match(orders, /MERKATO_ESTIMATE/);
+  assert.match(orders, /request\.DeliveryFeeEtb != expectedDeliveryFee/);
+});
+
+test('merchant onboarding and catalogue enforce complete Ethiopia-first listing details', async () => {
+  const dashboard = await read('../src/app/pages/dashboard.component.ts');
+  const trust = await read('../../backend/Merkato.Api/Controllers/TrustController.cs');
+  const products = await read('../../backend/Merkato.Api/Controllers/ProductsController.cs');
+
+  assert.match(dashboard, /supportedCities/);
+  assert.match(dashboard, /businessTypes/);
+  assert.match(dashboard, /listingQualityScore/);
+  assert.match(dashboard, /Add a clear product photo before publishing/);
+  assert.match(dashboard, /valid Ethiopian mobile number/);
+  assert.match(trust, /Regex\.IsMatch\(normalizedPhone/);
+  assert.match(products, /Product name must contain 3–180 characters/);
+});
+
+test('delivery tracking exposes a role-protected shipment timeline and courier reference lookup', async () => {
+  const hub = await read('../src/app/pages/commerce-hub.component.ts');
+  const controller = await read('../../backend/Merkato.Api/Controllers/Controllers.cs');
+  const growth = await read('../../backend/Merkato.Api/Controllers/CommerceGrowthController.cs');
+
+  assert.match(hub, /delivery-timeline/);
+  assert.match(hub, /deliveryStages/);
+  assert.match(hub, /canUpdateDelivery/);
+  assert.match(controller, /HttpGet\("\{id\}"\)/);
+  assert.match(controller, /Authorize\(Roles = "BUYER,MERCHANT,COURIER,ADMIN"\)/);
+  assert.match(growth, /orders\/\{orderId:long\}\/delivery/);
+});
