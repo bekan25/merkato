@@ -14,6 +14,7 @@ public class User
     public int FailedLoginAttempts { get; set; } = 0;
     public DateTime? LoginLockedUntil { get; set; }
     public bool IsSuspended { get; set; } = false;
+    public int TokenVersion { get; set; } = 0;
     public UserRole Role { get; set; } = UserRole.BUYER;
     public bool IsFaydaVerified { get; set; } = false;
     public bool IsSellerVerified { get; set; } = false;
