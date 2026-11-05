@@ -80,7 +80,7 @@ public sealed class CommerceGrowthController(MerkatoDbContext db, IEscrowService
         else return BadRequest("Condition must be NEW, USED or REFURBISHED.");
         detail.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(ct);
-        return Ok(new { detail.ProductId, detail.StockQuantity, detail.LowStockThreshold, condition = detail.Condition.ToString(), lowStock = detail.StockQuantity <= detail.LowStockThreshold });
+        return Ok(new { detail.ProductId, detail.StockQuantity, detail.ReservedQuantity, availableQuantity = detail.StockQuantity - detail.ReservedQuantity, detail.LowStockThreshold, condition = detail.Condition.ToString(), lowStock = detail.StockQuantity - detail.ReservedQuantity <= detail.LowStockThreshold });
     }
 
     [AllowAnonymous]
@@ -88,7 +88,7 @@ public sealed class CommerceGrowthController(MerkatoDbContext db, IEscrowService
     public async Task<IActionResult> ConditionStock(long productId, CancellationToken ct)
     {
         var row = await db.ProductListingDetails.AsNoTracking().FirstOrDefaultAsync(x => x.ProductId == productId, ct);
-        return Ok(row is null ? new { condition = "NEW", stockQuantity = (int?)null, lowStock = false } : new { condition = row.Condition.ToString(), stockQuantity = (int?)row.StockQuantity, lowStock = row.StockQuantity <= row.LowStockThreshold });
+        return Ok(row is null ? new { condition = "NEW", stockQuantity = (int?)null, reservedQuantity = 0, availableQuantity = (int?)null, lowStock = false } : new { condition = row.Condition.ToString(), stockQuantity = (int?)row.StockQuantity, reservedQuantity = row.ReservedQuantity, availableQuantity = (int?)(row.StockQuantity - row.ReservedQuantity), lowStock = row.StockQuantity - row.ReservedQuantity <= row.LowStockThreshold });
     }
 
     [AllowAnonymous]
@@ -201,6 +201,39 @@ public sealed class CommerceGrowthController(MerkatoDbContext db, IEscrowService
             return Conflict("You may already have joined this group buy. Refresh the group status.");
         }
         return Ok(new { group.Id, group.JoinedQuantity, group.TargetQuantity, status = group.Status.ToString(), group.DiscountUnitPriceEtb, totalEtb = group.DiscountUnitPriceEtb * input.Quantity });
+    }
+
+    [Authorize(Roles = "MERCHANT,ADMIN")]
+    [HttpPost("group-buys/{id:long}/cancel")]
+    public async Task<IActionResult> CancelGroupBuy(long id, CancellationToken ct)
+    {
+        await using var tx = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, ct);
+        var group = await db.GroupBuys.FirstOrDefaultAsync(x => x.Id == id, ct);
+        if (group is null) return NotFound();
+        if (!User.IsInRole("ADMIN") && group.OrganizerId != CurrentUserId) return Forbid();
+        if (group.Status is not (GroupBuyStatus.OPEN or GroupBuyStatus.TARGET_REACHED))
+            return Conflict("Only an open or target-reached group buy can be cancelled.");
+
+        var reservedQuantity = await db.GroupBuyMembers
+            .Where(x => x.GroupBuyId == id)
+            .Select(x => (int?)x.Quantity)
+            .SumAsync(ct) ?? 0;
+
+        if (reservedQuantity > 0)
+        {
+            var released = await db.ProductListingDetails
+                .Where(x => x.ProductId == group.ProductId && x.ReservedQuantity >= reservedQuantity)
+                .ExecuteUpdateAsync(update => update
+                    .SetProperty(x => x.ReservedQuantity, x => x.ReservedQuantity - reservedQuantity)
+                    .SetProperty(x => x.UpdatedAt, DateTime.UtcNow), ct);
+            if (released != 1)
+                return Conflict("Reserved inventory is inconsistent. The group was not cancelled; contact support.");
+        }
+
+        group.Status = GroupBuyStatus.CANCELLED;
+        await db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
+        return Ok(new { group.Id, status = group.Status.ToString(), releasedQuantity = reservedQuantity });
     }
 
     [Authorize(Roles = "BUYER")]
