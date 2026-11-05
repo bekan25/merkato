@@ -13,6 +13,7 @@ public class User
     public string PinHash { get; set; } = string.Empty;
     public UserRole Role { get; set; } = UserRole.BUYER;
     public bool IsFaydaVerified { get; set; } = false;
+    public bool IsSellerVerified { get; set; } = false;
     public int TrustScore { get; set; } = 50;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
