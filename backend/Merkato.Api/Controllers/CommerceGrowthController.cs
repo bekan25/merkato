@@ -72,6 +72,8 @@ public sealed class CommerceGrowthController(MerkatoDbContext db, IEscrowService
         if (!User.IsInRole("ADMIN") && product.SellerId != CurrentUserId) return Forbid();
         var detail = await db.ProductListingDetails.FirstOrDefaultAsync(x => x.ProductId == productId, ct);
         if (detail is null) { detail = new ProductListingDetail { ProductId = productId }; db.ProductListingDetails.Add(detail); }
+        if (input.Quantity < detail.ReservedQuantity)
+            return Conflict(new { message = "Stock cannot be reduced below units already reserved for active group buys.", reservedQuantity = detail.ReservedQuantity });
         detail.StockQuantity = input.Quantity;
         detail.LowStockThreshold = input.LowStockThreshold;
         if (Enum.TryParse<ProductCondition>(input.Condition, true, out var condition)) detail.Condition = condition;
@@ -109,7 +111,8 @@ public sealed class CommerceGrowthController(MerkatoDbContext db, IEscrowService
         if (!User.IsInRole("ADMIN") && product.SellerId != CurrentUserId) return Forbid();
         if (input.RegularUnitPriceEtb != product.PriceEtb) return Conflict("The group regular price must match the current product listing price.");
         var availableStock = await db.ProductListingDetails.AsNoTracking().FirstOrDefaultAsync(x => x.ProductId == product.Id, ct);
-        if (availableStock is not null && availableStock.StockQuantity < 1) return Conflict("The product is out of stock.");
+        if (availableStock is null || availableStock.StockQuantity - availableStock.ReservedQuantity < input.TargetQuantity)
+            return Conflict("The product must have enough published stock to cover this group-buy target.");
         var group = new GroupBuy { ProductId = product.Id, OrganizerId = CurrentUserId, TargetQuantity = input.TargetQuantity, RegularUnitPriceEtb = input.RegularUnitPriceEtb, DiscountUnitPriceEtb = input.DiscountUnitPriceEtb, ExpiresAt = input.ExpiresAt };
         db.GroupBuys.Add(group);
         await db.SaveChangesAsync(ct);
@@ -126,15 +129,31 @@ public sealed class CommerceGrowthController(MerkatoDbContext db, IEscrowService
         if (group is null) return NotFound();
         if (group.Status != GroupBuyStatus.OPEN || group.ExpiresAt <= DateTime.UtcNow) return Conflict("This group buy is closed.");
         if (group.OrganizerId == CurrentUserId) return BadRequest("Organizer cannot join their own group.");
-        var stock = await db.ProductListingDetails.FirstOrDefaultAsync(x => x.ProductId == group.ProductId, ct);
-        if (stock is not null && stock.StockQuantity < group.JoinedQuantity + input.Quantity) return Conflict("Not enough stock for this group quantity.");
         if (group.JoinedQuantity + input.Quantity > group.TargetQuantity) return Conflict("This quantity exceeds the remaining group target.");
+
+        // Reserve stock with one conditional database update. This prevents two
+        // simultaneous group buys from promising the same physical units.
+        var reserved = await db.ProductListingDetails
+            .Where(x => x.ProductId == group.ProductId &&
+                        x.StockQuantity - x.ReservedQuantity >= input.Quantity)
+            .ExecuteUpdateAsync(update => update
+                .SetProperty(x => x.ReservedQuantity, x => x.ReservedQuantity + input.Quantity)
+                .SetProperty(x => x.UpdatedAt, DateTime.UtcNow), ct);
+        if (reserved != 1) return Conflict("Not enough unreserved stock for this group quantity.");
+
         var member = new GroupBuyMember { GroupBuyId = id, BuyerId = CurrentUserId, Quantity = input.Quantity };
         db.GroupBuyMembers.Add(member);
         group.JoinedQuantity += input.Quantity;
         if (group.JoinedQuantity >= group.TargetQuantity) group.Status = GroupBuyStatus.TARGET_REACHED;
-        await db.SaveChangesAsync(ct);
-        await tx.CommitAsync(ct);
+        try
+        {
+            await db.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
+        }
+        catch (DbUpdateException)
+        {
+            return Conflict("You may already have joined this group buy. Refresh the group status.");
+        }
         return Ok(new { group.Id, group.JoinedQuantity, group.TargetQuantity, status = group.Status.ToString(), group.DiscountUnitPriceEtb, totalEtb = group.DiscountUnitPriceEtb * input.Quantity });
     }
 
