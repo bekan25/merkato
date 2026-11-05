@@ -4,7 +4,7 @@ services:
     runtime: docker
     plan: free
     region: frankfurt
-    branch: feature/merkato-professional-marketplace
+    branch: main
     dockerContext: .
     dockerfilePath: ./backend/Dockerfile
     healthCheckPath: /health/ready
