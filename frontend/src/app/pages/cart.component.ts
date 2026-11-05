@@ -62,11 +62,39 @@ interface CartLine { product: MerkatoProduct; quantity: number; }
           <form (ngSubmit)="checkout()">
             <label>{{ t('deliveryAddress') }}<textarea name="address" [(ngModel)]="address" required rows="3" placeholder="{{ t('addressPlaceholder') }}"></textarea></label>
             <label>{{ t('cityArea') }}<input name="city" [(ngModel)]="cityArea" required></label>
-            <label>{{ t('paymentMethod') }}<select name="paymentRail" [(ngModel)]="paymentRail">
-              <option [ngValue]="0">Telebirr</option><option [ngValue]="1">CBE Birr</option>
-              <option [ngValue]="2">Awash Birr</option><option [ngValue]="3">Bank of Abyssinia</option>
-              <option [ngValue]="4">Sandbox (testing)</option>
-            </select></label>
+            <fieldset class="payment-methods">
+              <legend>{{ t('paymentMethod') }}</legend>
+              <label class="payment-option" [class.selected]="paymentRail === 0">
+                <input type="radio" name="paymentRail" [value]="0" [(ngModel)]="paymentRail">
+                <img src="/assets/payment-methods/telebirr.svg" alt="Telebirr">
+                <span><strong>Telebirr</strong><small>Mobile money</small></span>
+                <span class="payment-check" aria-hidden="true">✓</span>
+              </label>
+              <label class="payment-option" [class.selected]="paymentRail === 1">
+                <input type="radio" name="paymentRail" [value]="1" [(ngModel)]="paymentRail">
+                <img src="/assets/payment-methods/cbe-birr.svg" alt="CBE Birr">
+                <span><strong>CBE Birr</strong><small>Mobile banking</small></span>
+                <span class="payment-check" aria-hidden="true">✓</span>
+              </label>
+              <label class="payment-option payment-option-text" [class.selected]="paymentRail === 2">
+                <input type="radio" name="paymentRail" [value]="2" [(ngModel)]="paymentRail">
+                <span class="payment-glyph" aria-hidden="true">A</span>
+                <span><strong>Awash Birr</strong><small>Bank payment</small></span>
+                <span class="payment-check" aria-hidden="true">✓</span>
+              </label>
+              <label class="payment-option payment-option-text" [class.selected]="paymentRail === 3">
+                <input type="radio" name="paymentRail" [value]="3" [(ngModel)]="paymentRail">
+                <span class="payment-glyph" aria-hidden="true">B</span>
+                <span><strong>Bank of Abyssinia</strong><small>Bank transfer</small></span>
+                <span class="payment-check" aria-hidden="true">✓</span>
+              </label>
+              <label class="payment-option payment-option-text" [class.selected]="paymentRail === 4">
+                <input type="radio" name="paymentRail" [value]="4" [(ngModel)]="paymentRail">
+                <span class="payment-glyph" aria-hidden="true">₿</span>
+                <span><strong>Sandbox</strong><small>Testing only</small></span>
+                <span class="payment-check" aria-hidden="true">✓</span>
+              </label>
+            </fieldset>
             <p class="checkout-note">Order creation and payment initiation are connected. A real provider checkout or payment confirmation still depends on verified merchant gateway credentials and webhook setup.</p>
             <p class="form-error" *ngIf="error">{{error}}</p>
             <button class="btn btn-primary checkout-button" [disabled]="submitting || loading">
@@ -103,6 +131,18 @@ interface CartLine { product: MerkatoProduct; quantity: number; }
     .summary-row strong,.summary-total strong{color:#294b37;text-align:right}
     .summary-total{margin:7px 0 18px;border:0;color:#304d3a;font-weight:800;font-size:13px}
     .summary-total strong{color:#164d36;font-size:18px}
+    .payment-methods{display:grid;gap:9px;margin:0;padding:0;border:0;min-width:0}
+    .payment-methods legend{margin-bottom:8px;color:#43594a;font-size:11px;font-weight:750}
+    .payment-option{position:relative;display:flex!important;grid-template-columns:none!important;align-items:center;gap:12px!important;min-height:66px;padding:10px 12px;border:1px solid #e2e9df;border-radius:12px;background:#fff;cursor:pointer;transition:border-color .18s,background .18s,box-shadow .18s}
+    .payment-option.selected{border-color:#c49a36;background:#fffaf0;box-shadow:0 0 0 3px rgba(196,154,54,.12)}
+    .payment-option input{width:16px!important;min-height:16px!important;margin:0;accent-color:#b58a25;flex:0 0 auto}
+    .payment-option img{width:66px;height:42px;object-fit:contain;flex:0 0 66px}
+    .payment-option>span:nth-of-type(1){display:grid;gap:3px;min-width:0}
+    .payment-option strong{color:#284533;font-size:12px}
+    .payment-option small{color:#89948b;font-size:10px;font-weight:500}
+    .payment-check{margin-left:auto;color:#a47a19;font-size:16px;opacity:0}
+    .payment-option.selected .payment-check{opacity:1}
+    .payment-glyph{display:grid;place-items:center;width:42px;height:42px;border-radius:10px;background:#f1f4ee;color:#42634b;font-size:18px;font-weight:850;flex:0 0 42px}
     .checkout-panel form{display:grid;gap:15px}
     .checkout-panel label{display:grid;gap:7px;color:#43594a;font-size:11px;font-weight:750}
     .checkout-panel input,.checkout-panel select,.checkout-panel textarea{width:100%;min-height:44px;padding:11px 12px;border:1px solid #dfe8de;border-radius:10px;background:rgba(250,252,249,.94);color:#253c2e;font:12px 'DM Sans',sans-serif;outline:none;resize:vertical}
