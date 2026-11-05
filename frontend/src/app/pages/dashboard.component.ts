@@ -43,13 +43,31 @@ import { ApiService, MerkatoProduct, MerkatoOrder, MerkatoDispute, MerchantAnaly
     .catalogue-product{display:flex;align-items:center;gap:10px;min-width:170px}
     .catalogue-product img,.catalogue-placeholder{width:42px;height:42px;object-fit:cover;border-radius:9px;background:#f0f3f0}
     .catalogue-placeholder{display:grid;place-items:center;color:#829087}
-    @media(max-width:760px){.product-editor{padding:16px}.editor-layout{grid-template-columns:1fr}.editor-heading h3{font-size:21px}}
+    .buyer-shortcuts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:18px 0 22px}
+    .buyer-shortcut{display:flex;flex-direction:column;gap:7px;padding:18px;background:#fff;border:1px solid #ece9df;border-radius:13px;transition:.2s}
+    .buyer-shortcut:hover{transform:translateY(-2px);border-color:#d7b276;box-shadow:0 12px 28px #3023130b}
+    .buyer-shortcut>span{width:38px;height:38px;display:grid;place-items:center;border-radius:11px;background:#f7f0e4;color:#a77c42;font-size:20px}
+    .buyer-shortcut strong{font:700 12px Manrope;color:#25352b}.buyer-shortcut small{font-size:9px;color:#89938c}
+    .buyer-insights{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0 0 24px}
+    .buyer-insights article{padding:16px 18px;border:1px solid #eee9df;border-radius:12px;background:linear-gradient(135deg,#fff,#fbf8f1)}
+    .buyer-insights span{display:block;font-size:8px;font-weight:800;letter-spacing:1.1px;color:#89938c}.buyer-insights strong{display:block;font:800 20px Manrope;color:#26382d;margin-top:7px}
+    @media(max-width:760px){.product-editor{padding:16px}.editor-layout{grid-template-columns:1fr}.editor-heading h3{font-size:21px}.buyer-shortcuts,.buyer-insights{grid-template-columns:1fr}}
   `],
   template: `
     <section class="workspace">
       <aside class="workspace-sidebar"><a routerLink="/" class="brand"><span class="brand-mark">M</span><span>merkato<small>WORKSPACE</small></span></a><div class="workspace-user"><span class="user-avatar">{{user?.fullName?.slice(0,1)}}</span><div><strong>{{user?.fullName}}</strong><small>{{user?.role}}</small></div></div><span class="side-label">WORKSPACE</span><a routerLink="/dashboard" class="side-link active">▦ <span>Overview</span></a><a routerLink="/" class="side-link">⌕ <span>Marketplace</span></a><a *ngIf="user?.role === 'MERCHANT' || user?.role === 'ADMIN'" href="#products" class="side-link">▤ <span>Products</span></a><a *ngIf="user?.role === 'ADMIN'" href="#admin-note" class="side-link">⚙ <span>Administration</span></a><div class="sidebar-bottom"><a routerLink="/" class="side-link">↗ <span>View marketplace</span></a><button class="side-link side-logout" (click)="logout()">⇥ <span>Sign out</span></button></div></aside>
       <div class="workspace-main"><header class="workspace-topbar"><div><span class="eyebrow">MERKATO WORKSPACE</span><h1>{{heading}}</h1></div><span class="workspace-date">Ethiopia · ETB</span></header>
         <section class="welcome-panel"><div><span class="eyebrow">GOOD TO SEE YOU</span><h2>Welcome, {{user?.fullName?.split(' ')?.[0]}}.</h2><p>{{welcomeText}}</p></div><div class="welcome-symbol">✳</div></section>
+        <section class="buyer-shortcuts" *ngIf="user?.role === 'BUYER'">
+          <a routerLink="/" class="buyer-shortcut"><span>⌕</span><strong>Explore marketplace</strong><small>Discover products from local sellers</small></a>
+          <a routerLink="/cart" class="buyer-shortcut"><span>▣</span><strong>My shopping cart</strong><small>Review items before checkout</small></a>
+          <a href="#buyer-orders" class="buyer-shortcut"><span>↗</span><strong>Track my orders</strong><small>See your latest order updates</small></a>
+        </section>
+        <section class="buyer-insights" *ngIf="user?.role === 'BUYER'">
+          <article><span>ORDERS IN PROGRESS</span><strong>{{buyerInProgressCount}}</strong></article>
+          <article><span>COMPLETED ORDERS</span><strong>{{buyerCompletedCount}}</strong></article>
+          <article><span>AVERAGE ORDER VALUE</span><strong>{{buyerAverageOrder | number:'1.2-2'}} ETB</strong></article>
+        </section>
         <div class="workspace-grid">
           <ng-container *ngIf="user?.role === 'BUYER'">
             <article class="workspace-card"><span class="card-icon">▣</span><span class="card-label">TOTAL ORDERS</span><strong>{{buyerOrders.length}}</strong><small>Orders linked to your account</small></article>
@@ -153,6 +171,9 @@ export class DashboardComponent implements OnInit {
   verificationDraft = { businessName: '', businessType: '', city: 'Addis Ababa', contactPhone: '' };
   draft = { name: '', priceEtb: 0, category: 'Other', location: 'Addis Ababa', emoji: '🛍️' };
   get buyerSpend(): number { return this.buyerOrders.reduce((sum, order) => sum + Number(order.totalAmountEtb || 0), 0); }
+  get buyerAverageOrder(): number { return this.buyerOrders.length ? this.buyerSpend / this.buyerOrders.length : 0; }
+  get buyerCompletedCount(): number { return this.buyerOrders.filter(order => String(order.deliveryStatus).toLowerCase().includes('deliver') || String(order.deliveryStatus).toLowerCase().includes('complete')).length; }
+  get buyerInProgressCount(): number { return this.buyerOrders.length - this.buyerCompletedCount; }
   get merchantSales(): number { return this.merchantOrders.reduce((sum, order) => sum + Number(order.totalAmountEtb || 0), 0); }
   get platformVolume(): number { return this.merchantSales; }
   get openDisputes(): number { return this.disputes.filter(item => item.status === 'OPEN' || item.status === 'UNDER_REVIEW').length; }
