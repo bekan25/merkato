@@ -228,6 +228,20 @@ public sealed class CommerceGrowthController(MerkatoDbContext db) : ControllerBa
         return Ok(new { account.UserId, account.PointsBalance });
     }
 
+
+    [Authorize]
+    [HttpGet("orders/{orderId:long}/delivery")]
+    public async Task<IActionResult> OrderDelivery(long orderId, CancellationToken ct)
+    {
+        var order = await db.Orders.AsNoTracking().FirstOrDefaultAsync(x => x.Id == orderId, ct);
+        if (order is null) return NotFound();
+        var role = User.FindFirstValue(ClaimTypes.Role) ?? "";
+        if (role is not ("ADMIN" or "COURIER") && order.BuyerId != CurrentUserId && order.SellerId != CurrentUserId) return Forbid();
+        var delivery = await db.Deliveries.AsNoTracking().FirstOrDefaultAsync(x => x.OrderId == orderId, ct);
+        if (delivery is null) return NotFound("No delivery has been assigned to this order yet.");
+        return Ok(new { delivery.DeliveryId, delivery.OrderId, status = delivery.Status.ToString(), delivery.CourierType, delivery.RiderName, delivery.RiderPhone, delivery.FeeEtb, delivery.DispatchedAt, delivery.DeliveredAt, delivery.UpdatedAt });
+    }
+
     [Authorize(Roles = "MERCHANT,ADMIN")]
     [HttpGet("merchant/inventory")]
     public async Task<IActionResult> Inventory(CancellationToken ct)
