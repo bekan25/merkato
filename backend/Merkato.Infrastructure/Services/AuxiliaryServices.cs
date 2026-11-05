@@ -170,6 +170,13 @@ public class PaymentService : IPaymentService
                         throw new InvalidOperationException("Payment failed but the inventory reservation could not be released; support intervention is required.");
                     order.InventoryReservationState = InventoryReservationState.RELEASED;
                 }
+                else
+                {
+                    order.InventoryReservationState = await _db.Orders.AsNoTracking()
+                        .Where(x => x.Id == order.Id)
+                        .Select(x => x.InventoryReservationState)
+                        .FirstAsync(ct);
+                }
             }
 
             order.EscrowState = EscrowState.CANCELLED;

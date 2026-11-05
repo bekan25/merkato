@@ -256,6 +256,13 @@ public class OrdersController : ControllerBase
                     return Conflict(new { message = "Inventory reservation could not be safely released. Contact support." });
                 order.InventoryReservationState = InventoryReservationState.RELEASED;
             }
+            else
+            {
+                order.InventoryReservationState = await _db.Orders.AsNoTracking()
+                    .Where(x => x.Id == orderId)
+                    .Select(x => x.InventoryReservationState)
+                    .FirstAsync(ct);
+            }
         }
 
         order.EscrowState = EscrowState.CANCELLED;
