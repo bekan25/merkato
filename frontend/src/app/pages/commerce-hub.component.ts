@@ -109,7 +109,7 @@ export class CommerceHubComponent implements OnInit {
   tabs:any[]=[];
   ngOnInit(){this.language=(localStorage.getItem('merkato_language') as any)||'en';this.updateTabs();}
   setLanguage(){localStorage.setItem('merkato_language',this.language);this.updateTabs();}
-  updateTabs(){const d=this.tx;this.tabs=[{key:'reviews',label:d.reviews},{key:'prices',label:d.priceCompare},{key:'groups',label:d.groupBuying},{key:'returns',label:d.returns},{key:'inventory',label:d.inventory},{key:'loyalty',label:d.loyalty},{key:'delivery',label:d.delivery},{key:'referral',label:d.referral},{key:'promotions',label:'Promotions'}];}
+  updateTabs(){const d=this.tx;this.tabs=[{key:'reviews',label:d.reviews},{key:'prices',label:d.priceCompare},{key:'groups',label:d.groupBuying},{key:'returns',label:d.returns},{key:'inventory',label:d.inventory},{key:'loyalty',label:d.loyalty},{key:'delivery',label:d.delivery},{key:'referral',label:d.referral}];if(this.canManagePromotions)this.tabs.push({key:'promotions',label:'Promotions'});}
   private call<T=any>(method:'get'|'post'|'put',url:string,body?:any,done?:(x:T)=>void){this.message='';this.isError=false;const req=method==='get'?this.http.get<T>(url):method==='put'?this.http.put<T>(url,body):this.http.post<T>(url,body);req.subscribe({next:x=>{done?.(x);this.message='Success';},error:e=>{this.isError=true;this.message=e?.error?.message||e?.error||'Request failed. Check permissions and inputs.';}});}
   loadReviews(){this.call('get',`/api/commerce/products/${this.productId}/reviews`,null,x=>this.reviewData=x);}
   addReview(){this.call('post',`/api/commerce/products/${this.productId}/reviews`,{orderId:this.reviewOrderId,rating:this.rating,comment:this.comment},()=>{this.comment='';this.loadReviews();});}
