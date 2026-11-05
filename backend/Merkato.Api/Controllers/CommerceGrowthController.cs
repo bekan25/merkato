@@ -140,7 +140,9 @@ public sealed class CommerceGrowthController(MerkatoDbContext db) : ControllerBa
         if (string.IsNullOrWhiteSpace(input.Reason) || input.Reason.Length > 2000) return BadRequest("A return reason is required (max 2000 characters).");
         var order = await db.Orders.FirstOrDefaultAsync(x => x.Id == orderId && x.BuyerId == CurrentUserId, ct);
         if (order is null) return NotFound();
-        var delivery = await db.Deliveries.AsNoTracking().FirstOrDefaultAsync(x => x.OrderId == orderId, ct);\n        var deliveredAt = delivery?.DeliveredAt ?? order.CreatedAt;\n        if (order.DeliveryStatus != DeliveryStatus.DELIVERED || deliveredAt < DateTime.UtcNow.AddDays(-7)) return Conflict("Returns are available within 7 days of delivery only.");
+        var delivery = await db.Deliveries.AsNoTracking().FirstOrDefaultAsync(x => x.OrderId == orderId, ct);
+        var deliveredAt = delivery?.DeliveredAt ?? order.CreatedAt;
+        if (order.DeliveryStatus != DeliveryStatus.DELIVERED || deliveredAt < DateTime.UtcNow.AddDays(-7)) return Conflict("Returns are available within 7 days of delivery only.");
         if (order.EscrowState == EscrowState.RELEASED) return Conflict("The inspection/escrow has already been released; contact support to open a dispute.");
         if (await db.ReturnRequests.AnyAsync(x => x.OrderId == orderId, ct)) return Conflict("A return request already exists for this order.");
         var request = new ReturnRequest { OrderId = order.Id, BuyerId = order.BuyerId, SellerId = order.SellerId, Reason = input.Reason.Trim(), EvidenceUrl = input.EvidenceUrl };
