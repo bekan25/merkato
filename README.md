@@ -62,6 +62,16 @@ npm start
 
 Open `http://localhost:4200`.
 
+## AI shopping assistant
+
+The storefront includes a multilingual shopping assistant backed by the public product catalogue. Configure an OpenAI-compatible chat-completions provider in the backend environment:
+
+- `MERKATO_AI_API_KEY` — provider secret (keep it out of source control).
+- `MERKATO_AI_ENDPOINT` — defaults to `https://api.openai.com/v1/chat/completions`.
+- `MERKATO_AI_MODEL` — defaults to `gpt-4o-mini`.
+
+The assistant sends the customer's question and a small set of active public catalogue listings to the configured provider. Requests are length-limited and rate-limited. Without a provider key the API returns HTTP 503 and the storefront displays an unavailable message; it does not fabricate an AI response.
+
 ## Payments and production readiness
 
 The current checkout flow creates orders and records payment-initiation requests as pending. It does **not** yet redirect customers to Telebirr, CBE Birr or another live payment checkout. No provider-specific live payment initiation adapter is configured. Live collection requires official merchant credentials, the provider's current integration specification and sandbox, signed webhook verification, reconciliation and end-to-end tests. Do not describe pending transactions as paid.
