@@ -56,7 +56,7 @@ jobs:
       ConnectionStrings__PostgreSql: Host=localhost;Port=5432;Database=merkato_ci;Username=merkato_ci;Password=ci-password-not-for-production
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 10.0.x
       - name: Restore
