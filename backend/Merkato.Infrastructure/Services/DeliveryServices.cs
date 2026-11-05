@@ -32,6 +32,23 @@ public class DeliveryService : IDeliveryService
         string rawOtp,
         CancellationToken ct = default)
     {
+        if (orderId <= 0)
+            throw new ArgumentOutOfRangeException(nameof(orderId));
+        if (feeEtb < 0)
+            throw new ArgumentOutOfRangeException(nameof(feeEtb));
+        if (string.IsNullOrWhiteSpace(courierType) || courierType.Length > 80)
+            throw new ArgumentException("A valid courier type is required.", nameof(courierType));
+        if (string.IsNullOrWhiteSpace(rawOtp) || rawOtp.Length < 4 ||
+            rawOtp.Length > 8 || rawOtp.Any(ch => !char.IsDigit(ch)))
+            throw new ArgumentException("OTP must contain 4–8 digits.", nameof(rawOtp));
+
+        var orderExists = await _db.Orders.AnyAsync(x => x.Id == orderId, ct);
+        if (!orderExists)
+            throw new KeyNotFoundException($"Order {orderId} not found.");
+
+        if (await _db.Deliveries.AnyAsync(x => x.OrderId == orderId, ct))
+            throw new InvalidOperationException("A delivery already exists for this order.");
+
         // Generate secure salt
         var saltBytes = RandomNumberGenerator.GetBytes(16);
         var saltHex = Convert.ToHexString(saltBytes);

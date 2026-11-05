@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using Merkato.Api.Services;
 using Merkato.Domain.Entities;
 using Merkato.Domain.Enums;
 using Merkato.Domain.StateMachines;
@@ -147,4 +149,26 @@ public class MerkatoBackendTests
         var decision = await risk.EvaluateOrderRiskAsync(999L, 100001m);
         Assert.Equal(RiskDecision.TRANSACTION_BLOCKED, decision);
     }
+    [Fact]
+    public void PinHasher_HashesNewPinsAndRejectsIncorrectPins()
+    {
+        var hash = PinHasher.Hash("123456");
+
+        Assert.StartsWith("v2.600000.", hash);
+        Assert.True(PinHasher.Verify("123456", hash));
+        Assert.False(PinHasher.Verify("654321", hash));
+    }
+
+    [Fact]
+    public void PinHasher_ContinuesToVerifyExistingLegacyHashes()
+    {
+        var salt = Enumerable.Range(0, 16).Select(value => (byte)value).ToArray();
+        var hash = Rfc2898DeriveBytes.Pbkdf2(
+            "1234", salt, 100_000, HashAlgorithmName.SHA256, 32);
+        var legacyHash = $"{Convert.ToBase64String(salt)}.{Convert.ToBase64String(hash)}";
+
+        Assert.True(PinHasher.Verify("1234", legacyHash));
+        Assert.False(PinHasher.Verify("4321", legacyHash));
+    }
+
 }

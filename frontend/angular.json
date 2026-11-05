@@ -67,7 +67,8 @@
               "buildTarget": "markatoo-web:build:production"
             },
             "development": {
-              "buildTarget": "markatoo-web:build:development"
+              "buildTarget": "markatoo-web:build:development",
+              "proxyConfig": "proxy.conf.json"
             }
           },
           "defaultConfiguration": "development"

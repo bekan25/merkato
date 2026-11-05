@@ -81,9 +81,76 @@ public class EscrowService : IEscrowService
         var order = await _db.Orders.FindAsync(new object[] { orderId }, ct)
             ?? throw new KeyNotFoundException($"Order {orderId} not found");
 
+        await using var transaction = await _db.Database.BeginTransactionAsync(ct);
         var escrow = await _db.EscrowAccounts.FirstOrDefaultAsync(e => e.OrderId == orderId, ct);
+        // Replayed verified webhooks must not reserve stock or create a second ledger lock.
+        if (escrow?.Status == EscrowState.HELD)
+        {
+            return escrow;
+        }
+
         if (escrow == null)
         {
+            // New checkouts already own one reserved unit. Consume that reservation
+            // atomically; do not compete with group-buy stock or consume another buyer's unit.
+            if (order.InventoryReservationState == InventoryReservationState.RESERVED)
+            {
+                var now = DateTime.UtcNow;
+                var consumedClaim = await _db.Orders
+                    .Where(x => x.Id == orderId &&
+                                x.InventoryReservationState == InventoryReservationState.RESERVED &&
+                                x.InventoryReservationExpiresAt > now)
+                    .ExecuteUpdateAsync(update => update
+                        .SetProperty(x => x.InventoryReservationState, InventoryReservationState.CONSUMED)
+                        .SetProperty(x => x.UpdatedAt, now), ct);
+                if (consumedClaim != 1)
+                    throw new InvalidOperationException("The checkout inventory reservation has expired or is no longer available.");
+
+                var consumedStock = await _db.ProductListingDetails
+                    .Where(x => x.ProductId == order.ProductId &&
+                                x.StockQuantity >= 1 && x.ReservedQuantity >= 1)
+                    .ExecuteUpdateAsync(update => update
+                        .SetProperty(x => x.StockQuantity, x => x.StockQuantity - 1)
+                        .SetProperty(x => x.ReservedQuantity, x => x.ReservedQuantity - 1)
+                        .SetProperty(x => x.UpdatedAt, now), ct);
+                if (consumedStock != 1)
+                    throw new InvalidOperationException("Reserved inventory is inconsistent. Payment cannot be confirmed safely.");
+                order.InventoryReservationState = InventoryReservationState.CONSUMED;
+            }
+            else if (order.InventoryReservationState == InventoryReservationState.RELEASED ||
+                     order.InventoryReservationState == InventoryReservationState.EXPIRED)
+            {
+                throw new InvalidOperationException("The order's inventory reservation is no longer active.");
+            }
+            else if (order.ProductId.HasValue)
+            {
+                // Historical orders created before reservation tracking keep a safe legacy path.
+                var now = DateTime.UtcNow;
+                var consumed = await _db.ProductListingDetails
+                    .Where(x => x.ProductId == order.ProductId.Value &&
+                                x.StockQuantity - x.ReservedQuantity >= 1)
+                    .ExecuteUpdateAsync(update => update
+                        .SetProperty(x => x.StockQuantity, x => x.StockQuantity - 1)
+                        .SetProperty(x => x.UpdatedAt, now), ct);
+                if (consumed == 0)
+                    throw new InvalidOperationException("This product is out of available stock.");
+            }
+            else
+            {
+                var legacyProduct = await _db.Products.AsNoTracking()
+                    .FirstOrDefaultAsync(p => p.SellerId == order.SellerId && p.Name == order.ProductTitle, ct);
+                if (legacyProduct is not null)
+                {
+                    var consumed = await _db.ProductListingDetails
+                        .Where(x => x.ProductId == legacyProduct.Id && x.StockQuantity - x.ReservedQuantity >= 1)
+                        .ExecuteUpdateAsync(update => update
+                            .SetProperty(x => x.StockQuantity, x => x.StockQuantity - 1)
+                            .SetProperty(x => x.UpdatedAt, DateTime.UtcNow), ct);
+                    if (consumed == 0)
+                        throw new InvalidOperationException("This product is out of available stock.");
+                }
+            }
+
             escrow = new EscrowAccount
             {
                 OrderId = orderId,
@@ -120,6 +187,7 @@ public class EscrowService : IEscrowService
 
         await _audit.LogAsync(order.BuyerId, "BUYER", "ESCROW_LOCK", "ESCROW", orderId.ToString(), "SUCCESS", $"Locked {amountEtb} ETB", ct);
         await _db.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
 
         return escrow;
     }
@@ -147,6 +215,28 @@ public class EscrowService : IEscrowService
         escrow.Status = EscrowState.RELEASED;
         escrow.UpdatedAt = DateTime.UtcNow;
         order.EscrowState = EscrowState.RELEASED;
+
+        // Award one loyalty point per 100 ETB only after escrow is successfully released.
+        var earnedPoints = (int)Math.Floor(releaseAmount / 100m);
+        if (earnedPoints > 0 && !await _db.LoyaltyTransactions.AnyAsync(x => x.OrderId == orderId, ct))
+        {
+            var loyalty = await _db.LoyaltyAccounts.FirstOrDefaultAsync(x => x.UserId == order.BuyerId, ct);
+            if (loyalty is null)
+            {
+                loyalty = new LoyaltyAccount { UserId = order.BuyerId };
+                _db.LoyaltyAccounts.Add(loyalty);
+            }
+            loyalty.PointsBalance = checked(loyalty.PointsBalance + earnedPoints);
+            loyalty.UpdatedAt = DateTime.UtcNow;
+            _db.LoyaltyTransactions.Add(new LoyaltyTransaction
+            {
+                UserId = order.BuyerId,
+                Points = earnedPoints,
+                Reason = "Order settled after escrow release",
+                OrderId = orderId,
+                CreatedAt = DateTime.UtcNow
+            });
+        }
 
         // Double-entry record
         await _ledger.RecordTransactionAsync(orderId, "ESCROW_RELEASE", $"REL-{orderId}", new()

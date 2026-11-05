@@ -1,4 +1,7 @@
 ﻿using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 using Merkato.Domain.Entities;
 using Merkato.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
@@ -13,6 +16,9 @@ public class ProductsController : ControllerBase
 {
     private readonly MerkatoDbContext _db;
     private readonly IWebHostEnvironment _environment;
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IConfiguration _configuration;
+    private readonly ILogger<ProductsController> _logger;
 
     private const long MaxImageSize = 5 * 1024 * 1024;
 
@@ -33,10 +39,16 @@ public class ProductsController : ControllerBase
 
     public ProductsController(
         MerkatoDbContext db,
-        IWebHostEnvironment environment)
+        IWebHostEnvironment environment,
+        IHttpClientFactory httpClientFactory,
+        IConfiguration configuration,
+        ILogger<ProductsController> logger)
     {
         _db = db;
         _environment = environment;
+        _httpClientFactory = httpClientFactory;
+        _configuration = configuration;
+        _logger = logger;
     }
 
     // ==========================================
@@ -123,11 +135,20 @@ public class ProductsController : ControllerBase
     public async Task<ActionResult<ProductResponse>> CreateProduct(
         [FromBody] CreateProductRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request.Name))
-            return BadRequest("Product name is required.");
+        if (string.IsNullOrWhiteSpace(request.Name) ||
+            request.Name.Trim().Length < 3 || request.Name.Trim().Length > 180)
+            return BadRequest("Product name must contain 3–180 characters.");
 
-        if (request.PriceEtb <= 0)
-            return BadRequest("Price must be greater than zero.");
+        if (request.PriceEtb <= 0 || request.PriceEtb > 1000000000m)
+            return BadRequest("Price must be greater than zero and within the supported ETB range.");
+
+        if (string.IsNullOrWhiteSpace(request.Category) ||
+            request.Category.Trim().Length > 100)
+            return BadRequest("Choose a valid product category (max 100 characters).");
+
+        if (string.IsNullOrWhiteSpace(request.Location) ||
+            request.Location.Trim().Length > 160)
+            return BadRequest("A city or store location is required (max 160 characters).");
 
         var claim = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
@@ -140,7 +161,7 @@ public class ProductsController : ControllerBase
             sellerId = request.SellerId;
 
         var sellerExists = await _db.Users
-            .AnyAsync(u => u.Id == sellerId);
+            .AnyAsync(u => u.Id == sellerId && u.Role == Merkato.Domain.Enums.UserRole.MERCHANT);
 
         if (!sellerExists)
             return BadRequest("Seller does not exist.");
@@ -203,12 +224,22 @@ public class ProductsController : ControllerBase
         if (!User.IsInRole("ADMIN") && product.SellerId != userId)
             return Forbid();
 
-        if (string.IsNullOrWhiteSpace(request.Name))
-            return BadRequest("Product name is required.");
+        if (string.IsNullOrWhiteSpace(request.Name) ||
+            request.Name.Trim().Length < 3 || request.Name.Trim().Length > 180)
+            return BadRequest("Product name must contain 3–180 characters.");
 
-        if (request.PriceEtb <= 0)
-            return BadRequest("Price must be greater than zero.");
+        if (request.PriceEtb <= 0 || request.PriceEtb > 1000000000m)
+            return BadRequest("Price must be greater than zero and within the supported ETB range.");
 
+        if (string.IsNullOrWhiteSpace(request.Category) ||
+            request.Category.Trim().Length > 100)
+            return BadRequest("Choose a valid product category (max 100 characters).");
+
+        if (string.IsNullOrWhiteSpace(request.Location) ||
+            request.Location.Trim().Length > 160)
+            return BadRequest("A city or store location is required (max 160 characters).");
+
+        var previousPriceEtb = product.PriceEtb;
         product.Name = request.Name.Trim();
         product.PriceEtb = request.PriceEtb;
         product.Location = string.IsNullOrWhiteSpace(request.Location)
@@ -221,6 +252,29 @@ public class ProductsController : ControllerBase
             ? "??"
             : request.Emoji.Trim();
         product.UpdatedAt = DateTime.UtcNow;
+
+        // Trigger each matching buyer alert exactly once in the same database save.
+        if (request.PriceEtb < previousPriceEtb)
+        {
+            var matchedAlerts = await _db.PriceAlerts
+                .Where(x => x.ProductId == product.Id && x.IsActive && x.TargetPriceEtb >= request.PriceEtb)
+                .ToListAsync();
+            var now = DateTime.UtcNow;
+            foreach (var alert in matchedAlerts)
+            {
+                alert.IsActive = false;
+                alert.TriggeredAt = now;
+                _db.UserNotifications.Add(new UserNotification
+                {
+                    UserId = alert.BuyerId,
+                    Type = "PRICE_DROP",
+                    Title = "Price drop: " + product.Name,
+                    Message = $"The price is now {request.PriceEtb:0.00} ETB, at or below your target of {alert.TargetPriceEtb:0.00} ETB.",
+                    ActionUrl = "/products/" + product.Id,
+                    CreatedAt = now
+                });
+            }
+        }
 
         await _db.SaveChangesAsync();
 
@@ -284,58 +338,86 @@ public class ProductsController : ControllerBase
                 "Only .jpg, .jpeg, .png, and .webp files are allowed.");
         }
 
-        var webRoot = _environment.WebRootPath;
+        var cloudName = _configuration["Cloudinary:CloudName"];
+        var cloudApiKey = _configuration["Cloudinary:ApiKey"];
+        var cloudApiSecret = _configuration["Cloudinary:ApiSecret"];
 
-        if (string.IsNullOrWhiteSpace(webRoot))
+        if (!string.IsNullOrWhiteSpace(cloudName) &&
+            !string.IsNullOrWhiteSpace(cloudApiKey) &&
+            !string.IsNullOrWhiteSpace(cloudApiSecret))
         {
-            webRoot = Path.Combine(
-                Directory.GetCurrentDirectory(),
-                "wwwroot");
-        }
+            // A stable public ID means replacing a product photo overwrites the
+            // previous Cloudinary asset instead of creating orphaned files.
+            var publicId = $"merkato/products/product_{product.Id}";
+            var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString();
+            var signatureBase = $"overwrite=true&public_id={publicId}&timestamp={timestamp}{cloudApiSecret}";
+            var signature = Convert.ToHexString(SHA1.HashData(Encoding.UTF8.GetBytes(signatureBase))).ToLowerInvariant();
 
-        var uploadDirectory = Path.Combine(
-            webRoot,
-            "images",
-            "products");
+            using var content = new MultipartFormDataContent();
+            await using var imageStream = image.OpenReadStream();
+            using var imageContent = new StreamContent(imageStream);
+            imageContent.Headers.ContentType =
+                new System.Net.Http.Headers.MediaTypeHeaderValue(image.ContentType);
+            content.Add(imageContent, "file", Path.GetFileName(image.FileName));
+            content.Add(new StringContent(cloudApiKey), "api_key");
+            content.Add(new StringContent(timestamp), "timestamp");
+            content.Add(new StringContent(publicId), "public_id");
+            content.Add(new StringContent("true"), "overwrite");
+            content.Add(new StringContent(signature), "signature");
 
-        Directory.CreateDirectory(uploadDirectory);
+            var client = _httpClientFactory.CreateClient();
+            using var response = await client.PostAsync(
+                $"https://api.cloudinary.com/v1_1/{Uri.EscapeDataString(cloudName)}/image/upload",
+                content,
+                HttpContext.RequestAborted);
 
-        // Delete previous image if it belongs to our local image folder
-        if (!string.IsNullOrWhiteSpace(product.ImageUrl))
-        {
-            var oldFileName = Path.GetFileName(product.ImageUrl);
-
-            if (!string.IsNullOrWhiteSpace(oldFileName))
+            if (!response.IsSuccessStatusCode)
             {
-                var oldFilePath = Path.Combine(
-                    uploadDirectory,
-                    oldFileName);
-
-                if (System.IO.File.Exists(oldFilePath))
-                {
-                    System.IO.File.Delete(oldFilePath);
-                }
+                _logger.LogWarning("Cloudinary image upload failed with status {StatusCode}.",
+                    (int)response.StatusCode);
+                return StatusCode(StatusCodes.Status502BadGateway,
+                    "Image storage provider could not accept the upload. Please try again.");
             }
+
+            await using var responseStream = await response.Content.ReadAsStreamAsync(
+                HttpContext.RequestAborted);
+            using var payload = await JsonDocument.ParseAsync(
+                responseStream,
+                cancellationToken: HttpContext.RequestAborted);
+
+            if (!payload.RootElement.TryGetProperty("secure_url", out var secureUrl) ||
+                string.IsNullOrWhiteSpace(secureUrl.GetString()))
+            {
+                _logger.LogWarning("Cloudinary upload response did not include secure_url.");
+                return StatusCode(StatusCodes.Status502BadGateway,
+                    "Image storage provider returned an invalid response.");
+            }
+
+            product.ImageUrl = secureUrl.GetString();
         }
-
-        // Generate unique filename
-        var fileName =
-            $"{Guid.NewGuid():N}{extension}";
-
-        var filePath = Path.Combine(
-            uploadDirectory,
-            fileName);
-
-        await using (var stream = new FileStream(
-            filePath,
-            FileMode.CreateNew))
+        else
         {
-            await image.CopyToAsync(stream);
-        }
+            // Local disk is acceptable for development only. Render's ephemeral
+            // filesystem is not durable, so production must configure Cloudinary.
+            if (!_environment.IsDevelopment())
+            {
+                return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                    "Persistent image storage is not configured. Set Cloudinary:CloudName, Cloudinary:ApiKey and Cloudinary:ApiSecret.");
+            }
 
-        // Relative URL stored in database
-        product.ImageUrl =
-            $"/images/products/{fileName}";
+            var webRoot = _environment.WebRootPath;
+            if (string.IsNullOrWhiteSpace(webRoot))
+                webRoot = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+
+            var uploadDirectory = Path.Combine(webRoot, "images", "products");
+            Directory.CreateDirectory(uploadDirectory);
+
+            var fileName = $"{Guid.NewGuid():N}{extension}";
+            var filePath = Path.Combine(uploadDirectory, fileName);
+            await using var stream = new FileStream(filePath, FileMode.CreateNew);
+            await image.CopyToAsync(stream, HttpContext.RequestAborted);
+            product.ImageUrl = $"/images/products/{fileName}";
+        }
 
         product.UpdatedAt = DateTime.UtcNow;
 
@@ -376,7 +458,45 @@ public class ProductsController : ControllerBase
 
         if (!string.IsNullOrWhiteSpace(product.ImageUrl))
         {
-            var webRoot = _environment.WebRootPath;
+            var cloudName = _configuration["Cloudinary:CloudName"];
+            var cloudApiKey = _configuration["Cloudinary:ApiKey"];
+            var cloudApiSecret = _configuration["Cloudinary:ApiSecret"];
+
+            if (!string.IsNullOrWhiteSpace(cloudName) &&
+                !string.IsNullOrWhiteSpace(cloudApiKey) &&
+                !string.IsNullOrWhiteSpace(cloudApiSecret) &&
+                Uri.TryCreate(product.ImageUrl, UriKind.Absolute, out var imageUri) &&
+                imageUri.Host.EndsWith("cloudinary.com", StringComparison.OrdinalIgnoreCase))
+            {
+                var publicId = $"merkato/products/product_{product.Id}";
+                var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString();
+                var signatureBase = $"public_id={publicId}&timestamp={timestamp}{cloudApiSecret}";
+                var signature = Convert.ToHexString(SHA1.HashData(Encoding.UTF8.GetBytes(signatureBase))).ToLowerInvariant();
+
+                using var content = new FormUrlEncodedContent(new Dictionary<string, string>
+                {
+                    ["public_id"] = publicId,
+                    ["timestamp"] = timestamp,
+                    ["api_key"] = cloudApiKey,
+                    ["signature"] = signature
+                });
+                var client = _httpClientFactory.CreateClient();
+                using var response = await client.PostAsync(
+                    $"https://api.cloudinary.com/v1_1/{Uri.EscapeDataString(cloudName)}/image/destroy",
+                    content,
+                    HttpContext.RequestAborted);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning("Cloudinary image deletion failed with status {StatusCode}.",
+                        (int)response.StatusCode);
+                    return StatusCode(StatusCodes.Status502BadGateway,
+                        "Image storage provider could not delete the image. Please try again.");
+                }
+            }
+            else
+            {
+                var webRoot = _environment.WebRootPath;
 
             if (string.IsNullOrWhiteSpace(webRoot))
             {
@@ -398,8 +518,9 @@ public class ProductsController : ControllerBase
                     uploadDirectory,
                     fileName);
 
-                if (System.IO.File.Exists(filePath))
+                    if (System.IO.File.Exists(filePath))
                     System.IO.File.Delete(filePath);
+                }
             }
 
             product.ImageUrl = null;

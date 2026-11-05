@@ -1,13 +1,19 @@
 using DotNetEnv;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Merkato.Application.Interfaces;
 using Merkato.Infrastructure.Persistence;
 using Merkato.Infrastructure.Services;
+using Merkato.Api.Services;
 using Scalar.AspNetCore;
 using System.Text;
+using System.Security.Claims;
+using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.HttpOverrides;
 
 // ============================================================
 // LOAD .ENV
@@ -22,14 +28,12 @@ var envPath = Path.GetFullPath(
     )
 );
 
-if (!File.Exists(envPath))
+// Local development may use a repository-root .env file. Production should inject
+// environment variables through the hosting platform's secret manager.
+if (File.Exists(envPath))
 {
-    throw new FileNotFoundException(
-        $"Merkato .env file was not found at: {envPath}"
-    );
+    Env.Load(envPath);
 }
-
-Env.Load(envPath);
 
 // ============================================================
 // CREATE BUILDER
@@ -67,12 +71,22 @@ var jwtKey =
     Environment.GetEnvironmentVariable("Jwt__Key")
     ?? builder.Configuration["Jwt:Key"];
 
-if (string.IsNullOrWhiteSpace(jwtKey))
+if (string.IsNullOrWhiteSpace(jwtKey) || Encoding.UTF8.GetByteCount(jwtKey) < 32)
 {
     throw new InvalidOperationException(
-        "JWT key is not configured."
+        "JWT key must be configured and contain at least 32 UTF-8 bytes."
     );
 }
+
+var jwtIssuer =
+    Environment.GetEnvironmentVariable("Jwt__Issuer")
+    ?? builder.Configuration["Jwt:Issuer"]
+    ?? "https://api.merkato.et";
+
+var jwtAudience =
+    Environment.GetEnvironmentVariable("Jwt__Audience")
+    ?? builder.Configuration["Jwt:Audience"]
+    ?? "https://merkato.et";
 
 builder.Services
     .AddAuthentication(
@@ -90,12 +104,37 @@ builder.Services
                         Encoding.UTF8.GetBytes(jwtKey)
                     ),
 
-                ValidateIssuer = false,
-                ValidateAudience = false,
+                ValidateIssuer = true,
+                ValidIssuer = jwtIssuer,
+                ValidateAudience = true,
+                ValidAudience = jwtAudience,
                 ValidateLifetime = true,
 
                 ClockSkew = TimeSpan.Zero
             };
+
+        options.Events = new JwtBearerEvents
+        {
+            OnTokenValidated = async context =>
+            {
+                var userIdText = context.Principal?.FindFirstValue(ClaimTypes.NameIdentifier);
+                var versionText = context.Principal?.FindFirstValue("token_version");
+                if (!long.TryParse(userIdText, out var userId) || !int.TryParse(versionText, out var tokenVersion))
+                {
+                    context.Fail("Invalid session token.");
+                    return;
+                }
+
+                var db = context.HttpContext.RequestServices.GetRequiredService<MerkatoDbContext>();
+                var account = await db.Users.AsNoTracking()
+                    .Where(user => user.Id == userId)
+                    .Select(user => new { user.IsSuspended, user.TokenVersion })
+                    .SingleOrDefaultAsync(context.HttpContext.RequestAborted);
+
+                if (account is null || account.IsSuspended || account.TokenVersion != tokenVersion)
+                    context.Fail("Session is no longer valid.");
+            }
+        };
     });
 
 builder.Services.AddAuthorization();
@@ -113,12 +152,18 @@ builder.Services.AddScoped<IKycService, KycService>();
 builder.Services.AddScoped<ITrustScoreService, TrustScoreService>();
 builder.Services.AddScoped<IRiskAssessmentService, RiskAssessmentService>();
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
+builder.Services.AddHostedService<InventoryReservationExpiryService>();
 
 // ============================================================
 // CONTROLLERS
 // ============================================================
 
-builder.Services.AddControllers();
+builder.Services.AddHttpClient();
+
+builder.Services.AddControllers().AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+});
 
 // ============================================================
 // OPENAPI
@@ -151,22 +196,10 @@ builder.Services.AddSwaggerGen(options =>
         }
     );
 
-    options.AddSecurityRequirement(
-        new OpenApiSecurityRequirement
-        {
-            {
-                new OpenApiSecurityScheme
-                {
-                    Reference = new OpenApiReference
-                    {
-                        Type = ReferenceType.SecurityScheme,
-                        Id = "Bearer"
-                    }
-                },
-                Array.Empty<string>()
-            }
-        }
-    );
+    options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+    {
+        [new OpenApiSecuritySchemeReference("Bearer", document)] = []
+    });
 });
 
 // ============================================================
@@ -179,18 +212,70 @@ builder.Services.AddSwaggerGen(options =>
 // CORS
 // ============================================================
 
+var configuredOrigins =
+    Environment.GetEnvironmentVariable("MERKATO_ALLOWED_ORIGINS")
+    ?? builder.Configuration["MERKATO_ALLOWED_ORIGINS"];
+
+if (builder.Environment.IsProduction() && string.IsNullOrWhiteSpace(configuredOrigins))
+{
+    throw new InvalidOperationException("MERKATO_ALLOWED_ORIGINS must be configured in production.");
+}
+
+var allowedOrigins = (configuredOrigins ??
+    "http://localhost:4200")
+    .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+if (allowedOrigins.Any(origin => !Uri.TryCreate(origin, UriKind.Absolute, out var parsed) ||
+    (parsed.Scheme != Uri.UriSchemeHttps && !builder.Environment.IsDevelopment())))
+{
+    throw new InvalidOperationException("Production CORS origins must be valid HTTPS origins.");
+}
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(
         "MerkatoFrontend",
-        policy =>
-        {
-            policy
-                .AllowAnyOrigin()
-                .AllowAnyHeader()
-                .AllowAnyMethod();
-        }
+        policy => policy
+            .WithOrigins(allowedOrigins)
+            .AllowAnyHeader()
+            .AllowAnyMethod()
     );
+});
+
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders =
+        ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.ForwardLimit = 2;
+    // The API is private to the Docker network; only the reverse proxy can reach it.
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("auth", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 6,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            }));
+
+    options.AddPolicy("assistant", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            }));
 });
 
 // ============================================================
@@ -207,41 +292,22 @@ app.UseExceptionHandler(errorApp =>
 {
     errorApp.Run(async context =>
     {
-        var exceptionHandler =
-            context.Features.Get<
-                Microsoft.AspNetCore.Diagnostics
-                    .IExceptionHandlerFeature
-            >();
+        var exception = context.Features
+            .Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>()?.Error;
 
-        var exception = exceptionHandler?.Error;
+        app.Logger.LogError(exception, "Unhandled request failure. TraceId: {TraceId}",
+            context.TraceIdentifier);
 
-        context.Response.ContentType =
-            "application/json";
+        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        context.Response.ContentType = "application/problem+json";
 
-        var statusCode = exception switch
+        await context.Response.WriteAsJsonAsync(new
         {
-            KeyNotFoundException => 404,
-            UnauthorizedAccessException => 403,
-            InvalidOperationException => 409,
-            ArgumentException => 400,
-            _ => 500
-        };
-
-        context.Response.StatusCode = statusCode;
-
-        await context.Response.WriteAsJsonAsync(
-            new
-            {
-                status = statusCode,
-
-                message =
-                    exception?.Message
-                    ?? "An unexpected error occurred.",
-
-                traceId =
-                    context.TraceIdentifier
-            }
-        );
+            type = "https://httpstatuses.com/500",
+            title = "An unexpected error occurred.",
+            status = StatusCodes.Status500InternalServerError,
+            traceId = context.TraceIdentifier
+        });
     });
 });
 
@@ -265,7 +331,13 @@ if (app.Environment.IsDevelopment())
 // CORS
 // ============================================================
 
+app.UseForwardedHeaders();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHsts();
+}
 app.UseCors("MerkatoFrontend");
+app.UseRateLimiter();
 
 // ============================================================
 // AUTHENTICATION
@@ -279,7 +351,7 @@ app.UseAuthentication();
 
 app.UseStaticFiles();
 
-app.UseAuthorization();;
+app.UseAuthorization();
 
 // ============================================================
 // CONTROLLERS
@@ -308,70 +380,81 @@ app.MapGet(
 // DATABASE HEALTH CHECK
 // ============================================================
 
-app.MapGet(
-    "/health/db",
-    async (MerkatoDbContext db) =>
+app.MapGet("/health/ready", async (MerkatoDbContext db, CancellationToken ct) =>
+{
+    try
     {
-        try
-        {
-            var connected =
-                await db.Database.CanConnectAsync();
-
-            return Results.Ok(
-                new
-                {
-                    status =
-                        connected
-                            ? "healthy"
-                            : "unhealthy",
-
-                    database =
-                        connected
-                            ? "PostgreSQL connected"
-                            : "PostgreSQL not connected",
-
-                    timestamp = DateTime.UtcNow
-                }
-            );
-        }
-        catch (Exception ex)
-        {
-            return Results.Problem(
-                detail: ex.Message,
-                statusCode: 500,
-                title: "Database connection failed"
-            );
-        }
+        return await db.Database.CanConnectAsync(ct)
+            ? Results.Ok(new { status = "ready" })
+            : Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
     }
-);
+    catch (Exception ex)
+    {
+        app.Logger.LogError(ex, "Readiness check failed.");
+        return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+    }
+}).AllowAnonymous();
+
+// Serve Angular client-side routes from the same origin as the API.
+app.MapFallbackToFile("index.html");
 
 // ============================================================
 // RUN
 // ============================================================
 
+// Apply EF Core migrations only when explicitly enabled by the deployment environment.
+// Disable MERKATO_APPLY_MIGRATIONS after the first successful schema deployment.
+if (string.Equals(
+    Environment.GetEnvironmentVariable("MERKATO_APPLY_MIGRATIONS"),
+    "true",
+    StringComparison.OrdinalIgnoreCase))
+{
+    app.Logger.LogInformation("Applying pending MERKATO database migrations.");
+    using var migrationScope = app.Services.CreateScope();
+    var migrationDb = migrationScope.ServiceProvider.GetRequiredService<MerkatoDbContext>();
+    await migrationDb.Database.MigrateAsync();
+    app.Logger.LogInformation("MERKATO database migrations completed.");
+}
 
 // ============================================================
 // ADMIN SEED
 // ============================================================
 
-using (var scope = app.Services.CreateScope())
+var adminPhone = Environment.GetEnvironmentVariable("MERKATO_ADMIN_PHONE");
+var adminPin = Environment.GetEnvironmentVariable("MERKATO_ADMIN_PIN");
+var adminName = Environment.GetEnvironmentVariable("MERKATO_ADMIN_NAME");
+
+var adminBootstrapRequested = new[] { adminPhone, adminPin, adminName }
+    .Any(value => !string.IsNullOrWhiteSpace(value));
+
+if (adminBootstrapRequested)
 {
-    var db = scope.ServiceProvider
-        .GetRequiredService<Merkato.Infrastructure.Persistence.MerkatoDbContext>();
+    if (string.IsNullOrWhiteSpace(adminPhone) ||
+        string.IsNullOrWhiteSpace(adminPin) ||
+        string.IsNullOrWhiteSpace(adminName))
+    {
+        throw new InvalidOperationException(
+            "Set MERKATO_ADMIN_PHONE, MERKATO_ADMIN_PIN and MERKATO_ADMIN_NAME together.");
+    }
 
-    var adminPhone = Environment.GetEnvironmentVariable("MERKATO_ADMIN_PHONE") ?? "0922481727";
-    var adminPin = Environment.GetEnvironmentVariable("MERKATO_ADMIN_PIN") ?? "1234";
-    var adminName = Environment.GetEnvironmentVariable("MERKATO_ADMIN_NAME") ?? "admin";
+    if (adminPin.Length < 6 || adminPin.Length > 8 ||
+        adminPin.Any(character => !char.IsDigit(character)))
+    {
+        throw new InvalidOperationException(
+            "MERKATO_ADMIN_PIN must contain 6 to 8 digits.");
+    }
 
-    var admin = await db.Users
-        .FirstOrDefaultAsync(x => x.PhoneNumber == adminPhone);
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<MerkatoDbContext>();
+    var normalizedAdminPhone = adminPhone.Trim();
+    var admin = await db.Users.FirstOrDefaultAsync(x => x.PhoneNumber == normalizedAdminPhone);
 
     if (admin == null)
     {
         admin = new Merkato.Domain.Entities.User
         {
-            PhoneNumber = adminPhone,
-            FullName = adminName,
+            PhoneNumber = normalizedAdminPhone,
+            FullName = adminName.Trim(),
             PinHash = Merkato.Api.Services.PinHasher.Hash(adminPin),
             Role = Merkato.Domain.Enums.UserRole.ADMIN,
             TrustScore = 100,
@@ -379,20 +462,93 @@ using (var scope = app.Services.CreateScope())
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
-
         db.Users.Add(admin);
+        await db.SaveChangesAsync();
     }
-    else
+    else if (admin.Role != Merkato.Domain.Enums.UserRole.ADMIN)
     {
-        admin.FullName = adminName;
-        admin.PinHash = Merkato.Api.Services.PinHasher.Hash(adminPin);
-        admin.Role = Merkato.Domain.Enums.UserRole.ADMIN;
-        admin.TrustScore = 100;
-        admin.UpdatedAt = DateTime.UtcNow;
+        throw new InvalidOperationException(
+            "Configured MERKATO_ADMIN_PHONE belongs to a non-admin account. Resolve this manually.");
+    }
+}
+// ============================================================
+// PRODUCT DISCOVERY
+// ============================================================
+// A bounded, database-backed discovery endpoint for storefront search.
+// It deliberately returns public catalogue fields only.
+app.MapGet("/api/v1/discovery/products", async Task<IResult> (
+    MerkatoDbContext db,
+    string? q,
+    string? category,
+    string? location,
+    decimal? maxPriceEtb,
+    int? limit,
+    CancellationToken ct) =>
+{
+    if (maxPriceEtb is < 0)
+    {
+        return Results.BadRequest(new { message = "maxPriceEtb must be zero or greater." });
     }
 
-    await db.SaveChangesAsync();
-}
+    var take = Math.Clamp(limit ?? 12, 1, 24);
+    var products = db.Products
+        .AsNoTracking()
+        .Where(product => product.IsActive);
+
+    if (!string.IsNullOrWhiteSpace(q))
+    {
+        var term = q.Trim().ToLowerInvariant();
+        products = products.Where(product =>
+            product.Name.ToLower().Contains(term) ||
+            product.Category.ToLower().Contains(term) ||
+            product.Location.ToLower().Contains(term));
+    }
+
+    if (!string.IsNullOrWhiteSpace(location))
+    {
+        var selectedLocation = location.Trim().ToLowerInvariant();
+        products = products.Where(product => product.Location.ToLower().Contains(selectedLocation));
+    }
+
+    if (!string.IsNullOrWhiteSpace(category))
+    {
+        var selectedCategory = category.Trim().ToLowerInvariant();
+        products = products.Where(product =>
+            product.Category.ToLower() == selectedCategory);
+    }
+
+    if (maxPriceEtb.HasValue)
+    {
+        products = products.Where(product => product.PriceEtb <= maxPriceEtb.Value);
+    }
+
+    var results = await products
+        .OrderByDescending(product => product.CreatedAt)
+        .ThenBy(product => product.Id)
+        .Take(take)
+        .Select(product => new
+        {
+            product.Id,
+            product.Name,
+            product.PriceEtb,
+            product.Location,
+            product.Category,
+            product.Emoji,
+            product.ImageUrl,
+            product.SellerId,
+            sellerVerified = db.Users.Where(user => user.Id == product.SellerId && user.Role == Merkato.Domain.Enums.UserRole.MERCHANT)
+                .Select(user => user.IsSellerVerified).FirstOrDefault()
+        })
+        .ToListAsync(ct);
+
+    return Results.Ok(new
+    {
+        items = results,
+        count = results.Count,
+        limit = take
+    });
+}).AllowAnonymous();
+
 app.Run();
 
 

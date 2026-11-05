@@ -1,0 +1,103 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in .env}
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - merkato-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - merkato-internal
+
+  migrate:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      target: build
+    profiles: ["migration"]
+    working_dir: /src/backend/Merkato.Api
+    entrypoint: ["dotnet", "ef", "database", "update", "--project", "../Merkato.Infrastructure", "--startup-project", "."]
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__PostgreSql: Host=db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      Jwt__Key: ${JWT_KEY:?Set a unique JWT_KEY of at least 32 characters}
+      Jwt__Issuer: ${JWT_ISSUER:?Set JWT_ISSUER}
+      Jwt__Audience: ${JWT_AUDIENCE:?Set JWT_AUDIENCE}
+      MERKATO_ALLOWED_ORIGINS: ${MERKATO_ALLOWED_ORIGINS:?Set your HTTPS site origin}
+      MERKATO_ADMIN_PHONE: ${MERKATO_ADMIN_PHONE:-}
+      MERKATO_ADMIN_PIN: ${MERKATO_ADMIN_PIN:-}
+      MERKATO_ADMIN_NAME: ${MERKATO_ADMIN_NAME:-Marketplace Administrator}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - merkato-internal
+
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__PostgreSql: Host=db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      Jwt__Key: ${JWT_KEY:?Set a unique JWT_KEY of at least 32 characters}
+      Jwt__Issuer: ${JWT_ISSUER:?Set JWT_ISSUER}
+      Jwt__Audience: ${JWT_AUDIENCE:?Set JWT_AUDIENCE}
+      Jwt__ExpiryMinutes: ${JWT_EXPIRY_MINUTES:-30}
+      MERKATO_ALLOWED_ORIGINS: ${MERKATO_ALLOWED_ORIGINS:?Set your HTTPS site origin}
+      MERKATO_ADMIN_PHONE: ${MERKATO_ADMIN_PHONE:-}
+      MERKATO_ADMIN_PIN: ${MERKATO_ADMIN_PIN:-}
+      MERKATO_ADMIN_NAME: ${MERKATO_ADMIN_NAME:-Marketplace Administrator}
+      TELEBIRR_WEBHOOK_SECRET: ${TELEBIRR_WEBHOOK_SECRET:-}
+      CBEBIRR_WEBHOOK_SECRET: ${CBEBIRR_WEBHOOK_SECRET:-}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - merkato-internal
+
+  web:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - api
+    networks:
+      - merkato-internal
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      MERKATO_DOMAIN: ${MERKATO_DOMAIN:?Set MERKATO_DOMAIN and point its DNS to this server}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - web
+    networks:
+      - merkato-internal
+
+volumes:
+  merkato-postgres:
+  caddy-data:
+  caddy-config:
+
+networks:
+  merkato-internal:
+    driver: bridge

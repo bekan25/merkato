@@ -21,7 +21,8 @@ public record ProductResponse(
     string Emoji,
     string? ImageUrl,
     bool IsActive,
-    DateTime CreatedAt
+    DateTime CreatedAt,
+    bool SellerVerified = false
 );
 
 

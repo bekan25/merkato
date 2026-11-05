@@ -6,7 +6,8 @@ public record RegisterUserDto(
     string PhoneNumber,
     string FullName,
     string? FaydaIdNumber,
-    UserRole Role
+    UserRole Role,
+    string Pin
 );
 
 public record LoginDto(
@@ -32,7 +33,9 @@ public record CreateOrderDto(
     PaymentRail PaymentRail,
     string DeliveryCourier,
     string DeliveryAddress,
-    string CityArea
+    string CityArea,
+    string? CouponCode = null,
+    long? ProductId = null
 );
 
 public record OrderResponseDto(

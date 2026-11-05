@@ -11,8 +11,13 @@ public class User
     public string PhoneNumber { get; set; } = string.Empty;
     public string FullName { get; set; } = string.Empty;
     public string PinHash { get; set; } = string.Empty;
+    public int FailedLoginAttempts { get; set; } = 0;
+    public DateTime? LoginLockedUntil { get; set; }
+    public bool IsSuspended { get; set; } = false;
+    public int TokenVersion { get; set; } = 0;
     public UserRole Role { get; set; } = UserRole.BUYER;
     public bool IsFaydaVerified { get; set; } = false;
+    public bool IsSellerVerified { get; set; } = false;
     public int TrustScore { get; set; } = 50;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
@@ -24,6 +29,10 @@ public class Order
     public string OrderNumber { get; set; } = string.Empty;
     public long BuyerId { get; set; }
     public long SellerId { get; set; }
+    // Nullable for historical orders created before product references were persisted.
+    public long? ProductId { get; set; }
+    public InventoryReservationState InventoryReservationState { get; set; } = Merkato.Domain.Enums.InventoryReservationState.NONE;
+    public DateTime? InventoryReservationExpiresAt { get; set; }
     
     [Column(TypeName = "numeric(18,4)")]
     public decimal TotalAmountEtb { get; set; }
@@ -223,3 +232,73 @@ public class Product
 
 
 
+
+
+// Wholesale requests are quotes, not paid orders. Payment uses verified checkout separately.
+public class WholesalePriceTier
+{
+    public long Id { get; set; }
+    public long ProductId { get; set; }
+    public long SellerId { get; set; }
+    public int MinimumQuantity { get; set; }
+    [Column(TypeName = "numeric(18,4)")]
+    public decimal UnitPriceEtb { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+}
+
+public class WholesaleRequest
+{
+    public long Id { get; set; }
+    public string RequestNumber { get; set; } = string.Empty;
+    public long ProductId { get; set; }
+    public long BuyerId { get; set; }
+    public long SellerId { get; set; }
+    public int Quantity { get; set; }
+    [Column(TypeName = "numeric(18,4)")]
+    public decimal RequestedUnitPriceEtb { get; set; }
+    [Column(TypeName = "numeric(18,4)")]
+    public decimal? QuotedUnitPriceEtb { get; set; }
+    public string Status { get; set; } = "REQUESTED";
+    public string? BuyerNote { get; set; }
+    public string? SellerNote { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+}
+
+public class AffiliateProfile
+{
+    public long Id { get; set; }
+    public long UserId { get; set; }
+    public string ReferralCode { get; set; } = string.Empty;
+    public bool IsActive { get; set; } = true;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
+public class AffiliateReferral
+{
+    public long Id { get; set; }
+    public long AffiliateUserId { get; set; }
+    public string ReferralCode { get; set; } = string.Empty;
+    public string VisitorKeyHash { get; set; } = string.Empty;
+    public long? ReferredUserId { get; set; }
+    public DateTime ClickedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? RegisteredAt { get; set; }
+}
+
+public class AffiliateCommission
+{
+    public long Id { get; set; }
+    public long AffiliateUserId { get; set; }
+    public long OrderId { get; set; }
+    [Column(TypeName = "numeric(18,4)")]
+    public decimal EligibleAmountEtb { get; set; }
+    [Column(TypeName = "numeric(7,4)")]
+    public decimal RatePercent { get; set; }
+    [Column(TypeName = "numeric(18,4)")]
+    public decimal CommissionEtb { get; set; }
+    public string Status { get; set; } = "AVAILABLE";
+    public string? PayoutReference { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? PaidAt { get; set; }
+}

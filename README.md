@@ -1,6 +1,10 @@
 # MERKATO — Ethiopian Digital Marketplace
 
-MERKATO is a full-stack marketplace that connects Ethiopian buyers and merchants. The repository uses Angular 18 for the web client and ASP.NET Core 8, Entity Framework Core and PostgreSQL for the API and persistence layer.
+MERKATO is a full-stack marketplace that connects Ethiopian buyers and merchants. The repository uses Angular 18 for the web client and ASP.NET Core 10 LTS, Entity Framework Core 10 and PostgreSQL for the API and persistence layer.
+
+## Product strategy
+
+The approved direction is an all-in-one, trust-first Ethiopian commerce ecosystem for buyers and merchants, starting with a controlled Addis Ababa pilot. See [MERKATO Strategy, Product Requirements and Execution Plan](docs/MERKATO_STRATEGY_AND_PRODUCT_REQUIREMENTS.md) for the product vision, acceptance criteria, phased implementation roadmap, pilot KPIs, risk controls, and production release gates.
 
 ## Current workspace
 
@@ -16,7 +20,7 @@ The professional marketplace work is being developed on the `feature/merkato-pro
 - Typed API client and bearer-token HTTP interceptor
 
 ### API
-- ASP.NET Core 8 Web API with JWT bearer authentication
+- ASP.NET Core 10 Web API with JWT bearer authentication
 - PostgreSQL persistence through EF Core
 - Public registration limited to BUYER and MERCHANT roles
 - PINs hashed with PBKDF2; public registration cannot create privileged roles
@@ -29,7 +33,7 @@ The professional marketplace work is being developed on the `feature/merkato-pro
 ## Requirements
 
 - Node.js 20 or newer and npm
-- .NET SDK 8
+- .NET SDK 10
 - PostgreSQL 14 or newer
 
 ## Configure the backend
@@ -41,6 +45,7 @@ The professional marketplace work is being developed on the `feature/merkato-pro
    - `Jwt__Key` (use a unique random secret of at least 32 UTF-8 bytes)
    - `Jwt__Issuer` and `Jwt__Audience`
    - `MERKATO_ALLOWED_ORIGINS`
+   - `Cloudinary__CloudName`, `Cloudinary__ApiKey` and `Cloudinary__ApiSecret` for durable product-image storage (required for production uploads; keep the API secret only in the host's secret/environment settings).
 4. To provision the first administrator, set `MERKATO_ADMIN_PHONE`, `MERKATO_ADMIN_PIN` and `MERKATO_ADMIN_NAME`. No default administrator PIN is created by the application.
 5. Open a terminal in `backend/Merkato.Api`, apply the EF Core migrations using your installed EF tool, then run the API:
 
@@ -56,68 +61,56 @@ The local web client expects the API at `http://localhost:5000`. If your API lis
 ```powershell
 cd frontend
 npm ci
+npm test
 npm start
 ```
 
 Open `http://localhost:4200`.
 
+## AI shopping assistant
+
+The storefront includes a multilingual shopping assistant backed by the public product catalogue. Configure an OpenAI-compatible chat-completions provider in the backend environment:
+
+- `MERKATO_AI_API_KEY` — provider secret (keep it out of source control).
+- `MERKATO_AI_ENDPOINT` — defaults to `https://api.openai.com/v1/chat/completions`.
+- `MERKATO_AI_MODEL` — defaults to `gpt-4o-mini`.
+
+The assistant sends the customer's question and a small set of active public catalogue listings to the configured provider. Requests are length-limited and rate-limited. Without a provider key the API returns HTTP 503 and the storefront displays an unavailable message; it does not fabricate an AI response.
+
 ## Payments and production readiness
 
-The current checkout flow creates orders and records payment-initiation requests as pending. It does **not** yet redirect customers to Telebirr, CBE Birr or another live payment checkout. Live payment collection requires the relevant merchant credentials, provider-specific initiation adapters, webhook signature configuration and end-to-end verification. Do not describe pending transactions as paid.
+The current checkout flow creates orders and records payment-initiation requests as pending. It does **not** yet redirect customers to Telebirr, CBE Birr or another live payment checkout. No provider-specific live payment initiation adapter is configured. Live collection requires official merchant credentials, the provider's current integration specification and sandbox, signed webhook verification, reconciliation and end-to-end tests. Do not collect real customer money.
 
 The existing Fayda-related service also needs a real, authenticated provider integration and verification callback before it can be treated as production identity verification. Run security review, database migration checks, API tests and a real provider sandbox test before production deployment.
 
 ## CI
 
-GitHub Actions builds the Angular application and restores, builds and tests the .NET solution on pushes to the feature branch and pull requests targeting `main`.
+GitHub Actions runs frontend buyer/merchant/admin route and API contract tests, builds Angular, restores/builds/tests the .NET 10 solution, and builds the combined Docker image.
 
-## Production deployment (Docker)
+## Free preview deployment (GitHub + Render + Neon)
 
-The repository includes a Docker Compose deployment with PostgreSQL on a private network, the ASP.NET Core API, the Angular/Nginx web client, and Caddy for automatic HTTPS certificates.
+This option provides a public preview URL without buying a domain. It serves the Angular app and ASP.NET Core API from one Render web service, so browser requests stay same-origin. Neon supplies the PostgreSQL database; do not use Render's Free Postgres for long-lived data because its free database expires after 30 days.
 
-### Host prerequisites
+### Services
 
-- A Linux server with Docker Engine and the Docker Compose plugin.
-- A public DNS A/AAAA record for your domain pointing to the server.
-- Inbound TCP ports 80 and 443 available for ACME certificate issuance and HTTPS traffic.
-- A current backup plan for the PostgreSQL volume.
+- **Render Free Web Service:** builds `backend/Dockerfile`, which compiles the Angular app and publishes it into ASP.NET Core `wwwroot`. The API also serves Angular client-side routes.
+- **Neon Free PostgreSQL:** use the pooled endpoint where available. Check the provider dashboard for current plan limits.
+- **GitHub:** source of truth. Render deploys the `feature/merkato-professional-marketplace` branch from the included `render.yaml`.
 
-### First deployment
+### Deploy steps
 
-1. Copy `.env.production.example` to `.env` on the server. Replace every `REPLACE_*` value with unique secrets. Use a password-safe alphanumeric PostgreSQL password to avoid connection-string escaping issues.
-2. Set `MERKATO_DOMAIN` to the public domain and set `MERKATO_ALLOWED_ORIGINS` to the exact origin, for example `https://shop.example.com`. Set `JWT_ISSUER` and `JWT_AUDIENCE` consistently with your deployment.
-3. Generate a unique JWT signing key with at least 32 random bytes. Never reuse a development key or commit the production `.env`.
-4. Provision the first administrator using a unique 6–8 digit `MERKATO_ADMIN_PIN` and the intended phone number. Remove the admin seed variables from the server environment after the first successful provisioning.
-5. Apply database migrations explicitly:
-   ```sh
-   docker compose --profile migration run --rm migrate
-   ```
-6. Build and start the application:
-   ```sh
-   docker compose up -d --build
-   ```
-7. Verify `https://YOUR_DOMAIN/health` and `https://YOUR_DOMAIN/health/ready`. Configure off-host, encrypted PostgreSQL backups and test a restore before accepting customer orders.
+1. Create a Neon account at https://neon.com/ and create a PostgreSQL project. Choose a nearby region.
+2. In Neon, open **Connect** and copy the pooled endpoint connection details. Configure the value as an Npgsql key/value connection string, not a raw URL. Never commit this connection string.
+3. Open https://dashboard.render.com/ and sign in with GitHub. Authorize access to `bekan25/merkato`.
+4. In Render choose **New → Blueprint**, select the repository and the `feature/merkato-professional-marketplace` branch. Render reads `render.yaml`.
+5. Configure `ConnectionStrings__PostgreSql` using the Neon connection string. Keep all credentials in Render environment settings.
+6. Configure Cloudinary environment values for durable product-image storage; never paste API secrets into GitHub or chat.
+7. Wait for deployment health and verify `/health/ready`.
+8. Keep automatic migrations disabled during normal operation; apply only reviewed migrations deliberately.
+9. Test registration, sign-in, buyer and merchant flows, product creation, and order creation.
 
-Caddy terminates TLS and stores certificates in persistent Docker volumes. The API and database are not published directly to the host. Keep the API on the private Compose network; its forwarded-header configuration assumes only the private reverse proxy can reach it.
+### Preview limitations
 
-### Production controls included
-
-- Startup works with injected environment variables; a local `.env` file is optional.
-- Production CORS requires an explicit HTTPS origin allow-list.
-- HSTS, reverse-proxy header handling, generic error responses and server-side error logging.
-- IP-based rate limiting on registration and login.
-- Versioned PBKDF2 PIN hashes (600,000 iterations) with backward-compatible verification for existing 100,000-iteration hashes.
-- Payment idempotency-key payload checks, provider/rail matching, exact-body HMAC verification, fixed-time signature comparison, successful-status validation and duplicate provider-reference checks.
-- Containerized frontend/API, private PostgreSQL network, TLS reverse proxy and explicit migration command.
-
-## Release blockers — do not accept real payments yet
-
-This deployment scaffold is not proof of a fully production-ready marketplace. The following require real provider access, operational decisions and end-to-end testing:
-
-- **Payments:** payment initiation still creates a pending transaction; it does not create a Telebirr or CBE Birr checkout session or collect money. Provider-specific API adapters, official sandbox credentials, callback specifications, reconciliation and signed webhook tests must be completed before enabling live checkout.
-- **Fayda:** the current KYC service performs format checks, not an authenticated Fayda identity verification. Do not display users as verified until the official provider integration and consent flow are implemented.
-- **Dependency audit:** review and remediate all existing npm and NuGet advisories. Angular 18 and the current dependency lockfile must be checked against supported releases before public launch.
-- **Marketplace operations:** complete end-to-end tests for stock reservation, concurrent orders, refunds, dispute adjudication, delivery handover and payment reconciliation. Current order records are not a substitute for inventory reservation.
-- **Operations:** configure domain/DNS, TLS, secret rotation, alerting, log retention, privacy/terms, incident response and tested backups for the actual hosting provider.
-
-The CI pipeline validates builds and automated tests; it does not certify payment-provider readiness, security compliance, infrastructure availability or legal compliance. Keep the payment and KYC flows in non-production mode until their provider integrations are verified.
+- Render Free services can sleep and restart and are not suitable for commercial production workloads.
+- Do not use the preview to collect real customer payments until a live provider integration, reconciliation, security review, backup/restore, and production operations are verified.
+- Fayda and external courier integrations must not be presented as live until authenticated providers and successful tests are connected.

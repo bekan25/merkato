@@ -1,6 +1,7 @@
 using Merkato.Application.DTOs;
 using Merkato.Application.Interfaces;
 using Merkato.Domain.Enums;
+using Merkato.Domain.Entities;
 using Merkato.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -36,7 +37,7 @@ public class PaymentsController : ControllerBase
         [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
         CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(idempotencyKey))
+        if (string.IsNullOrWhiteSpace(idempotencyKey) || idempotencyKey.Length > 128)
         {
             return BadRequest(new
             {
@@ -80,7 +81,15 @@ public class PaymentsController : ControllerBase
             });
         }
 
+        if (order.InventoryReservationState is InventoryReservationState.RELEASED or InventoryReservationState.EXPIRED ||
+            (order.InventoryReservationState == InventoryReservationState.RESERVED &&
+             order.InventoryReservationExpiresAt <= DateTime.UtcNow))
+            return Conflict(new { error = "The inventory reservation has expired. Create a new order before paying." });
+
         var expectedAmount = order.TotalAmountEtb;
+
+        if (!Enum.IsDefined(request.PaymentRail))
+            return BadRequest(new { error = "Unsupported payment rail." });
 
         if (request.AmountEtb != expectedAmount)
         {
@@ -92,13 +101,20 @@ public class PaymentsController : ControllerBase
             });
         }
 
-        var transaction =
-            await _paymentService.InitiatePaymentAsync(
-                order.Id,
-                idempotencyKey,
-                expectedAmount,
-                request.PaymentRail,
-                ct);
+        PaymentTransaction transaction;
+        try
+        {
+            transaction = await _paymentService.InitiatePaymentAsync(
+                order.Id, idempotencyKey, expectedAmount, request.PaymentRail, ct);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { error = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
 
         return Ok(new
         {
@@ -119,9 +135,10 @@ public class PaymentsController : ControllerBase
 
     [HttpPost("webhooks/{provider}")]
     [AllowAnonymous]
+    [RequestSizeLimit(64 * 1024)]
     public async Task<IActionResult> ProcessWebhook(
         string provider,
-        [FromBody] PaymentWebhookDto dto,
+        [FromBody] JsonElement payload,
         [FromHeader(Name = "X-Signature-SHA256")] string? signature,
         CancellationToken ct)
     {
@@ -133,18 +150,22 @@ public class PaymentsController : ControllerBase
             });
         }
 
-        var rawPayload =
-    JsonSerializer.Serialize(dto, new JsonSerializerOptions
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-    });
+        // Signature verification must use the exact JSON bytes received from the provider.
+        var rawPayload = payload.GetRawText();
+        PaymentWebhookDto? dto;
+        try
+        {
+            dto = JsonSerializer.Deserialize<PaymentWebhookDto>(
+                rawPayload,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        }
+        catch (JsonException)
+        {
+            return BadRequest(new { error = "Invalid webhook payload." });
+        }
 
-        Console.WriteLine("======================================");
-        Console.WriteLine("WEBHOOK DEBUG");
-        Console.WriteLine($"Provider: {provider}");
-        Console.WriteLine($"Raw Payload: {rawPayload}");
-        Console.WriteLine($"Received Signature: {signature}");
-        Console.WriteLine("======================================");
+        if (dto is null)
+            return BadRequest(new { error = "Webhook payload is required." });
 
         try
         {
@@ -155,6 +176,36 @@ public class PaymentsController : ControllerBase
                     rawPayload,
                     signature,
                     ct);
+
+            // Referral reward is earned only after a provider-verified payment, never on a click or signup alone.
+            if (transaction.Status == PaymentStatus.VERIFIED)
+            {
+                var paidOrder = await _db.Orders.AsNoTracking().FirstOrDefaultAsync(x => x.Id == transaction.OrderId, ct);
+                if (paidOrder is not null)
+                {
+                    var referral = await _db.AffiliateReferrals.FirstOrDefaultAsync(x => x.ReferredUserId == paidOrder.BuyerId, ct);
+                    if (referral is not null && !await _db.PromotionCoupons.AnyAsync(x => x.SourceReferralId == referral.Id, ct))
+                    {
+                        var reward = new PromotionCoupon {
+                            Code = "REFER" + Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(4)),
+                            Title = "MERKATO referral thank-you reward",
+                            DiscountType = "FIXED",
+                            DiscountValue = 50m,
+                            MinimumOrderEtb = 200m,
+                            UsageLimit = 1,
+                            PerUserLimit = 1,
+                            AssignedUserId = referral.AffiliateUserId,
+                            SourceReferralId = referral.Id,
+                            StartsAt = DateTime.UtcNow,
+                            ExpiresAt = DateTime.UtcNow.AddDays(30),
+                            CreatedBy = referral.AffiliateUserId
+                        };
+                        _db.PromotionCoupons.Add(reward);
+                        try { await _db.SaveChangesAsync(ct); }
+                        catch (DbUpdateException) { _db.Entry(reward).State = EntityState.Detached; }
+                    }
+                }
+            }
 
             return Ok(new
             {
