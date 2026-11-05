@@ -195,6 +195,36 @@ export class ApiService {
   releaseDispute(id: number, notes: string): Observable<unknown> {
     return this.http.post(`${this.baseUrl}/disputes/${id}/release`, { notes });
   }
+
+  getWishlist(): Observable<Array<{ id: number; productId: number; name: string; priceEtb: number; location: string; category: string; imageUrl?: string | null; createdAt: string }>> {
+    return this.http.get<Array<{ id: number; productId: number; name: string; priceEtb: number; location: string; category: string; imageUrl?: string | null; createdAt: string }>>(`${this.baseUrl}/engagement/wishlist`);
+  }
+
+  saveWishlistProduct(productId: number): Observable<unknown> {
+    return this.http.post(`${this.baseUrl}/engagement/wishlist/${productId}`, {});
+  }
+
+  removeWishlistProduct(productId: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/engagement/wishlist/${productId}`);
+  }
+
+  createPriceAlert(productId: number, targetPriceEtb: number): Observable<unknown> {
+    return this.http.post(`${this.baseUrl}/engagement/price-alerts`, { productId, targetPriceEtb });
+  }
+
+  getNotifications(unreadOnly = false): Observable<{ unreadCount: number; notifications: Array<{ id: number; type: string; title: string; message: string; actionUrl?: string | null; isRead: boolean; createdAt: string }> }> {
+    const params = new HttpParams().set('unreadOnly', String(unreadOnly));
+    return this.http.get<{ unreadCount: number; notifications: Array<{ id: number; type: string; title: string; message: string; actionUrl?: string | null; isRead: boolean; createdAt: string }> }>(`${this.baseUrl}/engagement/notifications`, { params });
+  }
+
+  markNotificationRead(id: number): Observable<unknown> {
+    return this.http.post(`${this.baseUrl}/engagement/notifications/${id}/read`, {});
+  }
+
+  markAllNotificationsRead(): Observable<void> {
+    return this.http.post<void>(`${this.baseUrl}/engagement/notifications/read-all`, {});
+  }
+
 }
 
 export interface MerchantAnalytics {
