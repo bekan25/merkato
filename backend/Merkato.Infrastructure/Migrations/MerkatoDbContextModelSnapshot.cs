@@ -868,7 +868,9 @@ namespace Merkato.Infrastructure.Migrations
                 b.Property<DateTime>("UpdatedAt").HasColumnType("timestamp with time zone");
                 b.HasKey("ProductId");
                 b.HasIndex("StockQuantity");
-                b.ToTable("ProductListingDetails");
+                b.ToTable("ProductListingDetails", t => t.HasCheckConstraint(
+                    "CK_ProductListingDetails_StockNonNegative",
+                    "\"StockQuantity\" >= 0 AND \"ReservedQuantity\" >= 0 AND \"ReservedQuantity\" <= \"StockQuantity\""));
             });
 
             modelBuilder.Entity("Merkato.Domain.Entities.ProductReview", b =>
