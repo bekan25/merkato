@@ -1084,6 +1084,25 @@ b.Property<long>("SellerId")
                 b.ToTable("SocialCommerceClicks");
             });
 
+            modelBuilder.Entity("Merkato.Domain.Entities.CreatorCommission", b =>
+            {
+                b.Property<long>("Id").ValueGeneratedOnAdd().HasColumnType("bigint");
+                NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+                b.Property<long>("CreatorId").HasColumnType("bigint");
+                b.Property<long>("OrderId").HasColumnType("bigint");
+                b.Property<long>("PostId").HasColumnType("bigint");
+                b.Property<decimal>("EligibleAmountEtb").HasColumnType("numeric(18,4)");
+                b.Property<decimal>("RatePercent").HasColumnType("numeric(7,4)");
+                b.Property<decimal>("CommissionEtb").HasColumnType("numeric(18,4)");
+                b.Property<string>("Status").IsRequired().HasMaxLength(32).HasColumnType("character varying(32)");
+                b.Property<DateTime>("CreatedAt").HasColumnType("timestamp with time zone");
+                b.Property<DateTime?>("ReleasedAt").HasColumnType("timestamp with time zone");
+                b.HasKey("Id");
+                b.HasIndex("OrderId").IsUnique();
+                b.HasIndex("CreatorId", "CreatedAt");
+                b.ToTable("CreatorCommissions");
+            });
+
 #pragma warning restore 612, 618
         }
     }
