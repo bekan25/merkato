@@ -41,6 +41,7 @@ The professional marketplace work is being developed on the `feature/merkato-pro
    - `Jwt__Key` (use a unique random secret of at least 32 UTF-8 bytes)
    - `Jwt__Issuer` and `Jwt__Audience`
    - `MERKATO_ALLOWED_ORIGINS`
+   - `Cloudinary__CloudName`, `Cloudinary__ApiKey` and `Cloudinary__ApiSecret` for durable product-image storage (required for production uploads; keep the API secret only in the host's secret/environment settings).
 4. To provision the first administrator, set `MERKATO_ADMIN_PHONE`, `MERKATO_ADMIN_PIN` and `MERKATO_ADMIN_NAME`. No default administrator PIN is created by the application.
 5. Open a terminal in `backend/Merkato.Api`, apply the EF Core migrations using your installed EF tool, then run the API:
 
@@ -103,9 +104,10 @@ This option provides a public preview URL without buying a domain. It serves the
 3. Open https://dashboard.render.com/ and sign in with GitHub. Authorize access to `bekan25/merkato`.
 4. In Render choose **New → Blueprint**, select the repository and the `feature/merkato-professional-marketplace` branch. Render reads `render.yaml`; confirm the service is named `merkato-bekan25` and the plan is **Free**.
 5. When Render asks for `ConnectionStrings__PostgreSql`, paste the Npgsql connection string from step 2. The blueprint generates a unique JWT signing key automatically.
-6. Create the service and watch its first deployment logs. The blueprint enables `MERKATO_APPLY_MIGRATIONS=true` for the initial database setup. Wait until the deployment is healthy and `/health/ready` returns `{"status":"ready"}`.
-7. After the first successful deployment, open the Render service's **Environment** settings and change `MERKATO_APPLY_MIGRATIONS` to `false`, then save/redeploy. Keep the setting false during normal operation; turn it on deliberately only when you intend to apply a reviewed EF migration.
-8. Open the generated Render URL, normally `https://merkato-bekan25.onrender.com`. Test registration, sign-in, buyer and merchant flows, product creation, and order creation. The API health endpoint is `/health`.
+6. In Render **Environment** settings, add `Cloudinary__CloudName`, `Cloudinary__ApiKey` and `Cloudinary__ApiSecret` from your Cloudinary console. These are required for persistent merchant product photos; do not paste the API secret into GitHub or chat.
+7. Create the service and watch its first deployment logs. The blueprint enables `MERKATO_APPLY_MIGRATIONS=true` for the initial database setup. Wait until the deployment is healthy and `/health/ready` returns `{"status":"ready"}`.
+8. After the first successful deployment, open the Render service's **Environment** settings and change `MERKATO_APPLY_MIGRATIONS` to `false`, then save/redeploy. Keep the setting false during normal operation; turn it on deliberately only when you intend to apply a reviewed EF migration.
+9. Open the generated Render URL, normally `https://merkato-bekan25.onrender.com`. Test registration, sign-in, buyer and merchant flows, product creation, and order creation. The API health endpoint is `/health`.
 
 ### Optional first administrator
 
@@ -113,7 +115,7 @@ Public registration can create only buyer and merchant accounts. To seed the fir
 
 ### Free-tier limitations and safety
 
-- Render Free web services sleep after 15 minutes without inbound traffic; the first request after sleeping may wait about one minute. Free services can restart and have no persistent local filesystem. Keep uploads in durable object storage, not the app container.
+- Render Free web services sleep after 15 minutes without inbound traffic; the first request after sleeping may wait about one minute. Free services can restart and have no persistent local filesystem. Product photos are sent to Cloudinary when its three environment variables are configured; production uploads return HTTP 503 rather than silently writing to ephemeral local disk when storage is not configured.
 - Neon Free currently includes 1 GB storage and 100 compute-hours per project per month. Monitor usage and keep independent backups before storing important customer/order data.
 - This setup is for a **preview / learning / early testing environment**, not a commercial production launch. Render explicitly says its free instances are not for production applications.
 - Payment initiation currently records a pending transaction; no live Telebirr or CBE Birr checkout is implemented. Do not collect real customer money.
