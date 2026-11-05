@@ -10,6 +10,7 @@ import { AuthService } from '../core/auth.service';
  <main class="page">
   <a href="/commerce">← Commerce Hub</a><header><span>MERKATO ONE REQUEST</span><h1>Find it from many merchants</h1><p>Post what you need once. Merchants across MERKATO can submit offers. Compare price, quantity and delivery lead time before selecting one.</p></header>
   <p class="notice" *ngIf="message">{{message}}</p><p class="error" *ngIf="error">{{error}}</p>
+  <section class="panel success-panel" *ngIf="checkoutResult"><h2>Order created successfully</h2><p><b>{{checkoutResult.orderNumber}}</b> · {{checkoutResult.totalAmountEtb | number:'1.2-2'}} ETB</p><p>Payment status: <b>NOT PAID</b>. Complete payment only through the verified payment flow. Your stock reservation expires {{checkoutResult.inventoryReservationExpiresAt | date:'medium'}}.</p><button type="button" (click)="checkoutResult=null">Close</button></section>
   <section class="panel" *ngIf="auth.hasRole(['BUYER'])"><h2>Create a sourcing request</h2>
    <form (ngSubmit)="create()"><label>What product do you need?<input name="title" [(ngModel)]="draft.title" maxlength="160" required placeholder="e.g. 20 office laptops"></label>
    <label>Details / specifications<textarea name="description" [(ngModel)]="draft.description" maxlength="2000" required placeholder="Brand, model, quality, required features..."></textarea></label>
