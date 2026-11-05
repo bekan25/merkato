@@ -158,37 +158,13 @@ public class PaymentService : IPaymentService
 
 public class KycService : IKycService
 {
-    private readonly MerkatoDbContext _db;
-    private readonly ITrustScoreService _trust;
-    private readonly IAuditLogService _audit;
-
-    public KycService(MerkatoDbContext db, ITrustScoreService trust, IAuditLogService audit)
+    // Format validation is not identity verification. Keep this adapter fail-closed
+    // until an authenticated Fayda provider, consent flow, callback verification,
+    // and provider-issued verification reference are integrated.
+    public Task<User> VerifyFaydaAsync(long userId, string faydaIdNumber, CancellationToken ct = default)
     {
-        _db = db;
-        _trust = trust;
-        _audit = audit;
-    }
-
-    public async Task<User> VerifyFaydaAsync(long userId, string faydaIdNumber, CancellationToken ct = default)
-    {
-        var user = await _db.Users.FindAsync(new object[] { userId }, ct)
-            ?? throw new KeyNotFoundException($"User {userId} not found");
-
-        // Format validation (FAN-XXXX-XXXX-XXX)
-        if (!System.Text.RegularExpressions.Regex.IsMatch(faydaIdNumber, @"^FAN-\d{4}-\d{4}-[A-Za-z0-9]{3}$"))
-        {
-            throw new ArgumentException("Invalid Fayda National ID (FAN) format");
-        }
-
-        user.FaydaIdNumber = faydaIdNumber;
-        user.IsFaydaVerified = true;
-        user.TrustScore = await _trust.CalculateUserTrustScoreAsync(userId, ct);
-        user.UpdatedAt = DateTime.UtcNow;
-
-        await _audit.LogAsync(userId, user.Role.ToString(), "FAYDA_KYC_VERIFIED", "USER", userId.ToString(), "SUCCESS", "Verified via Fayda adapter", ct);
-        await _db.SaveChangesAsync(ct);
-
-        return user;
+        return Task.FromException<User>(new NotSupportedException(
+            "Fayda verification is unavailable until an authenticated Fayda provider integration is configured."));
     }
 }
 
