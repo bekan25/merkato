@@ -106,9 +106,12 @@ public sealed class CommerceGrowthController(MerkatoDbContext db) : ControllerBa
         var product = await db.Products.AsNoTracking().FirstOrDefaultAsync(x => x.Id == input.ProductId && x.IsActive, ct);
         if (product is null) return NotFound("Product not found.");
         var group = new GroupBuy { ProductId = product.Id, OrganizerId = CurrentUserId, TargetQuantity = input.TargetQuantity, JoinedQuantity = 1, RegularUnitPriceEtb = input.RegularUnitPriceEtb, DiscountUnitPriceEtb = input.DiscountUnitPriceEtb, ExpiresAt = input.ExpiresAt };
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
         db.GroupBuys.Add(group);
-        db.GroupBuyMembers.Add(new GroupBuyMember { GroupBuy = group, BuyerId = CurrentUserId, Quantity = 1 });
         await db.SaveChangesAsync(ct);
+        db.GroupBuyMembers.Add(new GroupBuyMember { GroupBuyId = group.Id, BuyerId = CurrentUserId, Quantity = 1 });
+        await db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
         return CreatedAtAction(nameof(GroupBuys), new { id = group.Id }, new { group.Id, group.Status, group.TargetQuantity });
     }
 
