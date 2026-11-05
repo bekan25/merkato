@@ -32,7 +32,7 @@ import { ShoppingAssistantComponent } from '../components/shopping-assistant.com
     <section class="public-promotion-strip" *ngIf="activePromotions.length">
       <div class="promotion-intro"><span>✦ MERKATO OFFERS</span><strong>Shop more. Save more.</strong><small>Limited-time offers from participating merchants.</small></div>
       <article *ngFor="let offer of activePromotions">
-        <b>{{offer.title}}</b>
+        <b>{{offer.title}}</b><small>Use code: <strong>{{offer.code}}</strong></small>
         <strong>{{offer.discountType === 'PERCENT' ? (offer.discountValue + '% OFF') : ((offer.discountValue | number:'1.0-2') + ' ETB OFF')}}</strong>
         <small *ngIf="offer.minimumOrderEtb > 0">From {{offer.minimumOrderEtb | number:'1.0-2'}} ETB · </small><small>Until {{offer.expiresAt | date:'mediumDate'}}</small>
       </article>
@@ -230,7 +230,7 @@ export class StorefrontComponent implements OnInit, OnDestroy {
   private api = inject(ApiService);
   private route = inject(ActivatedRoute);
   products: MerkatoProduct[] = [];
-  activePromotions: Array<{title:string;discountType:string;discountValue:number;maximumDiscountEtb?:number|null;minimumOrderEtb:number;expiresAt:string;merchantPromotion:boolean}> = [];
+  activePromotions: Array<{code:string;title:string;discountType:string;discountValue:number;maximumDiscountEtb?:number|null;minimumOrderEtb:number;expiresAt:string;merchantPromotion:boolean}> = [];
   loading = true;
   error = '';
   search = '';
