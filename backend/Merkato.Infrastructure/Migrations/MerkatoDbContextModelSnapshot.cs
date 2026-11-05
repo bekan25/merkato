@@ -654,6 +654,18 @@ namespace Merkato.Infrastructure.Migrations
                     b.Property<bool>("IsSellerVerified")
                         .HasColumnType("boolean");
 
+                    b.Property<int>("FailedLoginAttempts")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsSuspended")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LoginLockedUntil")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("TokenVersion")
+                        .HasColumnType("integer");
+
                     b.Property<string>("PhoneNumber")
                         .IsRequired()
                         .HasColumnType("text");
