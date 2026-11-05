@@ -148,6 +148,28 @@ public class EscrowService : IEscrowService
         escrow.UpdatedAt = DateTime.UtcNow;
         order.EscrowState = EscrowState.RELEASED;
 
+        // Award one loyalty point per 100 ETB only after escrow is successfully released.
+        var earnedPoints = (int)Math.Floor(releaseAmount / 100m);
+        if (earnedPoints > 0 && !await _db.LoyaltyTransactions.AnyAsync(x => x.OrderId == orderId, ct))
+        {
+            var loyalty = await _db.LoyaltyAccounts.FirstOrDefaultAsync(x => x.UserId == order.BuyerId, ct);
+            if (loyalty is null)
+            {
+                loyalty = new LoyaltyAccount { UserId = order.BuyerId };
+                _db.LoyaltyAccounts.Add(loyalty);
+            }
+            loyalty.PointsBalance = checked(loyalty.PointsBalance + earnedPoints);
+            loyalty.UpdatedAt = DateTime.UtcNow;
+            _db.LoyaltyTransactions.Add(new LoyaltyTransaction
+            {
+                UserId = order.BuyerId,
+                Points = earnedPoints,
+                Reason = "Order settled after escrow release",
+                OrderId = orderId,
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+
         // Double-entry record
         await _ledger.RecordTransactionAsync(orderId, "ESCROW_RELEASE", $"REL-{orderId}", new()
         {
