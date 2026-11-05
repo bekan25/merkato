@@ -15,6 +15,8 @@ public sealed class PromotionCoupon
     [Column(TypeName = "numeric(18,4)")]
     public decimal MinimumOrderEtb { get; set; }
     public long? SellerId { get; set; }
+    public long? AssignedUserId { get; set; }
+    public long? SourceReferralId { get; set; }
     public int? UsageLimit { get; set; }
     public int PerUserLimit { get; set; } = 1;
     public DateTime StartsAt { get; set; } = DateTime.UtcNow;
