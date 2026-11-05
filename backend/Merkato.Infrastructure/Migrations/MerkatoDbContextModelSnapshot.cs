@@ -436,6 +436,12 @@ namespace Merkato.Infrastructure.Migrations
                     b.Property<int>("EscrowState")
                         .HasColumnType("integer");
 
+                    b.Property<DateTime?>("InventoryReservationExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("InventoryReservationState")
+                        .HasColumnType("integer");
+
                     b.Property<string>("OrderNumber")
                         .IsRequired()
                         .HasColumnType("text");
@@ -473,6 +479,8 @@ namespace Merkato.Infrastructure.Migrations
                     b.HasIndex("ProductId");
 
                     b.HasIndex("SellerId");
+
+                    b.HasIndex("InventoryReservationState", "InventoryReservationExpiresAt");
 
                     b.ToTable("Orders");
                 });

@@ -166,12 +166,23 @@ public class OrdersController : ControllerBase
         if (riskDecision != RiskDecision.ALLOW)
             return Conflict(new { message = "This order requires additional verification and cannot be placed yet.", riskDecision = riskDecision.ToString() });
 
+        var reservationTime = DateTime.UtcNow;
+        var reservedStock = await _db.ProductListingDetails
+            .Where(x => x.ProductId == product.Id && x.StockQuantity - x.ReservedQuantity >= 1)
+            .ExecuteUpdateAsync(update => update
+                .SetProperty(x => x.ReservedQuantity, x => x.ReservedQuantity + 1)
+                .SetProperty(x => x.UpdatedAt, reservationTime), ct);
+        if (reservedStock != 1)
+            return Conflict(new { message = "This product is out of available stock or inventory has not been configured. Refresh the listing before checkout." });
+
         var order = new Order
         {
             OrderNumber = $"MK-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..8].ToUpperInvariant()}",
             BuyerId = buyerId,
             SellerId = request.SellerId,
             ProductId = product.Id,
+            InventoryReservationState = InventoryReservationState.RESERVED,
+            InventoryReservationExpiresAt = reservationTime.AddMinutes(15),
             ProductTitle = product.Name,
             TotalAmountEtb = request.AmountEtb - discountEtb + expectedDeliveryFee,
             DeliveryFeeEtb = expectedDeliveryFee,
@@ -205,6 +216,53 @@ public class OrdersController : ControllerBase
             order.EscrowState, order.DeliveryStatus, order.CreatedAt);
 
         return Ok(response);
+    }
+
+
+    [HttpPost("{orderId:long}/cancel")]
+    [Authorize(Roles = "BUYER,ADMIN")]
+    public async Task<IActionResult> CancelOrder(long orderId, CancellationToken ct)
+    {
+        if (!long.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+            return Unauthorized();
+
+        await using var tx = await _db.Database.BeginTransactionAsync(ct);
+        var order = await _db.Orders.FirstOrDefaultAsync(x => x.Id == orderId, ct);
+        if (order is null) return NotFound();
+        if (!User.IsInRole("ADMIN") && order.BuyerId != userId) return Forbid();
+        if (order.EscrowState != EscrowState.AWAITING_PAYMENT)
+            return Conflict(new { message = "Only an unpaid order can be cancelled." });
+
+        var paymentPending = await _db.PaymentTransactions.AnyAsync(
+            x => x.OrderId == orderId && (x.Status == PaymentStatus.INITIATED || x.Status == PaymentStatus.PENDING), ct);
+        if (paymentPending)
+            return Conflict(new { message = "A payment request is already pending. Wait for the provider result or contact support before cancelling." });
+
+        if (order.InventoryReservationState == InventoryReservationState.RESERVED)
+        {
+            var claimed = await _db.Orders
+                .Where(x => x.Id == orderId && x.InventoryReservationState == InventoryReservationState.RESERVED)
+                .ExecuteUpdateAsync(update => update
+                    .SetProperty(x => x.InventoryReservationState, InventoryReservationState.RELEASED)
+                    .SetProperty(x => x.UpdatedAt, DateTime.UtcNow), ct);
+            if (claimed == 1)
+            {
+                var released = await _db.ProductListingDetails
+                    .Where(x => x.ProductId == order.ProductId && x.ReservedQuantity >= 1)
+                    .ExecuteUpdateAsync(update => update
+                        .SetProperty(x => x.ReservedQuantity, x => x.ReservedQuantity - 1)
+                        .SetProperty(x => x.UpdatedAt, DateTime.UtcNow), ct);
+                if (released != 1)
+                    return Conflict(new { message = "Inventory reservation could not be safely released. Contact support." });
+                order.InventoryReservationState = InventoryReservationState.RELEASED;
+            }
+        }
+
+        order.EscrowState = EscrowState.CANCELLED;
+        order.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
+        return Ok(new { order.Id, order.OrderNumber, status = "CANCELLED" });
     }
 
     private static bool TryGetDeliveryFee(string? cityArea, out decimal fee)

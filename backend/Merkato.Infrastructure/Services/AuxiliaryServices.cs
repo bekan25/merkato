@@ -81,9 +81,11 @@ public class PaymentService : IPaymentService
             string.IsNullOrWhiteSpace(dto.RailTransactionId) ||
             string.IsNullOrWhiteSpace(dto.EventId))
             throw new InvalidOperationException("Webhook event, order and provider transaction identifiers are required.");
-        if (!new[] { "SUCCESS", "COMPLETED", "PAID" }.Contains(
-                dto.Status?.Trim().ToUpperInvariant()))
-            throw new InvalidOperationException("Payment provider has not confirmed a successful payment.");
+        var webhookStatus = dto.Status?.Trim().ToUpperInvariant();
+        var paymentSucceeded = new[] { "SUCCESS", "COMPLETED", "PAID" }.Contains(webhookStatus);
+        var paymentFailed = new[] { "FAILED", "DECLINED", "CANCELLED", "EXPIRED" }.Contains(webhookStatus);
+        if (!paymentSucceeded && !paymentFailed)
+            throw new InvalidOperationException("Payment provider status is not a final success or failure.");
 
         var secret = Environment.GetEnvironmentVariable(secretName);
         if (string.IsNullOrWhiteSpace(secret))
@@ -119,11 +121,12 @@ public class PaymentService : IPaymentService
         if (tx.PaymentRail != expectedRail)
             throw new UnauthorizedAccessException("Webhook provider does not match the selected payment rail.");
 
-        if (tx.Status == PaymentStatus.VERIFIED)
+        if (tx.Status == PaymentStatus.VERIFIED || tx.Status == PaymentStatus.FAILED)
         {
             if (string.Equals(tx.RailTransactionId, dto.RailTransactionId, StringComparison.Ordinal))
                 return tx;
-            throw new InvalidOperationException("This order already has a verified payment.");
+            if (tx.Status == PaymentStatus.VERIFIED)
+                throw new InvalidOperationException("This order already has a verified payment.");
         }
 
         if (tx.Status != PaymentStatus.PENDING && tx.Status != PaymentStatus.INITIATED)
@@ -139,6 +142,43 @@ public class PaymentService : IPaymentService
 
         if (order.EscrowState != EscrowState.AWAITING_PAYMENT)
             throw new InvalidOperationException("Order is not awaiting payment.");
+
+        if (paymentFailed)
+        {
+            await using var failureTransaction = await _db.Database.BeginTransactionAsync(ct);
+            tx.Status = PaymentStatus.FAILED;
+            tx.RailTransactionId = dto.RailTransactionId;
+            tx.WebhookVerified = true;
+            tx.RawPayloadHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(rawPayload)));
+            tx.VerifiedAt = DateTime.UtcNow;
+
+            if (order.InventoryReservationState == InventoryReservationState.RESERVED)
+            {
+                var releasedClaim = await _db.Orders
+                    .Where(x => x.Id == order.Id && x.InventoryReservationState == InventoryReservationState.RESERVED)
+                    .ExecuteUpdateAsync(update => update
+                        .SetProperty(x => x.InventoryReservationState, InventoryReservationState.RELEASED)
+                        .SetProperty(x => x.UpdatedAt, DateTime.UtcNow), ct);
+                if (releasedClaim == 1)
+                {
+                    var releasedStock = await _db.ProductListingDetails
+                        .Where(x => x.ProductId == order.ProductId && x.ReservedQuantity >= 1)
+                        .ExecuteUpdateAsync(update => update
+                            .SetProperty(x => x.ReservedQuantity, x => x.ReservedQuantity - 1)
+                            .SetProperty(x => x.UpdatedAt, DateTime.UtcNow), ct);
+                    if (releasedStock != 1)
+                        throw new InvalidOperationException("Payment failed but the inventory reservation could not be released; support intervention is required.");
+                    order.InventoryReservationState = InventoryReservationState.RELEASED;
+                }
+            }
+
+            order.EscrowState = EscrowState.CANCELLED;
+            await _audit.LogAsync(null, "PAYMENT_GATEWAY", "PAYMENT_FAILED",
+                "PAYMENT", tx.Id.ToString(), "SUCCESS", $"Provider reported {webhookStatus}", ct);
+            await _db.SaveChangesAsync(ct);
+            await failureTransaction.CommitAsync(ct);
+            return tx;
+        }
 
         tx.Status = PaymentStatus.VERIFIED;
         tx.RailTransactionId = dto.RailTransactionId;

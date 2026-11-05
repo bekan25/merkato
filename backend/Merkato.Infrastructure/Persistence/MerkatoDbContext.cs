@@ -146,6 +146,7 @@ public class MerkatoDbContext : DbContext
             entity.HasIndex(o => o.BuyerId);
             entity.HasIndex(o => o.SellerId);
             entity.HasIndex(o => o.ProductId);
+            entity.HasIndex(o => new { o.InventoryReservationState, o.InventoryReservationExpiresAt });
 
             entity.Property(o => o.TotalAmountEtb)
                 .HasColumnType("numeric(18,4)");

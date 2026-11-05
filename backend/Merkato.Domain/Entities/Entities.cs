@@ -27,6 +27,8 @@ public class Order
     public long SellerId { get; set; }
     // Nullable for historical orders created before product references were persisted.
     public long? ProductId { get; set; }
+    public InventoryReservationState InventoryReservationState { get; set; } = InventoryReservationState.NONE;
+    public DateTime? InventoryReservationExpiresAt { get; set; }
     
     [Column(TypeName = "numeric(18,4)")]
     public decimal TotalAmountEtb { get; set; }

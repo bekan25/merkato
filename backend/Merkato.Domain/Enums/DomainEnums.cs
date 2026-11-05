@@ -35,7 +35,17 @@ public enum EscrowState
     INSPECTION_ACTIVE,
     RELEASED,
     REFUNDED,
-    DISPUTED
+    DISPUTED,
+    CANCELLED
+}
+
+public enum InventoryReservationState
+{
+    NONE,
+    RESERVED,
+    CONSUMED,
+    RELEASED,
+    EXPIRED
 }
 
 public enum DeliveryStatus

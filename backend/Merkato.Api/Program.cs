@@ -6,6 +6,7 @@ using Microsoft.IdentityModel.Tokens;
 using Merkato.Application.Interfaces;
 using Merkato.Infrastructure.Persistence;
 using Merkato.Infrastructure.Services;
+using Merkato.Api.Services;
 using Scalar.AspNetCore;
 using System.Text;
 using System.Text.Json.Serialization;
@@ -127,6 +128,7 @@ builder.Services.AddScoped<IKycService, KycService>();
 builder.Services.AddScoped<ITrustScoreService, TrustScoreService>();
 builder.Services.AddScoped<IRiskAssessmentService, RiskAssessmentService>();
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
+builder.Services.AddHostedService<InventoryReservationExpiryService>();
 
 // ============================================================
 // CONTROLLERS

@@ -81,6 +81,11 @@ public class PaymentsController : ControllerBase
             });
         }
 
+        if (order.InventoryReservationState is InventoryReservationState.RELEASED or InventoryReservationState.EXPIRED ||
+            (order.InventoryReservationState == InventoryReservationState.RESERVED &&
+             order.InventoryReservationExpiresAt <= DateTime.UtcNow))
+            return Conflict(new { error = "The inventory reservation has expired. Create a new order before paying." });
+
         var expectedAmount = order.TotalAmountEtb;
 
         if (!Enum.IsDefined(request.PaymentRail))
