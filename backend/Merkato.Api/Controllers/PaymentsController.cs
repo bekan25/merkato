@@ -172,6 +172,36 @@ public class PaymentsController : ControllerBase
                     signature,
                     ct);
 
+            // Referral reward is earned only after a provider-verified payment, never on a click or signup alone.
+            if (transaction.Status == PaymentStatus.VERIFIED)
+            {
+                var paidOrder = await _db.Orders.AsNoTracking().FirstOrDefaultAsync(x => x.Id == transaction.OrderId, ct);
+                if (paidOrder is not null)
+                {
+                    var referral = await _db.AffiliateReferrals.FirstOrDefaultAsync(x => x.ReferredUserId == paidOrder.BuyerId, ct);
+                    if (referral is not null && !await _db.PromotionCoupons.AnyAsync(x => x.SourceReferralId == referral.Id, ct))
+                    {
+                        var reward = new PromotionCoupon {
+                            Code = "REFER" + Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(4)),
+                            Title = "MERKATO referral thank-you reward",
+                            DiscountType = "FIXED",
+                            DiscountValue = 50m,
+                            MinimumOrderEtb = 200m,
+                            UsageLimit = 1,
+                            PerUserLimit = 1,
+                            AssignedUserId = referral.AffiliateUserId,
+                            SourceReferralId = referral.Id,
+                            StartsAt = DateTime.UtcNow,
+                            ExpiresAt = DateTime.UtcNow.AddDays(30),
+                            CreatedBy = referral.AffiliateUserId
+                        };
+                        _db.PromotionCoupons.Add(reward);
+                        try { await _db.SaveChangesAsync(ct); }
+                        catch (DbUpdateException) { _db.Entry(reward).State = EntityState.Detached; }
+                    }
+                }
+            }
+
             return Ok(new
             {
                 paymentTransactionId = transaction.Id,
