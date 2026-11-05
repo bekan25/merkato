@@ -12,29 +12,29 @@ import { ShoppingAssistantComponent } from '../components/shopping-assistant.com
   template: `
     <section class="hero">
       <div class="hero-copy">
-        <div class="eyebrow hero-trust"><span class="eyebrow-dot"></span> TRUSTED MARKETPLACE IN ETHIOPIA</div>
-        <h1>Good finds.<br><em>Great connections.</em></h1>
-        <p>Discover products from local merchants, support Ethiopian businesses, and shop with more confidence.</p>
+        <div class="eyebrow hero-trust"><span class="eyebrow-dot"></span> {{ t('trust') }}</div>
+        <h1>{{ t('heroTitle1') }}<br><em>{{ t('heroTitle2') }}</em></h1>
+        <p>{{ t('heroCopy') }}</p>
         <div class="hero-actions">
-          <a class="btn btn-light" href="#marketplace">Explore marketplace <span>↘</span></a>
-          <a class="hero-secondary" routerLink="/login">Start selling <span>↗</span></a>
+          <a class="btn btn-light" href="#marketplace">{{ t('explore') }} <span>↘</span></a>
+          <a class="hero-secondary" routerLink="/login">{{ t('startSelling') }} <span>↗</span></a>
         </div>
-        <div class="hero-proof"><div class="proof-avatars"><i>ሀ</i><i>አ</i><i>ደ</i></div><span><strong>Shop local. Grow together.</strong><small>Discover trusted Ethiopian merchants and products.</small></span></div>
+        <div class="hero-proof"><div class="proof-avatars"><i>ሀ</i><i>አ</i><i>ደ</i></div><span><strong>{{ t('proofTitle') }}</strong><small>{{ t('proofCopy') }}</small></span></div>
       </div>
       <div class="hero-art" aria-label="Marketplace product collage">
         <div class="art-orbit orbit-one"></div><div class="art-orbit orbit-two"></div>
-        <div class="art-card art-card-main"><div class="art-image"><span class="hero-bag">M</span><span class="hero-art-spark">✦</span></div><div class="art-card-info"><span>MADE FOR ETHIOPIA</span><strong>Great products. Real local sellers.</strong><small>Discover something worth sharing</small></div></div>
-        <div class="floating-tag tag-top"><span>✦</span> Local finds</div><div class="floating-tag tag-bottom"><span>✓</span> Secure shopping</div><div class="hero-feature-stack"><div><b>✓</b><span><strong>Trusted marketplace</strong><small>Shop with confidence</small></span></div><div><b>↗</b><span><strong>Support local</strong><small>Grow Ethiopian business</small></span></div><div><b>✦</b><span><strong>Great discoveries</strong><small>Find everyday essentials</small></span></div></div>
+        <div class="art-card art-card-main"><div class="art-image"><span class="hero-bag">M</span><span class="hero-art-spark">✦</span></div><div class="art-card-info"><span>{{ t('madeForEthiopia') }}</span><strong>{{ t('realSellers') }}</strong><small>{{ t('discoverMore') }}</small></div></div>
+        <div class="floating-tag tag-top"><span>✦</span> {{ t('localFinds') }}</div><div class="floating-tag tag-bottom"><span>✓</span> {{ t('secureShopping') }}</div><div class="hero-feature-stack"><div><b>✓</b><span><strong>{{ t('trustedMarketplace') }}</strong><small>{{ t('shopConfidence') }}</small></span></div><div><b>↗</b><span><strong>{{ t('supportLocal') }}</strong><small>{{ t('growBusiness') }}</small></span></div><div><b>✦</b><span><strong>{{ t('greatDiscoveries') }}</strong><small>{{ t('everydayEssentials') }}</small></span></div></div>
         <div class="art-spark spark-one">✳</div><div class="art-spark spark-two">✦</div>
       </div>
     </section>
 
     <section class="trust-strip">
-      <div><strong>01</strong><span>Discover local products</span></div><div><strong>02</strong><span>Connect with merchants</span></div><div><strong>03</strong><span>Checkout with confidence</span></div><div><strong>04</strong><span>Support local business</span></div>
+      <div><strong>01</strong><span>{{ t('discoverLocal') }}</span></div><div><strong>02</strong><span>{{ t('connectMerchants') }}</span></div><div><strong>03</strong><span>{{ t('checkoutConfidence') }}</span></div><div><strong>04</strong><span>{{ t('supportBusiness') }}</span></div>
     </section>
 
     <section id="categories" class="category-section section-wrap">
-      <div class="section-heading"><div><span class="eyebrow">EXPLORE YOUR WAY</span><h2>Find your next favourite.</h2></div><span class="muted">Browse by category</span></div>
+      <div class="section-heading"><div><span class="eyebrow">{{ t('exploreYourWay') }}</span><h2>{{ t('nextFavourite') }}</h2></div><span class="muted">{{ t('browseCategory') }}</span></div>
       <div class="category-list">
         <button *ngFor="let item of categories" (click)="selectCategory(item.name)" [class.selected]="category === item.name" [attr.aria-pressed]="category === item.name">
           <span>{{item.icon}}</span>{{item.name}}
@@ -44,24 +44,24 @@ import { ShoppingAssistantComponent } from '../components/shopping-assistant.com
 
     <section id="marketplace" class="market-section section-wrap">
       <div class="section-heading market-heading">
-        <div><span class="eyebrow">THE MARKETPLACE</span><h2>Fresh from local sellers.</h2><p>Explore what Ethiopian merchants are offering today.</p></div>
+        <div><span class="eyebrow">{{ t('marketplace') }}</span><h2>{{ t('freshSellers') }}</h2><p>{{ t('merchantOfferings') }}</p></div>
         <div class="market-controls">
-          <label class="search-box"><span>⌕</span><input [(ngModel)]="search" (ngModelChange)="onSearchChange()" placeholder="Search products, places..." aria-label="Search products"></label>
+          <label class="search-box"><span>⌕</span><input [(ngModel)]="search" (ngModelChange)="onSearchChange()" placeholder="{{ t('searchProducts') }}" aria-label="Search products"></label>
           <select [(ngModel)]="category" (ngModelChange)="loadProducts()" aria-label="Filter by category"><option *ngFor="let c of categoryOptions" [value]="c">{{c}}</option></select>
-          <input class="price-filter" type="number" min="0" [(ngModel)]="minPrice" placeholder="Min ETB" aria-label="Minimum price">
-          <input class="price-filter" type="number" min="0" [(ngModel)]="maxPrice" placeholder="Max ETB" aria-label="Maximum price">
-          <select [(ngModel)]="sortBy" aria-label="Sort products"><option value="newest">Newest</option><option value="price-low">Price: low to high</option><option value="price-high">Price: high to low</option><option value="name">Name A–Z</option></select>
+          <input class="price-filter" type="number" min="0" [(ngModel)]="minPrice" placeholder="{{ t('minEtb') }}" aria-label="Minimum price">
+          <input class="price-filter" type="number" min="0" [(ngModel)]="maxPrice" placeholder="{{ t('maxEtb') }}" aria-label="Maximum price">
+          <select [(ngModel)]="sortBy" aria-label="Sort products"><option value="newest">{{ t('newest') }}</option><option value="price-low">{{ t('priceLow') }}</option><option value="price-high">{{ t('priceHigh') }}</option><option value="name">{{ t('nameAZ') }}</option></select>
         </div>
       </div>
 
       <div class="market-toolbar" *ngIf="!loading && !error">
         <span>{{visibleProducts.length}} {{visibleProducts.length === 1 ? 'product' : 'products'}} found</span>
-        <button *ngIf="hasActiveFilters" type="button" class="clear-filters" (click)="clearFilters()">Clear filters ×</button>
+        <button *ngIf="hasActiveFilters" type="button" class="clear-filters" (click)="clearFilters()">{{ t('clearFilters') }}</button>
       </div>
 
-      <div *ngIf="loading" class="state-panel"><span class="loader"></span><strong>Finding good things...</strong><p>Loading products from the MERKATO marketplace.</p></div>
-      <div *ngIf="error && !loading" class="state-panel"><span class="state-icon">⌁</span><strong>Marketplace connection unavailable</strong><p>{{error}}</p><small>Please try again in a moment.</small><button class="btn btn-outline" (click)="loadProducts()">Try again</button></div>
-      <div *ngIf="!loading && !error && visibleProducts.length === 0" class="state-panel"><span class="state-icon">⌕</span><strong>No products found yet</strong><p>Try another search or check back as merchants add their products.</p><button class="btn btn-outline" *ngIf="hasActiveFilters" (click)="clearFilters()">Clear filters</button></div>
+      <div *ngIf="loading" class="state-panel"><span class="loader"></span><strong>{{ t('finding') }}</strong><p>{{ t('loadingProducts') }}</p></div>
+      <div *ngIf="error && !loading" class="state-panel"><span class="state-icon">⌁</span><strong>{{ t('connectionUnavailable') }}</strong><p>{{error}}</p><small>{{ t('tryAgainMoment') }}</small><button class="btn btn-outline" (click)="loadProducts()">{{ t('tryAgain') }}</button></div>
+      <div *ngIf="!loading && !error && visibleProducts.length === 0" class="state-panel"><span class="state-icon">⌕</span><strong>{{ t('noProducts') }}</strong><p>{{ t('noProductsHelp') }}</p><button class="btn btn-outline" *ngIf="hasActiveFilters" (click)="clearFilters()">Clear filters</button></div>
 
       <div class="compare-bar" *ngIf="compareProducts.length"><span>{{compareProducts.length}} products selected to compare</span><button type="button" (click)="compareProducts = []">Clear comparison</button><div class="compare-items"><span *ngFor="let item of compareProducts">{{item.name}} · {{item.priceEtb | number:'1.2-2'}} ETB</span></div></div>
       <div class="product-grid" *ngIf="!loading && !error">
@@ -71,21 +71,21 @@ import { ShoppingAssistantComponent } from '../components/shopping-assistant.com
             <span *ngIf="!product.imageUrl || imageFailed(product.id)" class="product-emoji">{{product.emoji || '🛍️'}}</span>
             <span class="product-category">{{product.category}}</span>
             <button class="save-button" type="button" (click)="toggleSaved(product, $event)" [class.saved]="isSaved(product.id)" [attr.aria-pressed]="isSaved(product.id)" [attr.aria-label]="isSaved(product.id) ? 'Remove from saved products' : 'Save product'">{{isSaved(product.id) ? '♥' : '♡'}}</button>
-            <button class="quick-view-trigger" type="button" (click)="openQuickView(product)">Quick view</button>
-            <button class="compare-trigger" type="button" (click)="toggleCompare(product)" [class.active]="isCompared(product.id)">{{isCompared(product.id) ? '✓ Compare' : '⇄ Compare'}}</button>
+            <button class="quick-view-trigger" type="button" (click)="openQuickView(product)">{{ t('quickView') }}</button>
+            <button class="compare-trigger" type="button" (click)="toggleCompare(product)" [class.active]="isCompared(product.id)">{{isCompared(product.id) ? '✓ {{ t('compare') }}' : '⇄ {{ t('compare') }}'}}</button>
           </div>
           <div class="product-info">
             <span class="product-location">⌖ {{product.location || 'Ethiopia'}}</span>
             <button class="product-title-button" type="button" (click)="openQuickView(product)">{{product.name}}</button>
             <div class="product-bottom"><strong>{{product.priceEtb | number:'1.2-2'}} <small>ETB</small></strong><button (click)="addToCart(product)" class="add-button" type="button" [attr.aria-label]="'Add ' + product.name + ' to cart'">+</button></div>
-            <a class="wholesale-link" [routerLink]="['/wholesale', product.id]">Bulk pricing &amp; wholesale ↗</a>
+            <a class="wholesale-link" [routerLink]="['/wholesale', product.id]">{{ t('wholesale') }} ↗</a>
           </div>
         </article>
       </div>
     </section>
 
     <section id="how-it-works" class="seller-cta">
-      <div><span class="eyebrow">GROW WITH MERKATO</span><h2>Your business deserves<br>to be discovered.</h2><p>Bring your products online and connect with customers across Ethiopia.</p><a routerLink="/login" class="btn btn-light">Become a merchant <span>↗</span></a></div>
+      <div><span class="eyebrow">GROW WITH MERKATO</span><h2>{{ t('businessDiscovered1') }}<br>{{ t('businessDiscovered2') }}</h2><p>{{ t('sellerCopy') }}</p><a routerLink="/login" class="btn btn-light">{{ t('becomeMerchant') }} <span>↗</span></a></div>
       <div class="seller-illustration"><span>🛍️</span><span>✦</span><span>📦</span></div>
     </section>
 
@@ -106,7 +106,7 @@ import { ShoppingAssistantComponent } from '../components/shopping-assistant.com
           <strong class="quick-view-price">{{product.priceEtb | number:'1.2-2'}} ETB</strong>
           <p>Discover this item from a local MERKATO merchant. Review the listing details below, then add it to your bag.</p>
           <div class="quick-view-meta"><div><small>Category</small><strong>{{product.category}}</strong></div><div><small>Location</small><strong>{{product.location || 'Ethiopia'}}</strong></div><div><small>Listing date</small><strong>{{product.createdAt | date:'mediumDate'}}</strong></div><div><small>Availability</small><strong>{{product.isActive ? 'Active listing' : 'Unavailable'}}</strong></div></div>
-          <div class="quick-view-actions"><button class="btn btn-primary" type="button" (click)="addToCart(product); closeQuickView()">Add to cart <span>＋</span></button><button class="btn btn-outline" type="button" (click)="toggleSaved(product)">{{isSaved(product.id) ? '♥ Saved' : '♡ Save item'}}</button></div>
+          <div class="quick-view-actions"><button class="btn btn-primary" type="button" (click)="addToCart(product); closeQuickView()">{{ t('addToCart') }} <span>＋</span></button><button class="btn btn-outline" type="button" (click)="toggleSaved(product)">{{isSaved(product.id) ? '♥ Saved' : '♡ Save item'}}</button></div>
         </div>
       </section>
     </div>
@@ -222,6 +222,20 @@ export class StorefrontComponent implements OnInit, OnDestroy {
   private failedImageIds = new Set<number>();
   private readonly savedStorageKey = 'merkato_saved_products';
 
+  language: 'en' | 'om' | 'am' = this.currentLanguage();
+  private readonly languageListener = () => { this.language = this.currentLanguage(); };
+  private readonly translations: Record<string, Record<string, string>> = {
+    en: { trust:'TRUSTED MARKETPLACE IN ETHIOPIA',heroTitle1:'Good finds.',heroTitle2:'Great connections.',heroCopy:'Discover products from local merchants, support Ethiopian businesses, and shop with more confidence.',explore:'Explore marketplace',startSelling:'Start selling',proofTitle:'Shop local. Grow together.',proofCopy:'Discover trusted Ethiopian merchants and products.',madeForEthiopia:'MADE FOR ETHIOPIA',realSellers:'Great products. Real local sellers.',discoverMore:'Discover something worth sharing',localFinds:'Local finds',secureShopping:'Secure shopping',trustedMarketplace:'Trusted marketplace',shopConfidence:'Shop with confidence',supportLocal:'Support local',growBusiness:'Grow Ethiopian business',greatDiscoveries:'Great discoveries',everydayEssentials:'Find everyday essentials',discoverLocal:'Discover local products',connectMerchants:'Connect with merchants',checkoutConfidence:'Checkout with confidence',supportBusiness:'Support local business',exploreYourWay:'EXPLORE YOUR WAY',nextFavourite:'Find your next favourite.',browseCategory:'Browse by category',marketplace:'THE MARKETPLACE',freshSellers:'Fresh from local sellers.',merchantOfferings:'Explore what Ethiopian merchants are offering today.',searchProducts:'Search products, places...',minEtb:'Min ETB',maxEtb:'Max ETB',newest:'Newest',priceLow:'Price: low to high',priceHigh:'Price: high to low',nameAZ:'Name A–Z',clearFilters:'Clear filters ×',finding:'Finding good things...',loadingProducts:'Loading products from the MERKATO marketplace.',connectionUnavailable:'Marketplace connection unavailable',tryAgainMoment:'Please try again in a moment.',tryAgain:'Try again',noProducts:'No products found yet',noProductsHelp:'Try another search or check back as merchants add their products.',quickView:'Quick view',compare:'Compare',wholesale:'Bulk pricing & wholesale',businessDiscovered1:'Your business deserves',businessDiscovered2:'to be discovered.',sellerCopy:'Bring your products online and connect with customers across Ethiopia.',becomeMerchant:'Become a merchant',addToCart:'Add to cart' },
+    om: { trust:'GABAA GURGURTAA ITOOPHIYAA',heroTitle1:'Oomisha gaarii.',heroTitle2:'Walitti dhufeenya gaarii.',heroCopy:'Oomisha daldaltoota naannoo irraa argadhu; daldala Itoophiyaa deeggaruun ofitti amanamummaadhaan bitadhu.',explore:'Gabaa qoradhu',startSelling:'Gurguruu jalqabi',proofTitle:'Naannoo kee irraa biti. Waliin guddadhaa.',proofCopy:'Daldaltoota Itoophiyaa amanamoo fi oomisha isaanii argadhu.',madeForEthiopia:'ITOOPHIYAADHAAF KAN QOPHAA’E',realSellers:'Oomisha gaarii. Gurgurtoota dhugaa.',discoverMore:'Waan gaarii qooduu dandeessu argadhu',localFinds:'Oomisha naannoo',secureShopping:'Bittaa nageenya qabu',trustedMarketplace:'Gabaa amanamaa',shopConfidence:'Ofitti amanamummaadhaan biti',supportLocal:'Naannoo deeggaru',growBusiness:'Daldala Itoophiyaa guddisi',greatDiscoveries:'Argannoo gaarii',everydayEssentials:'Waan guyyaa guyyaa barbaachisu argadhu',discoverLocal:'Oomisha naannoo argadhu',connectMerchants:'Daldaltoota waliin wal qunnami',checkoutConfidence:'Ofitti amanamummaadhaan kaffali',supportBusiness:'Daldala naannoo deeggaru',exploreYourWay:'AKKA FEDHETTI QORADHU',nextFavourite:'Oomisha itti aanu jaallattu argadhu.',browseCategory:'Ramaddii irratti hundaa’i',marketplace:'GABAA',freshSellers:'Daldaltoota naannoo irraa haaraa.',merchantOfferings:'Oomisha daldaltoonni Itoophiyaa har’a dhiyeessan ilaali.',searchProducts:'Oomisha ykn bakka barbaadi...',minEtb:'ETB xiqqaa',maxEtb:'ETB guddaa',newest:'Haaraa',priceLow:'Gatii gadi irraa olitti',priceHigh:'Gatii ol irraa gadiitti',nameAZ:'Maqaa A–Z',clearFilters:'Filannoo qulqulleessi ×',finding:'Oomisha gaarii barbaadaa jira...',loadingProducts:'Oomishaalee gabaa MERKATO irraa fe’aa jira.',connectionUnavailable:'Walqunnamtiin gabaa hin jiru',tryAgainMoment:'Maaloo yeroo muraasa booda yaali.',tryAgain:'Irra deebi’i',noProducts:'Ammaaf oomishni hin argamne',noProductsHelp:'Barbaacha biraa yaali ykn daldaltoonni oomisha dabalan eegi.',quickView:'Saffisaan ilaali',compare:'Wal bira qabi',wholesale:'Gatii jumlaa',businessDiscovered1:'Daldalli kee',businessDiscovered2:'akka beekamu malu.',sellerCopy:'Oomisha kee toora interneetii irratti dhiyeessi; maamiltoota Itoophiyaa waliin wal qunnami.',becomeMerchant:'Daldalaa ta’i',addToCart:'Gara gaarii bittaa dabali' },
+    am: { trust:'በኢትዮጵያ የታመነ የገበያ መድረክ',heroTitle1:'ጥሩ ምርቶች።',heroTitle2:'ጥሩ ግንኙነቶች።',heroCopy:'ከአካባቢያዊ ነጋዴዎች ምርቶችን ያግኙ፣ የኢትዮጵያ ንግዶችን ይደግፉ።',explore:'ገበያውን ይመልከቱ',startSelling:'መሸጥ ይጀምሩ',proofTitle:'አካባቢያዊ ይግዙ። አብረን እናድግ።',proofCopy:'የታመኑ የኢትዮጵያ ነጋዴዎችን ያግኙ።',madeForEthiopia:'ለኢትዮጵያ የተዘጋጀ',realSellers:'ጥሩ ምርቶች። እውነተኛ አካባቢያዊ ሻጮች።',discoverMore:'ለማጋራት የሚገባ ነገር ያግኙ',localFinds:'አካባቢያዊ ምርቶች',secureShopping:'ደህንነቱ የተጠበቀ ግዢ',trustedMarketplace:'የታመነ ገበያ',shopConfidence:'በመተማመን ይግዙ',supportLocal:'አካባቢያዊን ይደግፉ',growBusiness:'የኢትዮጵያን ንግድ ያሳድጉ',greatDiscoveries:'ጥሩ ግኝቶች',everydayEssentials:'የዕለት ተዕለት አስፈላጊ ነገሮችን ያግኙ',discoverLocal:'አካባቢያዊ ምርቶችን ያግኙ',connectMerchants:'ከነጋዴዎች ጋር ይገናኙ',checkoutConfidence:'በመተማመን ይክፈሉ',supportBusiness:'አካባቢያዊ ንግድን ይደግፉ',exploreYourWay:'በሚፈልጉት መንገድ ይመርምሩ',nextFavourite:'ቀጣዩን ተወዳጅ ምርት ያግኙ።',browseCategory:'በምድብ ይመልከቱ',marketplace:'ገበያው',freshSellers:'ከአካባቢያዊ ሻጮች አዲስ።',merchantOfferings:'የኢትዮጵያ ነጋዴዎች ዛሬ የሚያቀርቡትን ይመልከቱ።',searchProducts:'ምርቶችን ወይም ቦታዎችን ይፈልጉ...',minEtb:'ዝቅተኛ ETB',maxEtb:'ከፍተኛ ETB',newest:'አዲስ',priceLow:'ዋጋ፦ ከዝቅተኛ ወደ ከፍተኛ',priceHigh:'ዋጋ፦ ከከፍተኛ ወደ ዝቅተኛ',nameAZ:'ስም A–Z',clearFilters:'ማጣሪያዎችን አጽዳ ×',finding:'ጥሩ ምርቶችን በመፈለግ ላይ...',loadingProducts:'ከMERKATO ገበያ ምርቶችን በመጫን ላይ።',connectionUnavailable:'የገበያ ግንኙነት አልተገኘም',tryAgainMoment:'እባክዎ በትንሽ ጊዜ ይሞክሩ።',tryAgain:'እንደገና ይሞክሩ',noProducts:'እስካሁን ምርቶች አልተገኙም',noProductsHelp:'ሌላ ፍለጋ ይሞክሩ ወይም ሻጮች ምርቶችን እስኪጨምሩ ይጠብቁ።',quickView:'በፍጥነት ይመልከቱ',compare:'ያወዳድሩ',wholesale:'የጅምላ ዋጋ',businessDiscovered1:'ንግድዎ ሊታወቅ',businessDiscovered2:'ይገባል።',sellerCopy:'ምርቶችዎን በመስመር ላይ ያቅርቡ እና ከኢትዮጵያ ደንበኞች ጋር ይገናኙ።',becomeMerchant:'ነጋዴ ይሁኑ',addToCart:'ወደ ጋሪ ጨምር' }
+  };
+
+  private currentLanguage(): 'en' | 'om' | 'am' {
+    try { const value = localStorage.getItem('merkato_language'); return value === 'om' || value === 'am' ? value : 'en'; } catch { return 'en'; }
+  }
+  t(key: string): string { return this.translations[this.language]?.[key] || this.translations.en[key] || key; }
+
+
   get hasActiveFilters(): boolean {
     return !!this.search || this.category !== 'All' || this.minPrice !== null || this.maxPrice !== null || this.sortBy !== 'newest';
   }
@@ -242,6 +256,7 @@ export class StorefrontComponent implements OnInit, OnDestroy {
   categoryOptions = ['All', ...this.categories.map(x => x.name)];
 
   ngOnInit(): void {
+    window.addEventListener('merkato-language-change', this.languageListener);
     this.restoreSavedProducts();
     this.route.queryParamMap.subscribe(params => {
       const nextSearch = params.get('q') || '';
@@ -255,6 +270,7 @@ export class StorefrontComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    window.removeEventListener('merkato-language-change', this.languageListener);
     if (this.toastTimer) clearTimeout(this.toastTimer);
     if (this.searchTimer) clearTimeout(this.searchTimer);
   }
