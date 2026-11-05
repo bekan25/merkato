@@ -83,4 +83,4 @@ Do not advertise a provider as live until a real sandbox-to-production verificat
 
 ## Current branch workflow
 
-Implement changes on feature/merkato-professional-marketplace. Keep existing functionality. Do not merge to main or announce production readiness until the release gates above are verified.
+Implement new changes on a reviewed feature branch and merge to `main` only after review and CI pass. Keep existing functionality. The current repository source of truth is `main`; a green CI run and `/health/ready` response do not by themselves satisfy the production release gates above.
