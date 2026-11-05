@@ -47,7 +47,7 @@ public class MerkatoDbContext : DbContext
         modelBuilder.Entity<GroupBuy>(e => { e.HasIndex(x => new { x.Status, x.ExpiresAt }); e.Property(x => x.RegularUnitPriceEtb).HasColumnType("numeric(18,4)"); e.Property(x => x.DiscountUnitPriceEtb).HasColumnType("numeric(18,4)"); });
         modelBuilder.Entity<GroupBuyMember>(e => { e.HasIndex(x => new { x.GroupBuyId, x.BuyerId }).IsUnique(); });
         modelBuilder.Entity<ReturnRequest>(e => { e.HasIndex(x => x.OrderId).IsUnique(); });
-        modelBuilder.Entity<LoyaltyAccount>(e => { e.HasKey(x => x.UserId); });
+        modelBuilder.Entity<LoyaltyAccount>(e => { e.HasKey(x => x.UserId); e.Property(x => x.UserId).ValueGeneratedNever(); });
         modelBuilder.Entity<LoyaltyTransaction>(e => { e.HasIndex(x => new { x.UserId, x.CreatedAt }); });
 
         // User
