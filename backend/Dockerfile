@@ -6,10 +6,10 @@ RUN npm ci
 COPY frontend/ ./
 RUN npm run build -- --configuration production
 
-# Build the ASP.NET Core API and package the Angular app into wwwroot.
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+# Build and publish the ASP.NET Core 10 API with the Angular application.
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
-RUN dotnet tool install --global dotnet-ef --version 8.0.8
+RUN dotnet tool install --global dotnet-ef --version 10.0.14
 ENV PATH="$PATH:/root/.dotnet/tools"
 
 COPY backend/Merkato.Domain/Merkato.Domain.csproj backend/Merkato.Domain/
@@ -22,8 +22,7 @@ COPY backend/ backend/
 COPY --from=frontend-build /frontend/dist/markatoo-web/browser/ backend/Merkato.Api/wwwroot/
 RUN dotnet publish backend/Merkato.Api/Merkato.Api.csproj -c Release -o /app/publish --no-restore
 
-# Small ASP.NET runtime image; the app serves both UI and API on one origin.
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 ENV ASPNETCORE_URLS=http://+:8080
 ENV ASPNETCORE_HTTP_PORTS=8080
