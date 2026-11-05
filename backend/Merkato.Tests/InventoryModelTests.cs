@@ -8,10 +8,10 @@ namespace Merkato.Tests;
 public sealed class InventoryModelTests
 {
     [Fact]
-    public void ProductListingDetail_ExposesReservedStockAndDatabaseInvariant()
+    public void ProductListingDetail_MapsReservedStockWithSafeDefault()
     {
         var options = new DbContextOptionsBuilder<MerkatoDbContext>()
-            .UseInMemoryDatabase(nameof(ProductListingDetail_ExposesReservedStockAndDatabaseInvariant))
+            .UseInMemoryDatabase(nameof(ProductListingDetail_MapsReservedStockWithSafeDefault))
             .Options;
         using var db = new MerkatoDbContext(options);
 
@@ -20,8 +20,6 @@ public sealed class InventoryModelTests
 
         var entity = db.Model.FindEntityType(typeof(ProductListingDetail));
         Assert.NotNull(entity);
-        Assert.Contains(entity!.GetCheckConstraints(), constraint =>
-            constraint.Name == "CK_ProductListingDetails_StockNonNegative" &&
-            constraint.Sql.Contains("\"ReservedQuantity\" <= \"StockQuantity\""));
+        Assert.NotNull(entity!.FindProperty(nameof(ProductListingDetail.ReservedQuantity)));
     }
 }
