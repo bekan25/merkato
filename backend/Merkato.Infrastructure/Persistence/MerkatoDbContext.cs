@@ -44,9 +44,9 @@ public class MerkatoDbContext : DbContext
         base.OnModelCreating(modelBuilder);
 
         // Buyer engagement: persisted, user-scoped records with unique active relationships.
-        modelBuilder.Entity<WishlistItem>(e => { e.HasIndex(x => new { x.BuyerId, x.ProductId }).IsUnique(); e.HasIndex(x => x.BuyerId); });
-        modelBuilder.Entity<PriceAlert>(e => { e.HasIndex(x => new { x.BuyerId, x.ProductId, x.IsActive }); e.Property(x => x.TargetPriceEtb).HasColumnType("numeric(18,4)"); });
-        modelBuilder.Entity<UserNotification>(e => { e.HasIndex(x => new { x.UserId, x.IsRead, x.CreatedAt }); e.Property(x => x.Title).HasMaxLength(160).IsRequired(); e.Property(x => x.Message).HasMaxLength(1000).IsRequired(); e.Property(x => x.Type).HasMaxLength(40).IsRequired(); });
+        modelBuilder.Entity<WishlistItem>(e => { e.HasIndex(x => new { x.BuyerId, x.ProductId }).IsUnique(); e.HasIndex(x => x.BuyerId); e.HasOne<User>().WithMany().HasForeignKey(x => x.BuyerId).OnDelete(DeleteBehavior.Cascade); e.HasOne<Product>().WithMany().HasForeignKey(x => x.ProductId).OnDelete(DeleteBehavior.Cascade); });
+        modelBuilder.Entity<PriceAlert>(e => { e.HasIndex(x => new { x.BuyerId, x.ProductId, x.IsActive }); e.Property(x => x.TargetPriceEtb).HasColumnType("numeric(18,4)"); e.HasOne<User>().WithMany().HasForeignKey(x => x.BuyerId).OnDelete(DeleteBehavior.Cascade); e.HasOne<Product>().WithMany().HasForeignKey(x => x.ProductId).OnDelete(DeleteBehavior.Cascade); });
+        modelBuilder.Entity<UserNotification>(e => { e.HasIndex(x => new { x.UserId, x.IsRead, x.CreatedAt }); e.Property(x => x.Title).HasMaxLength(160).IsRequired(); e.Property(x => x.Message).HasMaxLength(1000).IsRequired(); e.Property(x => x.Type).HasMaxLength(40).IsRequired(); e.HasOne<User>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade); });
 
         // Extended commerce features
         modelBuilder.Entity<ProductListingDetail>(e => { e.HasKey(x => x.ProductId); e.Property(x => x.ProductId).ValueGeneratedNever(); e.HasIndex(x => x.StockQuantity); });
