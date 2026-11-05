@@ -833,7 +833,7 @@ namespace Merkato.Infrastructure.Migrations
 
             modelBuilder.Entity("Merkato.Domain.Entities.LoyaltyAccount", b =>
             {
-                b.Property<long>("UserId").HasColumnType("bigint");
+                b.Property<long>("UserId").ValueGeneratedNever().HasColumnType("bigint");
                 b.Property<int>("PointsBalance").HasColumnType("integer");
                 b.Property<DateTime>("UpdatedAt").HasColumnType("timestamp with time zone");
                 b.HasKey("UserId");
