@@ -108,12 +108,14 @@ import { ShoppingAssistantComponent } from '../components/shopping-assistant.com
           <p>Discover this item from a local MERKATO merchant. Review the listing details below, then add it to your bag.</p>
           <div class="quick-view-meta"><div><small>Category</small><strong>{{product.category}}</strong></div><div><small>Location</small><strong>{{product.location || 'Ethiopia'}}</strong></div><div><small>Listing date</small><strong>{{product.createdAt | date:'mediumDate'}}</strong></div><div><small>Availability</small><strong>{{product.isActive ? 'Active listing' : 'Unavailable'}}</strong></div></div>
           <div class="quick-view-actions"><button class="btn btn-primary" type="button" (click)="addToCart(product); closeQuickView()">{{ t('addToCart') }} <span>＋</span></button><button class="btn btn-outline" type="button" (click)="toggleSaved(product)">{{isSaved(product.id) ? '♥ ' + t('saved') : '♡ ' + t('saveItem')}}</button></div>
+          <div class="price-alert-form"><label>Notify me when price reaches (ETB)<input type="number" min="1" [max]="product.priceEtb - 0.01" step="0.01" [(ngModel)]="priceAlertTarget"></label><button class="btn btn-outline" type="button" (click)="createPriceAlert(product)">Set price alert</button></div>
         </div>
       </section>
     </div>
   `,
   styles: [`
-     .wholesale-link{display:inline-flex;margin-top:10px;color:#087653;font-size:12px;font-weight:700;text-decoration:none}.wholesale-link:hover{text-decoration:underline}
+     .price-alert-form{display:grid;gap:10px;margin-top:18px;padding:14px;border:1px solid #eee8da;border-radius:12px;background:#fbfaf6}.price-alert-form label{display:grid;gap:7px;color:#756b57;font-size:11px;font-weight:700}.price-alert-form input{padding:10px;border:1px solid #e5dfd2;border-radius:8px}
+    .wholesale-link{display:inline-flex;margin-top:10px;color:#087653;font-size:12px;font-weight:700;text-decoration:none}.wholesale-link:hover{text-decoration:underline}
     .price-filter{width:100px;min-width:0;padding:10px;border:1px solid #e5e9e3;border-radius:10px;background:#fff;color:#34463a;font-size:11px}
     .compare-bar{margin:18px 0;padding:14px 16px;border:1px solid #dce7dc;border-radius:14px;background:#f7faf5;color:#264634;font-size:12px}
     .compare-bar>button{float:right;border:0;background:none;color:#8a5737;font-weight:700;cursor:pointer}
@@ -225,6 +227,7 @@ export class StorefrontComponent implements OnInit, OnDestroy {
   private toastTimer?: ReturnType<typeof setTimeout>;
   private searchTimer?: ReturnType<typeof setTimeout>;
   private savedIds = new Set<number>();
+  priceAlertTarget = 0;
   private failedImageIds = new Set<number>();
   private readonly savedStorageKey = 'merkato_saved_products';
 
@@ -338,6 +341,11 @@ export class StorefrontComponent implements OnInit, OnDestroy {
     } catch {
       this.savedIds = new Set<number>();
     }
+    // Authenticated buyers get their server-side wishlist; local data remains a guest fallback.
+    this.api.getWishlist().subscribe({
+      next: items => { this.savedIds = new Set((items || []).map(item => item.productId)); },
+      error: () => { /* Guests keep the device-local wishlist until they sign in. */ }
+    });
   }
 
   isSaved(id: number): boolean { return this.savedIds.has(id); }
@@ -352,18 +360,33 @@ export class StorefrontComponent implements OnInit, OnDestroy {
 
   toggleSaved(product: MerkatoProduct, event?: Event): void {
     event?.stopPropagation();
-    if (this.savedIds.has(product.id)) {
+    const removing = this.savedIds.has(product.id);
+    if (removing) {
       this.savedIds.delete(product.id);
       this.toast = 'Removed from your saved products';
+      this.api.removeWishlistProduct(product.id).subscribe({ error: () => { /* Keep local guest fallback. */ } });
     } else {
       this.savedIds.add(product.id);
       this.toast = 'Saved to your favourites';
+      this.api.saveWishlistProduct(product.id).subscribe({ error: () => { /* Guests keep this item on this device. */ } });
     }
     try { localStorage.setItem(this.savedStorageKey, JSON.stringify([...this.savedIds])); } catch { /* Storage may be unavailable. */ }
     this.showToast();
   }
 
-  openQuickView(product: MerkatoProduct): void { this.selectedProduct = product; }
+  createPriceAlert(product: MerkatoProduct): void {
+    if (!Number.isFinite(this.priceAlertTarget) || this.priceAlertTarget <= 0 || this.priceAlertTarget >= product.priceEtb) {
+      this.toast = 'Enter a target price below the current price';
+      this.showToast();
+      return;
+    }
+    this.api.createPriceAlert(product.id, this.priceAlertTarget).subscribe({
+      next: () => { this.toast = 'Price alert created. We will notify you when the price drops.'; this.showToast(); },
+      error: () => { this.toast = 'Sign in as a buyer to create a price alert, or check whether one is already active.'; this.showToast(); }
+    });
+  }
+
+  openQuickView(product: MerkatoProduct): void { this.selectedProduct = product; this.priceAlertTarget = Math.max(1, Math.round(product.priceEtb * 0.9 * 100) / 100); }
   closeQuickView(): void { this.selectedProduct = null; }
 
   addToCart(product: MerkatoProduct): void {
