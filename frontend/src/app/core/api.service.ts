@@ -140,7 +140,7 @@ export class ApiService {
     return this.http.delete<void>(`${this.baseUrl}/products/${id}`);
   }
 
-  createOrder(payload: { sellerId: number; productTitle: string; amountEtb: number; deliveryFeeEtb: number; paymentRail: number; deliveryCourier: string; deliveryAddress: string; cityArea: string; couponCode?: string }): Observable<MerkatoOrder> {
+  createOrder(payload: { sellerId: number; productTitle: string; productId?: number; amountEtb: number; deliveryFeeEtb: number; paymentRail: number; deliveryCourier: string; deliveryAddress: string; cityArea: string; couponCode?: string }): Observable<MerkatoOrder> {
     return this.http.post<MerkatoOrder>(`${this.baseUrl}/orders`, payload);
   }
 
