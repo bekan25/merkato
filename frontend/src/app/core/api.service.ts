@@ -70,7 +70,8 @@ export class ApiService {
    * listing state are not exposed by this public search contract.
    */
   getProducts(search = '', category = ''): Observable<MerkatoProduct[]> {
-    let params = new HttpParams().set('limit', '24');
+    let params = new HttpParams();
+    params = params.set('limit', '24');
     if (search.trim()) params = params.set('q', search.trim());
     if (category && category !== 'All') params = params.set('category', category.trim());
     return this.http.get<DiscoveryProductsResponse>(`${this.baseUrl}/v1/discovery/products`, { params }).pipe(
