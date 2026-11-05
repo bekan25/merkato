@@ -82,4 +82,22 @@ Merchant flow:
 
 ## Current implementation status
 
-This branch establishes the audited integration blueprint only. It does **not** claim that the four engines have been fully implemented, tested, deployed, or made available to customers. The next code changes must be made in small vertical slices against the real entities/controllers and migrations, starting with One Request, then Social Commerce, then Smart Price hardening and the Super Marketplace integration.
+This branch now contains working vertical slices, but is not a complete production release.
+
+### Implemented in this branch
+- **One Request:** persisted buyer requests and merchant offers; buyer-owned request list and offer comparison; merchant open-request board; one offer per merchant/request; expiry checks; buyer offer selection and cancellation; in-app notifications; EF migration; basic workflow/ownership tests. Offer selection records the choice only. It does not yet create an order or checkout session.
+- **Social Commerce:** creator post submission for an existing active product; HTTPS media URL metadata; PENDING moderation; admin approval/rejection; approved-only public feed; creator's post list; deduplicated attributed product-click records; product deep-link opens the storefront quick view. Direct media upload/transcoding and automatic fulfilled-order commission settlement are not implemented.
+- **Smart Price:** API endpoint and Commerce Hub UI for recent price observations, median/range, freshness and advisory deviation. Matching is currently exact product name + category, not a full model/variant/condition equivalence engine. It is advisory and only as reliable as recorded snapshots.
+- **Super Marketplace:** Commerce Hub cards route to One Request, Social Commerce, Smart Price and the storefront while retaining existing marketplace modules.
+
+### Release status and remaining gates
+- CI has passed on earlier commits in this branch; every later commit must be covered by a fresh run before merge.
+- Apply the new EF migrations only after reviewing the target database and enabling the repository's documented migration flag in the deployment environment.
+- Add stronger database FK constraints, concurrency/idempotency and notification delivery tests.
+- Implement request-to-order conversion using the existing checkout/order service and verify payment only from provider callbacks.
+- Integrate approved media upload provider and content safety/moderation reporting.
+- Connect social creator attribution to fulfilled, non-refunded orders and the existing commission ledger; no commission is currently earned merely by a click.
+- Harden Smart Price equivalence, outlier explanation and alert deduplication.
+- Complete mobile/browser end-to-end tests, then deploy only after explicit approval.
+
+This branch is an integration milestone, not a claim that all four engines are production-complete.
