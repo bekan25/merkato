@@ -105,8 +105,9 @@ public sealed class CommerceGrowthController(MerkatoDbContext db) : ControllerBa
         if (input.TargetQuantity < 2 || input.DiscountUnitPriceEtb <= 0 || input.RegularUnitPriceEtb <= input.DiscountUnitPriceEtb || input.ExpiresAt <= DateTime.UtcNow || input.ExpiresAt > DateTime.UtcNow.AddDays(30)) return BadRequest("Invalid group target, discount or expiry (maximum 30 days).");
         var product = await db.Products.AsNoTracking().FirstOrDefaultAsync(x => x.Id == input.ProductId && x.IsActive, ct);
         if (product is null) return NotFound("Product not found.");
-        var group = new GroupBuy { ProductId = product.Id, OrganizerId = CurrentUserId, TargetQuantity = input.TargetQuantity, RegularUnitPriceEtb = input.RegularUnitPriceEtb, DiscountUnitPriceEtb = input.DiscountUnitPriceEtb, ExpiresAt = input.ExpiresAt };
+        var group = new GroupBuy { ProductId = product.Id, OrganizerId = CurrentUserId, TargetQuantity = input.TargetQuantity, JoinedQuantity = 1, RegularUnitPriceEtb = input.RegularUnitPriceEtb, DiscountUnitPriceEtb = input.DiscountUnitPriceEtb, ExpiresAt = input.ExpiresAt };
         db.GroupBuys.Add(group);
+        db.GroupBuyMembers.Add(new GroupBuyMember { GroupBuy = group, BuyerId = CurrentUserId, Quantity = 1 });
         await db.SaveChangesAsync(ct);
         return CreatedAtAction(nameof(GroupBuys), new { id = group.Id }, new { group.Id, group.Status, group.TargetQuantity });
     }
