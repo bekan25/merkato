@@ -57,11 +57,15 @@ interface CartLine { product: MerkatoProduct; quantity: number; }
           <span class="eyebrow">{{ t('orderSummary') }}</span>
           <h2>{{ t('almostYours') }}</h2>
           <div class="summary-row"><span>Items ({{itemCount}})</span><strong>{{subtotal | number:'1.2-2'}} ETB</strong></div>
-          <div class="summary-row"><span>{{ t('deliveryFee') }}</span><strong>{{ t('calculatedPerOrder') }}</strong></div>
+          <div class="summary-row"><span>{{ t('deliveryFee') }} ({{itemCount}} {{ t('orders') }})</span><strong>{{deliveryFeeEtb === null ? t('quoteRequired') : (deliveryFeeEtb * itemCount | number:'1.2-2') + ' ETB'}}</strong></div>
           <div class="summary-total"><span>{{ t('subtotal') }}</span><strong>{{subtotal | number:'1.2-2'}} ETB</strong></div>
           <form (ngSubmit)="checkout()">
             <label>{{ t('deliveryAddress') }}<textarea name="address" [(ngModel)]="address" required rows="3" placeholder="{{ t('addressPlaceholder') }}"></textarea></label>
-            <label>{{ t('cityArea') }}<input name="city" [(ngModel)]="cityArea" required></label>
+            <label>{{ t('cityArea') }}<select name="city" [(ngModel)]="cityArea" (ngModelChange)="onCityChange()" required>
+              <option *ngFor="let city of supportedCities" [value]="city">{{city}}</option>
+            </select></label>
+            <div class="delivery-quote" *ngIf="deliveryFeeEtb !== null"><strong>{{deliveryFeeEtb | number:'1.2-2'}} ETB / order</strong><small>MERKATO indicative estimate · final courier charge may differ</small></div>
+            <p class="form-error" *ngIf="deliveryQuoteError">{{deliveryQuoteError}}</p>
             <fieldset class="payment-methods">
               <legend>{{ t('paymentMethod') }}</legend>
               <label class="payment-option" [class.selected]="paymentRail === 0">
@@ -131,6 +135,7 @@ interface CartLine { product: MerkatoProduct; quantity: number; }
     .summary-row strong,.summary-total strong{color:#294b37;text-align:right}
     .summary-total{margin:7px 0 18px;border:0;color:#304d3a;font-weight:800;font-size:13px}
     .summary-total strong{color:#164d36;font-size:18px}
+    .delivery-quote{display:grid;gap:4px;padding:12px 14px;margin:10px 0 16px;border:1px solid #e9dfc7;border-radius:11px;background:#fffaf0;color:#72551d}.delivery-quote small{font-size:10px;color:#8d826d;line-height:1.5}
     .payment-methods{display:grid;gap:9px;margin:0;padding:0;border:0;min-width:0}
     .payment-methods legend{margin-bottom:8px;color:#43594a;font-size:11px;font-weight:750}
     .payment-option{position:relative;display:flex!important;grid-template-columns:none!important;align-items:center;gap:12px!important;min-height:66px;padding:10px 12px;border:1px solid #e2e9df;border-radius:12px;background:#fff;cursor:pointer;transition:border-color .18s,background .18s,box-shadow .18s}
@@ -167,15 +172,19 @@ export class CartComponent implements OnInit, OnDestroy {
   success = '';
   address = '';
   cityArea = 'Addis Ababa';
+  readonly supportedCities = ['Addis Ababa','Adama','Hawassa','Bahir Dar','Dire Dawa','Jimma','Mekelle','Gondar','Dessie'];
+  deliveryFeeEtb: number | null = null;
+  deliveryQuoteError = '';
+  deliveryQuoteLoading = false;
   paymentRail = 0;
   private failedImageIds = new Set<number>();
 
   language: 'en' | 'om' | 'am' = this.currentLanguage();
   private readonly languageListener = () => { this.language = this.currentLanguage(); };
   private readonly translations: Record<string, Record<string, string>> = {
-    en:{continueShopping:'Continue shopping',marketBag:'YOUR MARKET BAG',shoppingCart:'Shopping cart',reviewCart:'Review your selected products before placing an order.',signIn:'Sign in',loadingCart:'Loading your cart...',emptyCart:'Your cart is waiting for something good.',emptyCartHelp:'Explore local products and add your favourites.',explore:'Explore marketplace',remove:'Remove',orderSummary:'ORDER SUMMARY',almostYours:'Almost yours.',deliveryFee:'Delivery fee',calculatedPerOrder:'Calculated per order',subtotal:'Subtotal',deliveryAddress:'Delivery address',addressPlaceholder:'House number, street, area...',cityArea:'City / area',paymentMethod:'Payment method',submitting:'Submitting order...',placeOrder:'Place order request'},
-    om:{continueShopping:'Bittaa itti fufi',marketBag:'GAARII BITTAA KEE',shoppingCart:'Gaarii bittaa',reviewCart:'Oomishaalee filatte osoo ajaja hin galchin ilaali.',signIn:'Seeni',loadingCart:'Gaarii bittaa fe’aa jira...',emptyCart:'Gaarri bittaa kee oomisha gaarii eeggataa jira.',emptyCartHelp:'Oomishaalee naannoo ilaaliitii warra jaallatte dabali.',explore:'Gabaa qoradhu',remove:'Haqi',orderSummary:'CUUNFAA AJAAJAA',almostYours:'Siif dhihaateera.',deliveryFee:'Kaffaltii geejjibaa',calculatedPerOrder:'Ajaja hundaaf shallagama',subtotal:'Ida’ama xiqqaa',deliveryAddress:'Teessoo geejjibaa',addressPlaceholder:'Lakkoofsa mana, daandii, naannoo...',cityArea:'Magaalaa / naannoo',paymentMethod:'Mala kaffaltii',submitting:'Ajaja ergaa jira...',placeOrder:'Ajaja galchi'},
-    am:{continueShopping:'ግዢዎን ይቀጥሉ',marketBag:'የገበያ ቦርሳዎ',shoppingCart:'የግዢ ጋሪ',reviewCart:'ትዕዛዝ ከማስገባትዎ በፊት የመረጧቸውን ምርቶች ይመልከቱ።',signIn:'ይግቡ',loadingCart:'ጋሪዎን በመጫን ላይ...',emptyCart:'ጋሪዎ ጥሩ ምርት እየጠበቀ ነው።',emptyCartHelp:'አካባቢያዊ ምርቶችን ይመልከቱና የሚወዷቸውን ይጨምሩ።',explore:'ገበያውን ይመልከቱ',remove:'አስወግድ',orderSummary:'የትዕዛዝ ማጠቃለያ',almostYours:'ሊደርስዎ ተቃርቧል።',deliveryFee:'የማድረሻ ክፍያ',calculatedPerOrder:'በእያንዳንዱ ትዕዛዝ ይሰላል',subtotal:'ንዑስ ድምር',deliveryAddress:'የማድረሻ አድራሻ',addressPlaceholder:'የቤት ቁጥር፣ መንገድ፣ አካባቢ...',cityArea:'ከተማ / አካባቢ',paymentMethod:'የክፍያ ዘዴ',submitting:'ትዕዛዝ በመላክ ላይ...',placeOrder:'ትዕዛዝ ያስገቡ'}
+    en:{continueShopping:'Continue shopping',marketBag:'YOUR MARKET BAG',shoppingCart:'Shopping cart',reviewCart:'Review your selected products before placing an order.',signIn:'Sign in',loadingCart:'Loading your cart...',emptyCart:'Your cart is waiting for something good.',emptyCartHelp:'Explore local products and add your favourites.',explore:'Explore marketplace',remove:'Remove',orderSummary:'ORDER SUMMARY',almostYours:'Almost yours.',deliveryFee:'Delivery fee',calculatedPerOrder:'Calculated per order',orders:'orders',quoteRequired:'Select a supported city',subtotal:'Subtotal',deliveryAddress:'Delivery address',addressPlaceholder:'House number, street, area...',cityArea:'City / area',paymentMethod:'Payment method',submitting:'Submitting order...',placeOrder:'Place order request'},
+    om:{continueShopping:'Bittaa itti fufi',marketBag:'GAARII BITTAA KEE',shoppingCart:'Gaarii bittaa',reviewCart:'Oomishaalee filatte osoo ajaja hin galchin ilaali.',signIn:'Seeni',loadingCart:'Gaarii bittaa fe’aa jira...',emptyCart:'Gaarri bittaa kee oomisha gaarii eeggataa jira.',emptyCartHelp:'Oomishaalee naannoo ilaaliitii warra jaallatte dabali.',explore:'Gabaa qoradhu',remove:'Haqi',orderSummary:'CUUNFAA AJAAJAA',almostYours:'Siif dhihaateera.',deliveryFee:'Kaffaltii geejjibaa',calculatedPerOrder:'Ajaja hundaaf shallagama',orders:'ajaja',quoteRequired:'Magaalaa tajaajilamu filadhu',subtotal:'Ida’ama xiqqaa',deliveryAddress:'Teessoo geejjibaa',addressPlaceholder:'Lakkoofsa mana, daandii, naannoo...',cityArea:'Magaalaa / naannoo',paymentMethod:'Mala kaffaltii',submitting:'Ajaja ergaa jira...',placeOrder:'Ajaja galchi'},
+    am:{continueShopping:'ግዢዎን ይቀጥሉ',marketBag:'የገበያ ቦርሳዎ',shoppingCart:'የግዢ ጋሪ',reviewCart:'ትዕዛዝ ከማስገባትዎ በፊት የመረጧቸውን ምርቶች ይመልከቱ።',signIn:'ይግቡ',loadingCart:'ጋሪዎን በመጫን ላይ...',emptyCart:'ጋሪዎ ጥሩ ምርት እየጠበቀ ነው።',emptyCartHelp:'አካባቢያዊ ምርቶችን ይመልከቱና የሚወዷቸውን ይጨምሩ።',explore:'ገበያውን ይመልከቱ',remove:'አስወግድ',orderSummary:'የትዕዛዝ ማጠቃለያ',almostYours:'ሊደርስዎ ተቃርቧል።',deliveryFee:'የማድረሻ ክፍያ',calculatedPerOrder:'በእያንዳንዱ ትዕዛዝ ይሰላል',orders:'ትዕዛዞች',quoteRequired:'የሚደገፍ ከተማ ይምረጡ',subtotal:'ንዑስ ድምር',deliveryAddress:'የማድረሻ አድራሻ',addressPlaceholder:'የቤት ቁጥር፣ መንገድ፣ አካባቢ...',cityArea:'ከተማ / አካባቢ',paymentMethod:'የክፍያ ዘዴ',submitting:'ትዕዛዝ በመላክ ላይ...',placeOrder:'ትዕዛዝ ያስገቡ'}
   };
   private currentLanguage(): 'en' | 'om' | 'am' { try { const v=localStorage.getItem('merkato_language'); return v==='om'||v==='am'?v:'en'; } catch { return 'en'; } }
   t(key:string):string { return this.translations[this.language]?.[key] || this.translations['en'][key] || key; }
@@ -183,6 +192,7 @@ export class CartComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     window.addEventListener('merkato-language-change', this.languageListener);
+    this.loadDeliveryQuote();
     if (!this.auth.isAuthenticated) {
       this.loading = false;
       this.error = 'Sign in as a buyer to place an order.';
@@ -213,6 +223,18 @@ export class CartComponent implements OnInit, OnDestroy {
         this.loading = false;
         this.error = 'Could not load products. Check the API connection.';
       }
+    });
+  }
+
+  onCityChange(): void { this.loadDeliveryQuote(); }
+
+  private loadDeliveryQuote(): void {
+    this.deliveryQuoteLoading = true;
+    this.deliveryQuoteError = '';
+    this.deliveryFeeEtb = null;
+    this.api.getDeliveryFeeQuote(this.cityArea).subscribe({
+      next: quote => { this.deliveryFeeEtb = Number(quote.feeEtb); this.deliveryQuoteLoading = false; },
+      error: err => { this.deliveryQuoteError = err?.error?.message || 'Could not calculate delivery for this city.'; this.deliveryQuoteLoading = false; }
     });
   }
 
@@ -265,6 +287,7 @@ export class CartComponent implements OnInit, OnDestroy {
     this.success = '';
     if (!this.lines.length) { this.error = 'Your cart is empty.'; return; }
     if (!this.address.trim() || !this.cityArea.trim()) { this.error = 'Enter your delivery address and city / area.'; return; }
+    if (this.deliveryFeeEtb === null || this.deliveryQuoteLoading) { this.error = this.deliveryQuoteError || 'Wait for a valid delivery fee quote before placing the order.'; return; }
     if (!this.auth.isAuthenticated || this.auth.user?.role !== 'BUYER') {
       this.error = 'Please sign in with a buyer account to place orders.';
       return;
@@ -280,7 +303,7 @@ export class CartComponent implements OnInit, OnDestroy {
             sellerId: line.product.sellerId,
             productTitle: line.product.name,
             amountEtb: line.product.priceEtb,
-            deliveryFeeEtb: 0,
+            deliveryFeeEtb: this.deliveryFeeEtb!,
             paymentRail: this.paymentRail,
             deliveryCourier: 'BEU_DELIVERY',
             deliveryAddress: this.address.trim(),
