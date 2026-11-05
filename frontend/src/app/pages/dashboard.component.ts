@@ -97,7 +97,7 @@ import { ApiService, MerkatoProduct, MerkatoOrder, MerkatoDispute, MerchantAnaly
             <label>Business / shop name<input name="businessName" [(ngModel)]="verificationDraft.businessName" required minlength="2" maxlength="160" placeholder="e.g. Dera Electronics"></label>
             <label>Business type<select name="businessType" [(ngModel)]="verificationDraft.businessType" required><option value="" disabled>Select business type</option><option *ngFor="let type of businessTypes" [value]="type">{{type}}</option></select></label>
             <label>Primary city<select name="verificationCity" [(ngModel)]="verificationDraft.city" required><option *ngFor="let city of supportedCities" [value]="city">{{city}}</option></select></label>
-            <label>Business contact phone<input name="contactPhone" [(ngModel)]="verificationDraft.contactPhone" required maxlength="14" placeholder="09XXXXXXXX or +2519XXXXXXXX" pattern="^(\\+251|0)?[79][0-9]{8}$"></label>
+            <label>Business contact phone<input name="contactPhone" [(ngModel)]="verificationDraft.contactPhone" required maxlength="14" placeholder="09XXXXXXXX or +2519XXXXXXXX" pattern="^(\+251|0)?[79][0-9]{8}$"></label>
             <button class="btn btn-primary" [disabled]="verificationSaving">{{verificationSaving ? 'Submitting...' : 'Submit business for review'}}</button>
             <p class="form-error" *ngIf="verificationError">{{verificationError}}</p>
           </form>
@@ -210,7 +210,7 @@ export class DashboardComponent implements OnInit {
     this.verificationError = '';
     const phone = this.verificationDraft.contactPhone.trim().replace(/[\\s-]/g, '');
     if (!this.verificationDraft.businessName.trim() || !this.verificationDraft.businessType.trim() || !this.verificationDraft.city.trim() || !phone) { this.verificationError = 'Complete all business profile fields.'; return; }
-    if (!/^(\\+251|0)?[79][0-9]{8}$/.test(phone)) { this.verificationError = 'Enter a valid Ethiopian mobile number, e.g. 0912345678 or +251912345678.'; return; }
+    if (!/^(\+251|0)?[79][0-9]{8}$/.test(phone)) { this.verificationError = 'Enter a valid Ethiopian mobile number, e.g. 0912345678 or +251912345678.'; return; }
     this.verificationDraft.contactPhone = phone;
     this.verificationSaving = true;
     this.api.submitSellerVerification(this.verificationDraft).subscribe({
