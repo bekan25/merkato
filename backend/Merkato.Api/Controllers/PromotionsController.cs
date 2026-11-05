@@ -37,6 +37,7 @@ public sealed class PromotionsController(MerkatoDbContext db) : ControllerBase
         if (product is null) return NotFound("Product not found.");
         var coupon = await db.PromotionCoupons.AsNoTracking().FirstOrDefaultAsync(x => x.Code == input.Code.Trim().ToUpperInvariant(), ct);
         if (coupon is null) return NotFound("Coupon code is invalid.");
+        if (coupon.AssignedUserId.HasValue && coupon.AssignedUserId.Value != CurrentUserId) return Conflict("This reward coupon belongs to another account.");
         var error = await ValidateCoupon(coupon, CurrentUserId, product.SellerId, product.PriceEtb, ct);
         if (error is not null) return Conflict(error);
         return Ok(new { coupon.Code, coupon.Title, discountEtb = CalculateDiscount(coupon, product.PriceEtb), subtotalEtb = product.PriceEtb, totalEtb = product.PriceEtb - CalculateDiscount(coupon, product.PriceEtb), coupon.ExpiresAt });
