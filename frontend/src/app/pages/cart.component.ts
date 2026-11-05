@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -117,7 +117,7 @@ interface CartLine { product: MerkatoProduct; quantity: number; }
     @media(prefers-reduced-motion:reduce){.cart-page *{scroll-behavior:auto!important;transition:none!important}}
   `]
 })
-export class CartComponent implements OnInit {
+export class CartComponent implements OnInit, OnDestroy {
   private api = inject(ApiService);
   private auth = inject(AuthService);
   lines: CartLine[] = [];
@@ -175,6 +175,8 @@ export class CartComponent implements OnInit {
       }
     });
   }
+
+  ngOnDestroy(): void { window.removeEventListener('merkato-language-change', this.languageListener); }
 
   get itemCount(): number { return this.lines.reduce((sum, line) => sum + line.quantity, 0); }
   get subtotal(): number { return this.lines.reduce((sum, line) => sum + line.product.priceEtb * line.quantity, 0); }
