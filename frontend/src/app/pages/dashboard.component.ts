@@ -123,7 +123,7 @@ import { ApiService, MerkatoProduct, MerkatoOrder, MerkatoDispute, MerchantAnaly
                   <div class="product-image-preview editor-preview" *ngIf="imagePreviewUrl"><img [src]="imagePreviewUrl" alt="Selected product preview"><button type="button" class="btn btn-outline" (click)="clearSelectedImage()">Remove photo</button></div>
                   <div class="image-empty" *ngIf="!imagePreviewUrl"><span>▧</span><strong>Image preview</strong><small>Your selected image will appear here.</small></div>
                 </section>
-                <section class="editor-card listing-quality"><div class="row"><h4>Listing quality</h4><strong>{{listingQualityScore}} / 100</strong></div><div class="quality-track"><i [style.width.%]="listingQualityScore"></i></div><ul><li [class.done]="draft.name.trim().length >= 3">Clear product name</li><li [class.done]="draft.category && draft.category !== 'Other'">Specific category</li><li [class.done]="draft.priceEtb > 0">Valid ETB price</li><li [class.done]="draft.location">Store city selected</li><li [class.done]="!!selectedImage || !!(editingProductId && merchantProducts.find(p => p.id === editingProductId)?.imageUrl)">Product photo added</li></ul><small>Listings with clear photos and accurate details are easier for buyers to trust.</small></section>
+                <section class="editor-card listing-quality"><div class="row"><h4>Listing quality</h4><strong>{{listingQualityScore}} / 100</strong></div><div class="quality-track"><i [style.width.%]="listingQualityScore"></i></div><ul><li [class.done]="draft.name.trim().length >= 3">Clear product name</li><li [class.done]="draft.category && draft.category !== 'Other'">Specific category</li><li [class.done]="draft.priceEtb > 0">Valid ETB price</li><li [class.done]="draft.location">Store city selected</li><li [class.done]="!!selectedImage || hasExistingProductImage">Product photo added</li></ul><small>Listings with clear photos and accurate details are easier for buyers to trust.</small></section>
                 <section class="editor-card publish-card"><h4>Ready to list?</h4><p>Check the product details before publishing to the marketplace.</p><button class="btn btn-primary publish-button" [disabled]="saving">{{saving ? 'Saving product...' : (editingProductId ? '✓ Save changes' : '＋ Publish product')}}</button><button type="button" class="btn btn-outline cancel-button" *ngIf="editingProductId" (click)="cancelEdit()">Cancel editing</button><p class="form-error" *ngIf="productError">{{productError}}</p></section>
               </aside>
             </div>
@@ -177,6 +177,10 @@ export class DashboardComponent implements OnInit {
   readonly productCategories = ['Electronics','Fashion','Home & Living','Beauty & Personal Care','Food & Grocery','Agriculture','Automotive','Books & Education','Sports & Outdoors','Baby & Kids','Other'];
   verificationDraft = { businessName: '', businessType: '', city: 'Addis Ababa', contactPhone: '' };
   draft = { name: '', priceEtb: 0, category: 'Other', location: 'Addis Ababa', emoji: '🛍️' };
+  get hasExistingProductImage(): boolean {
+    return this.editingProductId !== null &&
+      !!this.merchantProducts.find(product => product.id === this.editingProductId)?.imageUrl;
+  }
   get listingQualityScore(): number {
     let score = 0;
     if (this.draft.name.trim().length >= 3) score += 20;
