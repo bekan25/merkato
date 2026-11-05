@@ -39,6 +39,31 @@ public class MerkatoDbContext : DbContext
             entity.HasIndex(u => u.FaydaIdNumber).IsUnique();
         });
 
+        modelBuilder.Entity<WholesalePriceTier>(e => {
+            e.HasIndex(x => new { x.ProductId, x.MinimumQuantity }).IsUnique();
+            e.Property(x => x.UnitPriceEtb).HasColumnType("numeric(18,4)");
+        });
+        modelBuilder.Entity<WholesaleRequest>(e => {
+            e.HasIndex(x => x.RequestNumber).IsUnique();
+            e.HasIndex(x => new { x.SellerId, x.Status });
+            e.Property(x => x.RequestedUnitPriceEtb).HasColumnType("numeric(18,4)");
+            e.Property(x => x.QuotedUnitPriceEtb).HasColumnType("numeric(18,4)");
+        });
+        modelBuilder.Entity<AffiliateProfile>(e => {
+            e.HasIndex(x => x.UserId).IsUnique();
+            e.HasIndex(x => x.ReferralCode).IsUnique();
+        });
+        modelBuilder.Entity<AffiliateReferral>(e => {
+            e.HasIndex(x => new { x.AffiliateUserId, x.VisitorKeyHash }).IsUnique();
+            e.HasIndex(x => x.ReferredUserId).IsUnique();
+        });
+        modelBuilder.Entity<AffiliateCommission>(e => {
+            e.HasIndex(x => x.OrderId).IsUnique();
+            e.Property(x => x.EligibleAmountEtb).HasColumnType("numeric(18,4)");
+            e.Property(x => x.RatePercent).HasColumnType("numeric(7,4)");
+            e.Property(x => x.CommissionEtb).HasColumnType("numeric(18,4)");
+        });
+
         // Product
         modelBuilder.Entity<Product>(entity =>
         {
