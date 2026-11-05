@@ -82,6 +82,10 @@ export class ApiService {
     );
   }
 
+  askShoppingAssistant(message: string): Observable<ShoppingAssistantResponse> {
+    return this.http.post<ShoppingAssistantResponse>(`${this.baseUrl}/assistant/chat`, { message });
+  }
+
   createProduct(payload: { name: string; priceEtb: number; location: string; category: string; emoji: string }): Observable<MerkatoProduct> {
     return this.http.post<MerkatoProduct>(`${this.baseUrl}/products`, payload);
   }
@@ -172,4 +176,10 @@ export interface AdminAnalytics {
   grossOrderValueEtb: number;
   openDisputes: number;
   recentUsers: Array<{ id: number; fullName: string; phoneNumber: string; role: string; createdAt: string }>;
+}
+
+
+export interface ShoppingAssistantResponse {
+  message: string;
+  suggestedProducts: Array<Pick<MerkatoProduct, 'id' | 'name' | 'category' | 'location' | 'priceEtb' | 'emoji'>>;
 }
