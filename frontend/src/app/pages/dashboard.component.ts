@@ -47,7 +47,7 @@ import { ApiService, MerkatoProduct, MerkatoOrder, MerkatoDispute, MerchantAnaly
           <small>Do not submit passwords, PINs or identity document numbers. This business review is separate from Fayda identity verification.</small>
         </section>
         <section class="workspace-section" *ngIf="user?.role === 'MERCHANT' || user?.role === 'ADMIN'" id="products"><div class="workspace-section-head"><div><span class="eyebrow">YOUR CATALOGUE</span><h2>Product management</h2><p>Products currently available in the marketplace API.</p></div><button class="btn btn-primary" (click)="toggleProductForm()">{{showProductForm ? 'Close form' : '+ Add product'}}</button></div>
-          <form class="product-form" *ngIf="showProductForm" (ngSubmit)="createProduct()"><label>Product name<input name="name" [(ngModel)]="draft.name" required></label><label>Price (ETB)<input name="price" [(ngModel)]="draft.priceEtb" type="number" min="0.01" required></label><label>Category<input name="category" [(ngModel)]="draft.category" required></label><label>Location<input name="location" [(ngModel)]="draft.location" required></label><button class="btn btn-primary" [disabled]="saving">{{saving ? 'Saving...' : (editingProductId ? 'Update product' : 'Save product')}}</button><button type="button" class="btn btn-outline" *ngIf="editingProductId" (click)="cancelEdit()">Cancel edit</button><p class="form-error" *ngIf="productError">{{productError}}</p></form>
+          <form class="product-form" *ngIf="showProductForm" (ngSubmit)="createProduct()"><label>Product name<input name="name" [(ngModel)]="draft.name" required maxlength="180"></label><label>Price (ETB)<input name="price" [(ngModel)]="draft.priceEtb" type="number" min="0.01" step="0.01" required></label><label>Category<input name="category" [(ngModel)]="draft.category" required maxlength="100"></label><label>Location<input name="location" [(ngModel)]="draft.location" required maxlength="160"></label><label class="image-upload-field">Product photo <span class="muted">JPEG, PNG or WebP · max 5 MB</span><input name="productImage" type="file" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" (change)="onImageSelected($event)"></label><div class="product-image-preview" *ngIf="imagePreviewUrl"><img [src]="imagePreviewUrl" alt="Selected product preview"><button type="button" class="btn btn-outline" (click)="clearSelectedImage()">Remove photo</button></div><button class="btn btn-primary" [disabled]="saving">{{saving ? 'Saving...' : (editingProductId ? 'Update product' : 'Save product')}}</button><button type="button" class="btn btn-outline" *ngIf="editingProductId" (click)="cancelEdit()">Cancel edit</button><p class="form-error" *ngIf="productError">{{productError}}</p></form>
           <div *ngIf="merchantProducts.length" class="table-wrap"><table><thead><tr><th>Product</th><th>Category</th><th>Price</th><th>Location</th><th>Status</th><th>Actions</th></tr></thead><tbody><tr *ngFor="let p of merchantProducts"><td>{{p.name}}</td><td>{{p.category}}</td><td>{{p.priceEtb | number:'1.2-2'}} ETB</td><td>{{p.location}}</td><td><span class="status-pill">Active</span></td><td class="product-actions"><button type="button" (click)="editProduct(p)">Edit</button><button type="button" (click)="removeProduct(p)">Archive</button></td></tr></tbody></table></div>
           <div class="empty-inline" *ngIf="!merchantProducts.length">No products are currently returned by the API. Add your first product when signed in as a merchant.</div>
         </section>
@@ -84,6 +84,8 @@ export class DashboardComponent implements OnInit {
   editingProductId: number | null = null;
   saving = false;
   productError = '';
+  selectedImage: File | null = null;
+  imagePreviewUrl: string | null = null;
   busyDisputeId: number | null = null;
   sellerVerification: SellerVerification | null = null;
   sellerVerifications: SellerVerification[] = [];
@@ -131,6 +133,29 @@ export class DashboardComponent implements OnInit {
   private reloadSellerVerifications(): void {
     this.api.getSellerVerifications().subscribe({ next: items => this.sellerVerifications = items || [], error: () => this.loadError = 'Could not load seller verification queue.' });
   }
+  onImageSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+    this.productError = '';
+    if (!file) return;
+    const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowed.includes(file.type) || file.size > 5 * 1024 * 1024) {
+      this.productError = 'Choose a JPEG, PNG or WebP image no larger than 5 MB.';
+      input.value = '';
+      return;
+    }
+    this.releaseImagePreview();
+    this.selectedImage = file;
+    this.imagePreviewUrl = URL.createObjectURL(file);
+  }
+  clearSelectedImage(): void {
+    this.selectedImage = null;
+    this.releaseImagePreview();
+  }
+  private releaseImagePreview(): void {
+    if (this.imagePreviewUrl) URL.revokeObjectURL(this.imagePreviewUrl);
+    this.imagePreviewUrl = null;
+  }
   createProduct(): void {
     this.productError = '';
     if (!this.draft.name.trim() || this.draft.priceEtb <= 0) { this.productError = 'Enter a product name and a price greater than zero.'; return; }
@@ -140,11 +165,30 @@ export class DashboardComponent implements OnInit {
       : this.api.createProduct(this.draft);
     request.subscribe({
       next: product => {
-        this.merchantProducts = this.editingProductId
-          ? this.merchantProducts.map(item => item.id === product.id ? product : item)
-          : [product, ...this.merchantProducts];
-        this.cancelEdit();
-        this.saving = false;
+        const isEditing = this.editingProductId !== null;
+        const saveProduct = (saved: MerkatoProduct) => {
+          this.merchantProducts = isEditing
+            ? this.merchantProducts.map(item => item.id === saved.id ? saved : item)
+            : [saved, ...this.merchantProducts];
+          this.cancelEdit();
+          this.saving = false;
+        };
+        if (this.selectedImage) {
+          this.api.uploadProductImage(product.id, this.selectedImage).subscribe({
+            next: saved => saveProduct(saved),
+            error: err => {
+              this.merchantProducts = isEditing
+                ? this.merchantProducts.map(item => item.id === product.id ? product : item)
+                : [product, ...this.merchantProducts];
+              this.saving = false;
+              this.productError = err?.status === 413
+                ? 'Image is too large. Choose an image under 5 MB.'
+                : 'Product was saved, but its photo could not be uploaded. You can edit the product and retry the photo.';
+            }
+          });
+        } else {
+          saveProduct(product);
+        }
       },
       error: err => { this.saving = false; this.productError = err?.status === 0 ? 'Cannot reach the API.' : 'Product could not be saved. Check your merchant permissions and form values.'; }
     });
@@ -154,9 +198,11 @@ export class DashboardComponent implements OnInit {
     this.editingProductId = product.id;
     this.draft = { name: product.name, priceEtb: product.priceEtb, category: product.category, location: product.location, emoji: product.emoji || '🛍️' };
     this.showProductForm = true;
+    this.clearSelectedImage();
     this.productError = '';
   }
   cancelEdit(): void {
+    this.clearSelectedImage();
     this.editingProductId = null;
     this.showProductForm = false;
     this.draft = { name: '', priceEtb: 0, category: 'Other', location: 'Addis Ababa', emoji: '🛍️' };
