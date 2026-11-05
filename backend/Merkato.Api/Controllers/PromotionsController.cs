@@ -55,7 +55,7 @@ public sealed class PromotionsController(MerkatoDbContext db) : ControllerBase
         if (type is not ("PERCENT" or "FIXED") || input.DiscountValue <= 0 ||
             (type == "PERCENT" && input.DiscountValue > 90) ||
             (type == "FIXED" && input.DiscountValue > 1_000_000) ||
-            input.MinimumOrderEtb < 0 || input.MaximumDiscountEtb < 0 ||
+            input.MinimumOrderEtb < 0 || (input.MaximumDiscountEtb.HasValue && input.MaximumDiscountEtb.Value < 0) ||
             input.UsageLimit is < 1 or > 1_000_000 || input.PerUserLimit is < 1 or > 10 ||
             input.StartsAt.Kind != DateTimeKind.Utc || input.ExpiresAt.Kind != DateTimeKind.Utc ||
             input.StartsAt >= input.ExpiresAt || input.ExpiresAt <= DateTime.UtcNow || input.ExpiresAt > DateTime.UtcNow.AddDays(180))
