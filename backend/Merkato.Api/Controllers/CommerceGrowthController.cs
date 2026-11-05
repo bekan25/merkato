@@ -99,13 +99,17 @@ public sealed class CommerceGrowthController(MerkatoDbContext db, IEscrowService
         return Ok(rows);
     }
 
-    [Authorize(Roles = "BUYER,MERCHANT")]
+    [Authorize(Roles = "MERCHANT,ADMIN")]
     [HttpPost("group-buys")]
     public async Task<IActionResult> CreateGroupBuy(GroupBuyInput input, CancellationToken ct)
     {
         if (input.TargetQuantity < 2 || input.DiscountUnitPriceEtb <= 0 || input.RegularUnitPriceEtb <= input.DiscountUnitPriceEtb || input.ExpiresAt <= DateTime.UtcNow || input.ExpiresAt > DateTime.UtcNow.AddDays(30)) return BadRequest("Invalid group target, discount or expiry (maximum 30 days).");
         var product = await db.Products.AsNoTracking().FirstOrDefaultAsync(x => x.Id == input.ProductId && x.IsActive, ct);
         if (product is null) return NotFound("Product not found.");
+        if (!User.IsInRole("ADMIN") && product.SellerId != CurrentUserId) return Forbid();
+        if (input.RegularUnitPriceEtb != product.PriceEtb) return Conflict("The group regular price must match the current product listing price.");
+        var availableStock = await db.ProductListingDetails.AsNoTracking().FirstOrDefaultAsync(x => x.ProductId == product.Id, ct);
+        if (availableStock is not null && availableStock.StockQuantity < 1) return Conflict("The product is out of stock.");
         var group = new GroupBuy { ProductId = product.Id, OrganizerId = CurrentUserId, TargetQuantity = input.TargetQuantity, JoinedQuantity = 1, RegularUnitPriceEtb = input.RegularUnitPriceEtb, DiscountUnitPriceEtb = input.DiscountUnitPriceEtb, ExpiresAt = input.ExpiresAt };
         await using var tx = await db.Database.BeginTransactionAsync(ct);
         db.GroupBuys.Add(group);
