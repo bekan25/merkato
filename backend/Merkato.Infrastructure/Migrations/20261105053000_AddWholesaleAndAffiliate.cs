@@ -1,9 +1,14 @@
+using Merkato.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace Merkato.Infrastructure.Migrations;
 
+[DbContext(typeof(MerkatoDbContext))]
+[Migration("20261105053000_AddWholesaleAndAffiliate")]
 public partial class AddWholesaleAndAffiliate : Migration
 {
     protected override void Up(MigrationBuilder migrationBuilder)
