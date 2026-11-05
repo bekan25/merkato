@@ -299,13 +299,13 @@ public sealed class CommerceGrowthController(MerkatoDbContext db) : ControllerBa
 
     [Authorize]
     [HttpPost("referrals/{code}/claim")]
-    public async Task<IActionResult> ClaimReferral(string code, CancellationToken ct)
+    public async Task<IActionResult> ClaimReferral(string code, ReferralClaimInput input, CancellationToken ct)
     {
         var profile = await db.AffiliateProfiles.AsNoTracking().FirstOrDefaultAsync(x => x.ReferralCode == code && x.IsActive, ct);
         if (profile is null) return NotFound("Referral code not found.");
         if (profile.UserId == CurrentUserId) return BadRequest("You cannot claim your own referral code.");
         if (await db.AffiliateReferrals.AnyAsync(x => x.ReferredUserId == CurrentUserId, ct)) return Conflict("This account has already used a referral code.");
-        var pending = await db.AffiliateReferrals.Where(x => x.AffiliateUserId == profile.UserId && x.ReferredUserId == null).OrderByDescending(x => x.ClickedAt).FirstOrDefaultAsync(ct);
+        if (string.IsNullOrWhiteSpace(input.VisitorKey) || input.VisitorKey.Length > 200) return BadRequest("Valid visitor key required.");\n        var visitorHash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(input.VisitorKey)));\n        var pending = await db.AffiliateReferrals.FirstOrDefaultAsync(x => x.AffiliateUserId == profile.UserId && x.VisitorKeyHash == visitorHash && x.ReferredUserId == null, ct);
         if (pending is null) return Conflict("No tracked referral visit was found for this account.");
         pending.ReferredUserId = CurrentUserId;
         pending.RegisteredAt = DateTime.UtcNow;
@@ -325,3 +325,4 @@ public sealed record RefundConfirmationInput(string ProviderReference);
 public sealed record LoyaltyAwardInput(long UserId, int Points, string Reason, long? OrderId);
 
 public sealed record ReferralClickInput(string VisitorKey);
+\npublic sealed record ReferralClaimInput(string VisitorKey);\n
