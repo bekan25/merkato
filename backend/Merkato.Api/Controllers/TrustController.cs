@@ -41,6 +41,10 @@ public sealed class TrustController : ControllerBase
             request.City.Trim().Length > 100 || request.ContactPhone.Trim().Length > 30)
             return BadRequest(new { message = "One or more fields exceed the allowed length." });
 
+        var normalizedPhone = new string(request.ContactPhone.Where(ch => !char.IsWhiteSpace(ch) && ch != '-').ToArray());
+        if (!System.Text.RegularExpressions.Regex.IsMatch(normalizedPhone, @"^(\+251|0)?[79][0-9]{8}$"))
+            return BadRequest(new { message = "Enter a valid Ethiopian mobile number, e.g. 0912345678 or +251912345678." });
+
         var latest = await LatestRequest(userId, ct);
         if (latest?.Result == "PENDING") return Conflict(new { message = "Your seller verification request is already pending review." });
         if (latest?.Result == "APPROVED") return Conflict(new { message = "Your seller profile is already approved." });
@@ -51,7 +55,7 @@ public sealed class TrustController : ControllerBase
             EntityType = VerificationType, EntityId = userId.ToString(), Result = "PENDING",
             MetadataJson = JsonSerializer.Serialize(new {
                 businessName = request.BusinessName.Trim(), businessType = request.BusinessType.Trim(),
-                city = request.City.Trim(), contactPhone = request.ContactPhone.Trim()
+                city = request.City.Trim(), contactPhone = normalizedPhone
             }),
             IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
             UserAgent = Request.Headers.UserAgent.ToString(), TraceId = HttpContext.TraceIdentifier
