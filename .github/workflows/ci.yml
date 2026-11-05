@@ -34,8 +34,24 @@ jobs:
         run: npm run build
 
   backend:
-    name: ASP.NET Core 10 tests
+    name: ASP.NET Core 10 and PostgreSQL migration tests
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: merkato_ci
+          POSTGRES_USER: merkato_ci
+          POSTGRES_PASSWORD: ci-password-not-for-production
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U merkato_ci -d merkato_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      ConnectionStrings__PostgreSql: Host=localhost;Port=5432;Database=merkato_ci;Username=merkato_ci;Password=ci-password-not-for-production
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -47,6 +63,11 @@ jobs:
         run: dotnet build backend/Merkato.sln --configuration Release --no-restore
       - name: Test
         run: dotnet test backend/Merkato.sln --configuration Release --no-build
+      - name: Apply all EF Core migrations to PostgreSQL 16
+        run: |
+          dotnet tool install --global dotnet-ef --version 10.0.14
+          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+          dotnet ef database update --project backend/Merkato.Infrastructure --startup-project backend/Merkato.Api
 
   containers:
     name: Container image and Compose validation
