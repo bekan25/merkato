@@ -5,9 +5,11 @@ on:
     branches:
       - main
       - feature/merkato-professional-marketplace
+      - feature/auth-hardening-without-otp
   pull_request:
     branches:
       - main
+      - feature/merkato-professional-marketplace
 
 permissions:
   contents: read
