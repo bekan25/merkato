@@ -23,5 +23,5 @@ export class SocialCommerceComponent implements OnInit {
  loadMine(){this.http.get<any[]>('/api/v1/social/posts/mine').subscribe({next:x=>this.mine=x,error:()=>this.error='Could not load your posts.'});}
  loadQueue(){this.http.get<any[]>('/api/v1/social/moderation').subscribe({next:x=>this.queue=x,error:()=>this.error='Could not load moderation queue.'});}
  moderate(p:any,decision:string){this.http.post('/api/v1/social/posts/'+p.id+'/moderate',{decision,note:''}).subscribe({next:()=>{this.message='Post moderation saved.';this.loadQueue();this.loadFeed();},error:()=>this.error='Could not moderate this post.'});}
- visit(p:any){const key='merkato_social_visitor';let visitor=sessionStorage.getItem(key);if(!visitor){visitor=crypto.randomUUID();sessionStorage.setItem(key,visitor);}this.http.post('/api/v1/social/posts/'+p.id+'/click',{visitorKey:visitor}).subscribe({next:()=>location.assign('/?product='+p.productId),error:()=>location.assign('/?product='+p.productId)});}
+ visit(p:any){const key='merkato_social_visitor';let visitor=sessionStorage.getItem(key);if(!visitor){visitor=crypto.randomUUID();sessionStorage.setItem(key,visitor);}this.http.post('/api/v1/social/posts/'+p.id+'/click',{visitorKey:visitor}).subscribe({next:()=>location.assign('/?productId='+p.productId),error:()=>location.assign('/?product='+p.productId)});}
 }
