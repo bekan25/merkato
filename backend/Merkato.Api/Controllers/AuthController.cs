@@ -97,7 +97,7 @@ public class AuthController : ControllerBase
         var now = DateTime.UtcNow;
         if (user.LoginLockedUntil is DateTime lockedUntil && lockedUntil > now)
         {
-            Response.Headers.RetryAfter = Math.Max(1, (int)Math.Ceiling((lockedUntil - now).TotalSeconds)).ToString();
+            Response.Headers["Retry-After"] = Math.Max(1, (int)Math.Ceiling((lockedUntil - now).TotalSeconds)).ToString();
             return StatusCode(StatusCodes.Status423Locked, "Too many failed attempts. Try again after the lockout expires.");
         }
 
