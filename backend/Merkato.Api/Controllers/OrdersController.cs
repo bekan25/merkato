@@ -69,6 +69,25 @@ public class OrdersController : ControllerBase
         return Ok(orders);
     }
 
+    // Provisional MERKATO delivery estimates by destination city.
+    // These are platform estimates, not live third-party courier tariffs.
+    [HttpGet("delivery-fee")]
+    [AllowAnonymous]
+    public IActionResult QuoteDeliveryFee([FromQuery] string cityArea)
+    {
+        if (!TryGetDeliveryFee(cityArea, out var fee))
+            return BadRequest(new { message = "Delivery is not yet available for this city. Contact MERKATO support for a quote." });
+
+        return Ok(new
+        {
+            cityArea = cityArea.Trim(),
+            feeEtb = fee,
+            currency = "ETB",
+            quoteType = "MERKATO_ESTIMATE",
+            note = "Indicative platform fee. Final courier availability and charges are confirmed separately."
+        });
+    }
+
     [HttpPost]
     [Authorize(Roles = "BUYER,ADMIN")]
     public async Task<ActionResult<OrderResponseDto>> CreateOrder(
@@ -81,10 +100,16 @@ public class OrdersController : ControllerBase
         if (request.SellerId <= 0 ||
             string.IsNullOrWhiteSpace(request.ProductTitle) ||
             string.IsNullOrWhiteSpace(request.DeliveryAddress) ||
+            string.IsNullOrWhiteSpace(request.CityArea) ||
             request.AmountEtb <= 0 ||
-            request.DeliveryFeeEtb < 0 ||
             !Enum.IsDefined(request.PaymentRail))
-            return BadRequest(new { message = "Provide a valid product, amount, payment method and delivery address." });
+            return BadRequest(new { message = "Provide a valid product, amount, payment method, delivery address and city." });
+
+        if (!TryGetDeliveryFee(request.CityArea, out var expectedDeliveryFee))
+            return BadRequest(new { message = "Delivery is not yet available for this city. Contact MERKATO support for a quote." });
+
+        if (request.DeliveryFeeEtb != expectedDeliveryFee)
+            return Conflict(new { message = "The delivery estimate has changed. Refresh the quote before placing the order.", deliveryFeeEtb = expectedDeliveryFee });
 
         var seller = await _db.Users.AsNoTracking()
             .FirstOrDefaultAsync(user => user.Id == request.SellerId, ct);
@@ -104,7 +129,7 @@ public class OrdersController : ControllerBase
         if (request.AmountEtb != product.PriceEtb)
             return Conflict(new { message = "The product price has changed. Refresh the marketplace and try again.", currentPriceEtb = product.PriceEtb });
 
-        var riskDecision = await _risk.EvaluateOrderRiskAsync(buyerId, request.AmountEtb + request.DeliveryFeeEtb, ct);
+        var riskDecision = await _risk.EvaluateOrderRiskAsync(buyerId, request.AmountEtb + expectedDeliveryFee, ct);
         if (riskDecision != RiskDecision.ALLOW)
             return Conflict(new { message = "This order requires additional verification and cannot be placed yet.", riskDecision = riskDecision.ToString() });
 
@@ -115,7 +140,7 @@ public class OrdersController : ControllerBase
             SellerId = request.SellerId,
             ProductTitle = product.Name,
             TotalAmountEtb = request.AmountEtb + request.DeliveryFeeEtb,
-            DeliveryFeeEtb = request.DeliveryFeeEtb,
+            DeliveryFeeEtb = expectedDeliveryFee,
             PaymentRail = request.PaymentRail,
             DeliveryCourier = string.IsNullOrWhiteSpace(request.DeliveryCourier) ? "BEU_DELIVERY" : request.DeliveryCourier.Trim(),
             DeliveryAddress = request.DeliveryAddress.Trim(),
@@ -136,5 +161,27 @@ public class OrdersController : ControllerBase
             order.EscrowState, order.DeliveryStatus, order.CreatedAt);
 
         return Ok(response);
+    }
+
+    private static bool TryGetDeliveryFee(string? cityArea, out decimal fee)
+    {
+        fee = 0m;
+        if (string.IsNullOrWhiteSpace(cityArea)) return false;
+        var city = cityArea.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+            .FirstOrDefault()?.Trim().ToLowerInvariant();
+        fee = city switch
+        {
+            "addis ababa" => 80m,
+            "adama" => 150m,
+            "hawassa" => 220m,
+            "bahir dar" => 250m,
+            "dire dawa" => 280m,
+            "jimma" => 250m,
+            "mekelle" => 300m,
+            "gondar" => 280m,
+            "dessie" => 260m,
+            _ => 0m
+        };
+        return fee > 0m;
     }
 }
