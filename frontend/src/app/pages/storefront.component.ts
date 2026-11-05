@@ -47,7 +47,7 @@ import { ShoppingAssistantComponent } from '../components/shopping-assistant.com
         <div><span class="eyebrow">{{ t('marketplace') }}</span><h2>{{ t('freshSellers') }}</h2><p>{{ t('merchantOfferings') }}</p></div>
         <div class="market-controls">
           <label class="search-box"><span>⌕</span><input [(ngModel)]="search" (ngModelChange)="onSearchChange()" placeholder="{{ t('searchProducts') }}" aria-label="Search products"></label>
-          <select [(ngModel)]="city" aria-label="Filter by Ethiopian city"><option *ngFor="let item of cityOptions" [value]="item.value">{{item.label}}</option></select>
+          <select [(ngModel)]="city" (ngModelChange)="loadProducts()" [attr.aria-label]="t('cityArea')"><option *ngFor="let item of cityOptions" [value]="item.value">{{item.label}}</option></select>
           <select [(ngModel)]="category" (ngModelChange)="loadProducts()" aria-label="Filter by category"><option *ngFor="let c of categoryOptions" [value]="c">{{c}}</option></select>
           <input class="price-filter" type="number" min="0" [(ngModel)]="minPrice" placeholder="{{ t('minEtb') }}" aria-label="Minimum price">
           <input class="price-filter" type="number" min="0" [(ngModel)]="maxPrice" placeholder="{{ t('maxEtb') }}" aria-label="Maximum price">
@@ -290,7 +290,7 @@ export class StorefrontComponent implements OnInit, OnDestroy {
   loadProducts(): void {
     this.loading = true;
     this.error = '';
-    this.api.getProducts(this.search, this.category).subscribe({
+    this.api.getProducts(this.search, this.category, this.city === 'All' ? '' : this.city).subscribe({
       next: items => { this.products = items || []; this.loading = false; },
       error: () => { this.products = []; this.loading = false; this.error = 'We could not load the marketplace right now. Please check your connection and try again.'; }
     });
