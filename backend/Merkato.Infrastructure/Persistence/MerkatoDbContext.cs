@@ -30,6 +30,7 @@ public class MerkatoDbContext : DbContext
     public DbSet<SourcingOffer> SourcingOffers => Set<SourcingOffer>();
     public DbSet<SocialCommercePost> SocialCommercePosts => Set<SocialCommercePost>();
     public DbSet<SocialCommerceClick> SocialCommerceClicks => Set<SocialCommerceClick>();
+    public DbSet<CreatorCommission> CreatorCommissions => Set<CreatorCommission>();
     public DbSet<AffiliateProfile> AffiliateProfiles => Set<AffiliateProfile>();
     public DbSet<AffiliateReferral> AffiliateReferrals => Set<AffiliateReferral>();
     public DbSet<AffiliateCommission> AffiliateCommissions => Set<AffiliateCommission>();
@@ -105,6 +106,7 @@ public class MerkatoDbContext : DbContext
         modelBuilder.Entity<SourcingOffer>(e => { e.HasIndex(x => x.ProductId); e.HasIndex(x => new { x.SourcingRequestId, x.SellerId }).IsUnique(); e.HasIndex(x => new { x.SellerId, x.Status }); e.Property(x => x.UnitPriceEtb).HasColumnType("numeric(18,4)"); e.Property(x => x.Note).HasMaxLength(1000); e.Property(x => x.Status).HasMaxLength(24).IsRequired(); });
         modelBuilder.Entity<SocialCommercePost>(e => { e.HasIndex(x => new { x.Status, x.PublishedAt }); e.HasIndex(x => new { x.CreatorId, x.CreatedAt }); e.Property(x => x.Caption).HasMaxLength(1200).IsRequired(); e.Property(x => x.MediaUrl).HasMaxLength(2048).IsRequired(); e.Property(x => x.MediaType).HasMaxLength(8).IsRequired(); e.Property(x => x.Status).HasMaxLength(16).IsRequired(); e.Property(x => x.ModerationNote).HasMaxLength(1000); });
         modelBuilder.Entity<SocialCommerceClick>(e => { e.HasIndex(x => new { x.PostId, x.VisitorHash }).IsUnique(); e.Property(x => x.VisitorHash).HasMaxLength(64).IsRequired(); });
+        modelBuilder.Entity<CreatorCommission>(e => { e.HasIndex(x => x.OrderId).IsUnique(); e.HasIndex(x => new { x.CreatorId, x.CreatedAt }); e.Property(x => x.EligibleAmountEtb).HasColumnType("numeric(18,4)"); e.Property(x => x.RatePercent).HasColumnType("numeric(7,4)"); e.Property(x => x.CommissionEtb).HasColumnType("numeric(18,4)"); e.Property(x => x.Status).HasMaxLength(32).IsRequired(); });
         modelBuilder.Entity<AffiliateProfile>(e => {
             e.HasIndex(x => x.UserId).IsUnique();
             e.HasIndex(x => x.ReferralCode).IsUnique();
