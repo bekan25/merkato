@@ -162,9 +162,9 @@ public class PaymentService : IPaymentService
                 if (releasedClaim == 1)
                 {
                     var releasedStock = await _db.ProductListingDetails
-                        .Where(x => x.ProductId == order.ProductId && x.ReservedQuantity >= 1)
+                        .Where(x => x.ProductId == order.ProductId && x.ReservedQuantity >= order.Quantity)
                         .ExecuteUpdateAsync(update => update
-                            .SetProperty(x => x.ReservedQuantity, x => x.ReservedQuantity - 1)
+                            .SetProperty(x => x.ReservedQuantity, x => x.ReservedQuantity - order.Quantity)
                             .SetProperty(x => x.UpdatedAt, DateTime.UtcNow), ct);
                     if (releasedStock != 1)
                         throw new InvalidOperationException("Payment failed but the inventory reservation could not be released; support intervention is required.");
