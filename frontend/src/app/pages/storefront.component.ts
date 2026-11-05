@@ -233,7 +233,7 @@ export class StorefrontComponent implements OnInit, OnDestroy {
   private currentLanguage(): 'en' | 'om' | 'am' {
     try { const value = localStorage.getItem('merkato_language'); return value === 'om' || value === 'am' ? value : 'en'; } catch { return 'en'; }
   }
-  t(key: string): string { return this.translations[this.language]?.[key] || this.translations.en[key] || key; }
+  t(key: string): string { return this.translations[this.language]?.[key] || this.translations['en'][key] || key; }
 
 
   get hasActiveFilters(): boolean {
