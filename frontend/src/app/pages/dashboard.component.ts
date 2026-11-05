@@ -180,6 +180,9 @@ export class DashboardComponent implements OnInit {
               this.merchantProducts = isEditing
                 ? this.merchantProducts.map(item => item.id === product.id ? product : item)
                 : [product, ...this.merchantProducts];
+              this.editingProductId = product.id;
+              this.draft = { name: product.name, priceEtb: product.priceEtb, category: product.category, location: product.location, emoji: product.emoji || '🛍️' };
+              this.showProductForm = true;
               this.saving = false;
               this.productError = err?.status === 413
                 ? 'Image is too large. Choose an image under 5 MB.'
