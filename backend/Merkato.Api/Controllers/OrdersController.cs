@@ -139,7 +139,7 @@ public class OrdersController : ControllerBase
             BuyerId = buyerId,
             SellerId = request.SellerId,
             ProductTitle = product.Name,
-            TotalAmountEtb = request.AmountEtb + request.DeliveryFeeEtb,
+            TotalAmountEtb = request.AmountEtb + expectedDeliveryFee,
             DeliveryFeeEtb = expectedDeliveryFee,
             PaymentRail = request.PaymentRail,
             DeliveryCourier = string.IsNullOrWhiteSpace(request.DeliveryCourier) ? "BEU_DELIVERY" : request.DeliveryCourier.Trim(),
