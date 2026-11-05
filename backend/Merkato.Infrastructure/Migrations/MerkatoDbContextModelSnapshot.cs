@@ -443,6 +443,9 @@ namespace Merkato.Infrastructure.Migrations
                     b.Property<int>("PaymentRail")
                         .HasColumnType("integer");
 
+                    b.Property<long?>("ProductId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("ProductTitle")
                         .IsRequired()
                         .HasColumnType("text");
