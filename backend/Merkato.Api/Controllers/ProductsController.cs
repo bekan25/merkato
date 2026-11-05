@@ -135,11 +135,20 @@ public class ProductsController : ControllerBase
     public async Task<ActionResult<ProductResponse>> CreateProduct(
         [FromBody] CreateProductRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request.Name))
-            return BadRequest("Product name is required.");
+        if (string.IsNullOrWhiteSpace(request.Name) ||
+            request.Name.Trim().Length < 3 || request.Name.Trim().Length > 180)
+            return BadRequest("Product name must contain 3–180 characters.");
 
-        if (request.PriceEtb <= 0)
-            return BadRequest("Price must be greater than zero.");
+        if (request.PriceEtb <= 0 || request.PriceEtb > 1000000000m)
+            return BadRequest("Price must be greater than zero and within the supported ETB range.");
+
+        if (string.IsNullOrWhiteSpace(request.Category) ||
+            request.Category.Trim().Length > 100)
+            return BadRequest("Choose a valid product category (max 100 characters).");
+
+        if (string.IsNullOrWhiteSpace(request.Location) ||
+            request.Location.Trim().Length > 160)
+            return BadRequest("A city or store location is required (max 160 characters).");
 
         var claim = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
@@ -215,11 +224,20 @@ public class ProductsController : ControllerBase
         if (!User.IsInRole("ADMIN") && product.SellerId != userId)
             return Forbid();
 
-        if (string.IsNullOrWhiteSpace(request.Name))
-            return BadRequest("Product name is required.");
+        if (string.IsNullOrWhiteSpace(request.Name) ||
+            request.Name.Trim().Length < 3 || request.Name.Trim().Length > 180)
+            return BadRequest("Product name must contain 3–180 characters.");
 
-        if (request.PriceEtb <= 0)
-            return BadRequest("Price must be greater than zero.");
+        if (request.PriceEtb <= 0 || request.PriceEtb > 1000000000m)
+            return BadRequest("Price must be greater than zero and within the supported ETB range.");
+
+        if (string.IsNullOrWhiteSpace(request.Category) ||
+            request.Category.Trim().Length > 100)
+            return BadRequest("Choose a valid product category (max 100 characters).");
+
+        if (string.IsNullOrWhiteSpace(request.Location) ||
+            request.Location.Trim().Length > 160)
+            return BadRequest("A city or store location is required (max 160 characters).");
 
         product.Name = request.Name.Trim();
         product.PriceEtb = request.PriceEtb;
