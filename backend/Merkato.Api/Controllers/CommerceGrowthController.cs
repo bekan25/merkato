@@ -305,7 +305,12 @@ public sealed class CommerceGrowthController(MerkatoDbContext db, IEscrowService
     public async Task<IActionResult> MyReferral(CancellationToken ct)
     {
         var profile = await db.AffiliateProfiles.AsNoTracking().FirstOrDefaultAsync(x => x.UserId == CurrentUserId && x.IsActive, ct);
-        if (profile is null) return Ok(new { referralCode = (string?)null, referrals = 0, message = "Create a referral profile to start sharing." });
+        if (profile is null)
+        {
+            var ownRewards = await db.PromotionCoupons.AsNoTracking().Where(x => x.AssignedUserId == CurrentUserId && x.IsActive)
+                .Select(x => new { x.Code, x.Title, x.DiscountType, x.DiscountValue, x.ExpiresAt }).ToListAsync(ct);
+            return Ok(new { referralCode = (string?)null, referrals = 0, rewardCoupons = ownRewards, message = "Create a referral profile to start sharing." });
+        }
         var referrals = await db.AffiliateReferrals.AsNoTracking().CountAsync(x => x.AffiliateUserId == CurrentUserId && x.ReferredUserId != null, ct);
         var commissions = await db.AffiliateCommissions.AsNoTracking().Where(x => x.AffiliateUserId == CurrentUserId)
             .Select(x => new { x.CommissionEtb, x.Status, x.CreatedAt }).ToListAsync(ct);
