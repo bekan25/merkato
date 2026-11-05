@@ -62,7 +62,7 @@ public class OrdersController : ControllerBase
             .OrderByDescending(order => order.CreatedAt)
             .Select(order => new OrderResponseDto(
                 order.Id, order.OrderNumber, order.BuyerId, order.SellerId,
-                order.ProductTitle, order.TotalAmountEtb, order.DeliveryFeeEtb,
+                order.ProductTitle, order.Quantity, order.UnitPriceEtb, order.TotalAmountEtb, order.DeliveryFeeEtb,
                 order.PaymentRail, order.DeliveryCourier, order.DeliveryAddress,
                 order.EscrowState, order.DeliveryStatus, order.CreatedAt))
             .ToListAsync(ct);
