@@ -69,11 +69,12 @@ export class ApiService {
    * The API deliberately returns only catalogue fields; timestamps and
    * listing state are not exposed by this public search contract.
    */
-  getProducts(search = '', category = ''): Observable<MerkatoProduct[]> {
+  getProducts(search = '', category = '', location = ''): Observable<MerkatoProduct[]> {
     let params = new HttpParams();
     params = params.set('limit', '24');
     if (search.trim()) params = params.set('q', search.trim());
     if (category && category !== 'All') params = params.set('category', category.trim());
+    if (location.trim()) params = params.set('location', location.trim());
     return this.http.get<DiscoveryProductsResponse>(`${this.baseUrl}/v1/discovery/products`, { params }).pipe(
       map(response => (response?.items ?? []).map(item => ({
         ...item,
