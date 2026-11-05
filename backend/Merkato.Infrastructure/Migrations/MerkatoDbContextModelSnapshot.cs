@@ -678,7 +678,7 @@ namespace Merkato.Infrastructure.Migrations
                     b.Property<long>("BuyerId").HasColumnType("bigint");
                     b.Property<DateTime>("CreatedAt").HasColumnType("timestamp with time zone");
                     b.Property<long>("ProductId").HasColumnType("bigint");
-                    b.Property<decimal>("QuotedUnitPriceEtb").HasColumnType("numeric(18,4)");
+                    b.Property<decimal?>("QuotedUnitPriceEtb").HasColumnType("numeric(18,4)");
                     b.Property<string>("RequestNumber").IsRequired().HasColumnType("text");
                     b.Property<decimal>("RequestedUnitPriceEtb").HasColumnType("numeric(18,4)");
                     b.Property<long>("SellerId").HasColumnType("bigint");
