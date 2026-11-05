@@ -11,6 +11,11 @@ public class MerkatoDbContext : DbContext
 
     public DbSet<User> Users => Set<User>();
     public DbSet<Product> Products => Set<Product>();
+    public DbSet<WholesalePriceTier> WholesalePriceTiers => Set<WholesalePriceTier>();
+    public DbSet<WholesaleRequest> WholesaleRequests => Set<WholesaleRequest>();
+    public DbSet<AffiliateProfile> AffiliateProfiles => Set<AffiliateProfile>();
+    public DbSet<AffiliateReferral> AffiliateReferrals => Set<AffiliateReferral>();
+    public DbSet<AffiliateCommission> AffiliateCommissions => Set<AffiliateCommission>();
     public DbSet<Order> Orders => Set<Order>();
     public DbSet<PaymentTransaction> PaymentTransactions => Set<PaymentTransaction>();
     public DbSet<EscrowAccount> EscrowAccounts => Set<EscrowAccount>();
