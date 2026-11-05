@@ -1,0 +1,47 @@
+import { CommonModule } from '@angular/common';
+import { Component, OnInit, inject } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
+import { AuthService } from '../core/auth.service';
+
+@Component({
+ standalone:true, selector:'app-sourcing', imports:[CommonModule,FormsModule],
+ template:`
+ <main class="page">
+  <a href="/commerce">← Commerce Hub</a><header><span>MERKATO ONE REQUEST</span><h1>Find it from many merchants</h1><p>Post what you need once. Merchants across MERKATO can submit offers. Compare price, quantity and delivery lead time before selecting one.</p></header>
+  <p class="notice" *ngIf="message">{{message}}</p><p class="error" *ngIf="error">{{error}}</p>
+  <section class="panel" *ngIf="auth.hasRole(['BUYER'])"><h2>Create a sourcing request</h2>
+   <form (ngSubmit)="create()"><label>What product do you need?<input name="title" [(ngModel)]="draft.title" maxlength="160" required placeholder="e.g. 20 office laptops"></label>
+   <label>Details / specifications<textarea name="description" [(ngModel)]="draft.description" maxlength="2000" required placeholder="Brand, model, quality, required features..."></textarea></label>
+   <div class="grid"><label>Category<input name="category" [(ngModel)]="draft.category" maxlength="100" required></label><label>City<input name="city" [(ngModel)]="draft.city" maxlength="100" required></label><label>Quantity<input name="quantity" type="number" min="1" [(ngModel)]="draft.quantity" required></label><label>Target unit price (ETB, optional)<input name="target" type="number" min="0.01" [(ngModel)]="draft.targetUnitPriceEtb"></label><label>Open for (days)<input name="days" type="number" min="1" max="30" [(ngModel)]="draft.validDays"></label></div><button [disabled]="busy">Publish request</button></form>
+  </section>
+  <section class="panel" *ngIf="auth.hasRole(['BUYER'])"><div class="heading"><h2>My requests</h2><button type="button" (click)="loadMine()">Refresh</button></div>
+   <article class="request" *ngFor="let r of mine"><div class="heading"><div><b>{{r.title}}</b><small>{{r.requestNumber}} · {{r.city}} · {{r.quantity}} units</small></div><strong>{{r.status}}</strong></div><p>{{r.description}}</p><small>{{r.offerCount}} merchant offers · expires {{r.expiresAt | date:'medium'}}</small><div class="actions"><button type="button" (click)="viewOffers(r)">Compare offers</button><button type="button" *ngIf="r.status==='OPEN'" (click)="close(r)">Close request</button></div>
+    <div class="offer" *ngFor="let o of offersByRequest[r.id]"><div><b>{{o.unitPriceEtb | number:'1.2-2'}} ETB / unit</b><small>Merchant #{{o.sellerId}} · {{o.availableQuantity}} available · {{o.leadTimeDays ?? '—'}} days</small><p>{{o.note}}</p></div><button type="button" [disabled]="r.status!=='OPEN'||o.status!=='SUBMITTED'||o.availableQuantity<r.quantity" (click)="accept(r,o)">Select offer</button></div>
+   </article><p *ngIf="!mine.length">You have not posted a sourcing request yet.</p>
+  </section>
+  <section class="panel" *ngIf="auth.hasRole(['MERCHANT','ADMIN'])"><div class="heading"><h2>Merchant sourcing board</h2><button type="button" (click)="loadOpen()">Refresh</button></div>
+   <div class="grid"><label>Filter category<input [(ngModel)]="categoryFilter"></label><label>Filter city<input [(ngModel)]="cityFilter"></label><button type="button" (click)="loadOpen()">Apply filters</button></div>
+   <article class="request" *ngFor="let r of open"><b>{{r.title}}</b><small>{{r.requestNumber}} · {{r.category}} · {{r.city}} · need {{r.quantity}}</small><p>{{r.description}}</p><small>Target: {{r.targetUnitPriceEtb ? (r.targetUnitPriceEtb+' ETB') : 'Not specified'}} · expires {{r.expiresAt | date:'medium'}}</small>
+    <form (ngSubmit)="submitOffer(r)"><label>Your unit price (ETB)<input type="number" min="0.01" [(ngModel)]="offerDrafts[r.id].unitPriceEtb" [name]="'price'+r.id" required></label><label>Available quantity<input type="number" min="1" [(ngModel)]="offerDrafts[r.id].availableQuantity" [name]="'qty'+r.id" required></label><label>Lead time in days<input type="number" min="0" [(ngModel)]="offerDrafts[r.id].leadTimeDays" [name]="'lead'+r.id"></label><label>Offer note<textarea [(ngModel)]="offerDrafts[r.id].note" [name]="'note'+r.id" maxlength="1000"></textarea></label><button [disabled]="busy">Send offer</button></form>
+   </article><p *ngIf="!open.length">No open sourcing requests match your filters.</p>
+  </section>
+  <p class="muted" *ngIf="!auth.isAuthenticated">Sign in as a buyer to post a request, or as a merchant to submit offers.</p>
+  <p class="muted">Selecting an offer records the buyer's choice only. It does not create a paid order or mark a payment complete. Continue through MERKATO's verified checkout when order conversion is enabled.</p>
+ </main>`,
+ styles:[`
+ .page{max-width:980px;margin:auto;padding:32px 20px 80px;color:#29271f}.page>a{color:#87651e;text-decoration:none;font-weight:700}header{padding:28px 0}header span{font-size:11px;letter-spacing:.16em;font-weight:800;color:#967329}h1{font-size:clamp(30px,5vw,46px);margin:8px 0}header p,.muted{color:#777164;line-height:1.6}.panel{background:#fff;border:1px solid #e8e0ce;border-radius:17px;padding:22px;margin:16px 0}.panel h2{margin:0 0 18px}form{display:grid;gap:12px}label{display:grid;gap:6px;font-size:13px;font-weight:700;color:#625d51}input,textarea{width:100%;box-sizing:border-box;padding:11px;border:1px solid #ded8cb;border-radius:9px;font:inherit}textarea{min-height:80px}button{padding:10px 14px;border:0;border-radius:9px;background:#b88b2b;color:#fff;font-weight:800;cursor:pointer}button:disabled{opacity:.55}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.heading{display:flex;align-items:center;justify-content:space-between;gap:12px}.request{padding:16px 0;border-bottom:1px solid #eee9de}.request small{display:block;color:#777164;margin-top:5px}.request p{line-height:1.5}.actions{display:flex;gap:8px;margin:10px 0}.offer{display:flex;justify-content:space-between;align-items:center;gap:14px;margin:10px 0;padding:12px;background:#faf8f2;border-radius:10px}.notice{padding:12px;background:#edf7ed;border-radius:9px}.error{color:#b42318}@media(max-width:600px){.grid{grid-template-columns:1fr}.offer{align-items:flex-start;flex-direction:column}}`]
+})
+export class SourcingComponent implements OnInit {
+ private http=inject(HttpClient); auth=inject(AuthService); busy=false;message='';error='';
+ draft:any={title:'',description:'',category:'',city:'Addis Ababa',quantity:1,targetUnitPriceEtb:null,validDays:7};
+ mine:any[]=[];open:any[]=[];offersByRequest:Record<number,any[]>={};offerDrafts:Record<number,any>={};categoryFilter='';cityFilter='';
+ ngOnInit(){if(this.auth.hasRole(['BUYER']))this.loadMine();if(this.auth.hasRole(['MERCHANT','ADMIN']))this.loadOpen();}
+ create(){this.busy=true;this.message='';this.error='';this.http.post('/api/v1/sourcing/requests',this.draft).subscribe({next:()=>{this.busy=false;this.message='Your request is now visible to eligible merchants.';this.draft={...this.draft,title:'',description:'',quantity:1,targetUnitPriceEtb:null};this.loadMine();},error:e=>{this.busy=false;this.error=e?.error?.detail||e?.error?.title||'Could not publish request.';}});}
+ loadMine(){this.http.get<any[]>('/api/v1/sourcing/requests/mine').subscribe({next:x=>this.mine=x,error:()=>this.error='Could not load your requests.'});}
+ loadOpen(){const q=new URLSearchParams();if(this.categoryFilter.trim())q.set('category',this.categoryFilter.trim());if(this.cityFilter.trim())q.set('city',this.cityFilter.trim());this.http.get<any[]>('/api/v1/sourcing/requests/open?'+q.toString()).subscribe({next:x=>{this.open=x;for(const r of x)if(!this.offerDrafts[r.id])this.offerDrafts[r.id]={unitPriceEtb:0,availableQuantity:r.quantity,leadTimeDays:0,note:''};},error:()=>this.error='Could not load merchant sourcing board.'});}
+ viewOffers(r:any){this.http.get<any[]>('/api/v1/sourcing/requests/'+r.id+'/offers').subscribe({next:x=>this.offersByRequest[r.id]=x,error:()=>this.error='Could not load offers.'});}
+ submitOffer(r:any){this.busy=true;this.http.post('/api/v1/sourcing/requests/'+r.id+'/offers',this.offerDrafts[r.id]).subscribe({next:()=>{this.busy=false;this.message='Offer submitted to buyer.';this.loadOpen();},error:e=>{this.busy=false;this.error=e?.error?.detail||'Could not submit offer.';}});}
+ accept(r:any,o:any){if(!confirm('Select this merchant offer? No payment will be taken.'))return;this.http.post('/api/v1/sourcing/requests/'+r.id+'/offers/'+o.id+'/accept',{}).subscribe({next:()=>{this.message='Offer selected. Continue with verified checkout when available.';this.loadMine();this.viewOffers(r);},error:()=>this.error='Could not select offer.'});}
+ close(r:any){this.http.post('/api/v1/sourcing/requests/'+r.id+'/close',{}).subscribe({next:()=>{this.message='Request closed.';this.loadMine();},error:()=>this.error='Could not close request.'});}
+}
