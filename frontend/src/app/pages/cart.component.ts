@@ -70,7 +70,7 @@ interface CartLine { product: MerkatoProduct; quantity: number; }
             <p class="checkout-note">Order creation and payment initiation are connected. A real provider checkout or payment confirmation still depends on verified merchant gateway credentials and webhook setup.</p>
             <p class="form-error" *ngIf="error">{{error}}</p>
             <button class="btn btn-primary checkout-button" [disabled]="submitting || loading">
-              {{submitting ? '{{ t('submitting') }}' : '{{ t('placeOrder') }}'}} <span>↗</span>
+              {{ submitting ? t('submitting') : t('placeOrder') }} <span>↗</span>
             </button>
           </form>
           <p class="checkout-success" *ngIf="success">{{success}}</p>
