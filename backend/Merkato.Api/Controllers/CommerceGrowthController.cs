@@ -170,15 +170,15 @@ public sealed class CommerceGrowthController(MerkatoDbContext db, IEscrowService
     public async Task<IActionResult> JoinGroupBuy(long id, GroupJoinInput input, CancellationToken ct)
     {
         if (input.Quantity < 1 || input.Quantity > 1000) return BadRequest("Quantity must be between 1 and 1000.");
-        await using var tx = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, ct);
-        var group = await db.GroupBuys.FirstOrDefaultAsync(x => x.Id == id, ct);
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        var group = await db.GroupBuys.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, ct);
         if (group is null) return NotFound();
         if (group.Status != GroupBuyStatus.OPEN || group.ExpiresAt <= DateTime.UtcNow) return Conflict("This group buy is closed.");
         if (group.OrganizerId == CurrentUserId) return BadRequest("Organizer cannot join their own group.");
-        if (group.JoinedQuantity + input.Quantity > group.TargetQuantity) return Conflict("This quantity exceeds the remaining group target.");
 
-        // Reserve stock with one conditional database update. This prevents two
-        // simultaneous group buys from promising the same physical units.
+        // Reserve physical stock and increment group progress with conditional SQL
+        // updates. PostgreSQL re-checks each predicate after row locks are acquired,
+        // so concurrent requests cannot oversell stock or exceed the group target.
         var reserved = await db.ProductListingDetails
             .Where(x => x.ProductId == group.ProductId &&
                         x.StockQuantity - x.ReservedQuantity >= input.Quantity)
@@ -187,10 +187,19 @@ public sealed class CommerceGrowthController(MerkatoDbContext db, IEscrowService
                 .SetProperty(x => x.UpdatedAt, DateTime.UtcNow), ct);
         if (reserved != 1) return Conflict("Not enough unreserved stock for this group quantity.");
 
-        var member = new GroupBuyMember { GroupBuyId = id, BuyerId = CurrentUserId, Quantity = input.Quantity };
-        db.GroupBuyMembers.Add(member);
-        group.JoinedQuantity += input.Quantity;
-        if (group.JoinedQuantity >= group.TargetQuantity) group.Status = GroupBuyStatus.TARGET_REACHED;
+        var now = DateTime.UtcNow;
+        var updatedGroup = await db.GroupBuys
+            .Where(x => x.Id == id && x.Status == GroupBuyStatus.OPEN &&
+                        x.ExpiresAt > now && x.JoinedQuantity + input.Quantity <= x.TargetQuantity)
+            .ExecuteUpdateAsync(update => update
+                .SetProperty(x => x.JoinedQuantity, x => x.JoinedQuantity + input.Quantity)
+                .SetProperty(x => x.Status, x => x.JoinedQuantity + input.Quantity >= x.TargetQuantity
+                    ? GroupBuyStatus.TARGET_REACHED
+                    : GroupBuyStatus.OPEN), ct);
+        if (updatedGroup != 1)
+            return Conflict("The group target was reached or the group expired. Refresh the group status.");
+
+        db.GroupBuyMembers.Add(new GroupBuyMember { GroupBuyId = id, BuyerId = CurrentUserId, Quantity = input.Quantity });
         try
         {
             await db.SaveChangesAsync(ct);
@@ -200,7 +209,9 @@ public sealed class CommerceGrowthController(MerkatoDbContext db, IEscrowService
         {
             return Conflict("You may already have joined this group buy. Refresh the group status.");
         }
-        return Ok(new { group.Id, group.JoinedQuantity, group.TargetQuantity, status = group.Status.ToString(), group.DiscountUnitPriceEtb, totalEtb = group.DiscountUnitPriceEtb * input.Quantity });
+
+        var result = await db.GroupBuys.AsNoTracking().FirstAsync(x => x.Id == id, ct);
+        return Ok(new { result.Id, result.JoinedQuantity, result.TargetQuantity, status = result.Status.ToString(), result.DiscountUnitPriceEtb, totalEtb = result.DiscountUnitPriceEtb * input.Quantity });
     }
 
     [Authorize(Roles = "MERCHANT,ADMIN")]
