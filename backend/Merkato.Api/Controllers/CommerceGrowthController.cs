@@ -97,7 +97,7 @@ public sealed class CommerceGrowthController(MerkatoDbContext db, IEscrowService
     {
         await ExpireStaleGroupBuysAsync(ct);
         var now = DateTime.UtcNow;
-        var rows = await db.GroupBuys.AsNoTracking().Where(x => x.Status == GroupBuyStatus.OPEN && x.ExpiresAt > now)
+        var rows = await db.GroupBuys.AsNoTracking().Where(x => (x.Status == GroupBuyStatus.OPEN || x.Status == GroupBuyStatus.TARGET_REACHED) && x.ExpiresAt > now)
             .OrderBy(x => x.ExpiresAt).Select(x => new { x.Id, x.ProductId, productName = db.Products.Where(p => p.Id == x.ProductId).Select(p => p.Name).FirstOrDefault(), x.OrganizerId, x.TargetQuantity, x.JoinedQuantity, x.RegularUnitPriceEtb, x.DiscountUnitPriceEtb, x.ExpiresAt, progressPercent = Math.Min(100, (int)(100m * x.JoinedQuantity / x.TargetQuantity)) }).ToListAsync(ct);
         return Ok(rows);
     }
