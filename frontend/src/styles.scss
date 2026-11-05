@@ -461,3 +461,57 @@ button:focus-visible,input:focus-visible,select:focus-visible{
   border-radius: 12px;
   border: 1px solid #e2e8f0;
 }
+
+
+/* MERKATO premium Gold + Ivory + Charcoal theme */
+:root{
+  color-scheme:light;
+  --forest:#252525;--forest-2:#3a3428;--mint:#f2ead6;--cream:#faf8f2;--paper:#fffdf8;
+  --ink:#242424;--muted:#77736b;--line:#e9e2d3;--gold:#c49a32;
+  --merkato-gold:#c49a32;--merkato-gold-dark:#9c7620;--merkato-ivory:#faf8f2;--merkato-charcoal:#242424;
+  --shadow:0 18px 55px rgba(65,49,17,.10);
+}
+body{background:var(--merkato-ivory)!important;color:var(--merkato-charcoal)!important}
+.announcement{background:linear-gradient(90deg,#29251d,#514329)!important;color:#f8f1df!important}
+.announcement span,.eyebrow-dot,.cart-count,.trust-strip strong,.category-list button span,.state-icon{color:var(--merkato-gold)!important}
+.site-header{background:rgba(255,253,248,.94)!important;border-color:#e9e2d3!important}
+.brand,.brand-mark,.main-nav a:hover,.main-nav a.active,.dashboard-link,.hero-secondary,.cart-link,.account-link strong,.delivery-link strong{color:var(--merkato-charcoal)!important}
+.brand-mark{background:linear-gradient(145deg,#d8b65b,#a98225)!important;color:#211d15!important;box-shadow:0 6px 16px rgba(156,118,32,.22)!important}
+.btn-primary,.global-search button{background:linear-gradient(135deg,#d1ad50,#a98225)!important;color:#211d15!important}
+.btn-primary:hover{background:linear-gradient(135deg,#dfc16f,#b28a2b)!important}
+.btn-outline{border-color:#d8c99f!important;color:#6f551b!important;background:#fffdf8!important}
+.btn-light{color:#6f551b!important}
+.hero,.auth-form-wrap{background:var(--merkato-ivory)!important}
+.hero h1,.auth-form h2,.section-heading h2,.workspace-section h2,.checkout-panel h2,.cart-heading h1{color:var(--merkato-charcoal)!important}
+.hero h1 em,.auth-message h1 em{color:var(--merkato-gold-dark)!important}
+.hero-copy>p,.market-heading p,.muted{color:#77736b!important}
+.art-card-info strong,.product-bottom>strong,.state-panel strong,.workspace-card>strong{color:#4d3c17!important}
+.floating-tag,.product-card,.checkout-panel,.workspace-section,.workspace-card{background:#fffdf8!important}
+.floating-tag span,.product-category,.cart-count{color:#8e6b1e!important}
+.category-list button:hover,.category-list button.selected,.side-link.active,.side-link:hover{border-color:#d8c27e!important;background:#f4edda!important;color:#574317!important}
+.product-card:hover{box-shadow:0 18px 40px rgba(65,49,17,.12)!important}
+.product-visual,.art-image{background:linear-gradient(145deg,#f1ead8,#e5d7b6)!important}
+.save-button{color:#8e6b1e!important}
+.add-button,.avatar-button,.cart-link,.cart-link span,.language-picker{background:#f3ecd9!important;color:#725719!important}
+.seller-cta,.welcome-panel,.auth-aside,.toast{background:linear-gradient(125deg,#29251d,#554528)!important}
+.seller-cta .eyebrow,.auth-message .eyebrow,.welcome-panel .eyebrow{color:#e4d3a4!important}
+.seller-cta p,.welcome-panel p,.auth-message>p{color:#eee5d2!important}
+.seller-illustration span:nth-child(2),.welcome-symbol{color:#e1c16c!important}
+.auth-brand .brand-mark{background:#e1c16c!important;color:#29251d!important}
+.auth-note,.workspace{background:#f6f1e5!important}
+.auth-form input:focus,.product-form input:focus,.checkout-panel input:focus,.checkout-panel select:focus,.checkout-panel textarea:focus{border-color:#c49a32!important;box-shadow:0 0 0 3px rgba(196,154,50,.16)!important}
+.workspace-sidebar{background:#fffdf8!important}
+.user-avatar{background:#f1e7cd!important;color:#70551a!important}
+.side-link.active,.side-link:hover{color:#725719!important}
+.status-pill{background:#f3ecd9!important;color:#725719!important}
+.loader{border-color:#eee4ca!important;border-top-color:#b58b2b!important}
+.checkout-success{border-color:#e3d4a6!important;background:#fbf6e7!important;color:#705719!important}
+.language-picker select{color:#725719!important}
+.department-nav{background:#f5f0e4!important;color:#675b42!important;border-color:#e9e2d3!important}
+.department-nav a:hover,.department-nav a.active{background:#eee4c9!important;color:#725719!important}
+.global-search{border-color:#e5dcc7!important}
+.global-search select{background:#f7f2e6!important;color:#625638!important}
+.global-search input{color:#242424!important}
+.global-search:focus-within{border-color:#c49a32!important;box-shadow:0 0 0 3px rgba(196,154,50,.14)!important}
+.cart-product-image{background:linear-gradient(145deg,#f4efdf,#e9dfc5)!important}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
