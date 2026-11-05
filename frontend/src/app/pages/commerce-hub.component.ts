@@ -31,9 +31,9 @@ import { RouterLink } from '@angular/router';
         </article>
         <article class="engine-card">
           <span class="engine-kicker">03 · SHARE IT</span><h2>Social Commerce</h2>
-          <p>Create and share your existing MERKATO referral link to bring customers and track eligible referrals.</p>
-          <button class="engine-action" type="button" (click)="active='referral';loadReferral()">Open sharing tools <span>↗</span></button>
-          <small>Product-video publishing and creator feed are not yet connected.</small>
+          <p>Publish moderated product stories, discover creator content and track product clicks.</p>
+          <a class="engine-action" routerLink="/social">Open Social Commerce <span>↗</span></a>
+          <small>Posts require moderation; video upload hosting and transcoding are not configured.</small>
         </article>
         <article class="engine-card engine-featured">
           <span class="engine-kicker">04 · ALL IN ONE</span><h2>Super Marketplace</h2>
@@ -51,9 +51,9 @@ import { RouterLink } from '@angular/router';
         <h3>{{ tx.writeReview }}</h3><div class="grid two"><label>{{ tx.orderId }}<input type="number" [(ngModel)]="reviewOrderId"></label><label>{{ tx.rating }}<select [(ngModel)]="rating"><option [ngValue]="5">5</option><option [ngValue]="4">4</option><option [ngValue]="3">3</option><option [ngValue]="2">2</option><option [ngValue]="1">1</option></select></label></div><label>{{ tx.comment }}<textarea [(ngModel)]="comment" maxlength="2000"></textarea></label><button class="gold" (click)="addReview()">{{ tx.submit }}</button>
       </section>
       <section class="panel" *ngIf="active==='prices'">
-        <h2>{{ tx.priceCompare }}</h2><label>{{ tx.productId }}<input type="number" [(ngModel)]="productId"></label><div class="actions"><button class="gold" (click)="loadPrices()">{{ tx.priceHistory }}</button><button (click)="loadSellerPrices()">{{ tx.compareSellers }}</button><button (click)="loadCondition()">{{ tx.conditionStock }}</button></div>
+        <h2>{{ tx.priceCompare }}</h2><label>{{ tx.productId }}<input type="number" [(ngModel)]="productId"></label><div class="actions"><button class="gold" (click)="loadPrices()">{{ tx.priceHistory }}</button><button (click)="loadSellerPrices()">{{ tx.compareSellers }}</button><button (click)="loadCondition()">{{ tx.conditionStock }}</button><button (click)="loadPriceIntelligence()">Price insight</button></div>
         <div class="table-wrap"><table><tr><th>{{ tx.seller }}</th><th>{{ tx.price }}</th><th>{{ tx.location }}</th></tr><tr *ngFor="let p of sellerPrices"><td>{{ p.sellerId }}</td><td>{{ p.priceEtb | number:'1.2-2' }} ETB</td><td>{{ p.location }}</td></tr></table></div>
-        <div class="review" *ngFor="let p of priceHistory"><b>{{ p.priceEtb | number:'1.2-2' }} ETB</b><small>{{ p.recordedAt | date:'medium' }}</small></div>
+        <div class="review" *ngFor="let p of priceHistory"><b>{{ p.priceEtb | number:'1.2-2' }} ETB</b><small>{{ p.recordedAt | date:'medium' }}</small></div><article class="review" *ngIf="priceIntelligence"><b>Median: {{ priceIntelligence.medianPriceEtb ?? 'No data' }} ETB</b><p>{{ priceIntelligence.advisory }} · {{ priceIntelligence.freshness }}</p><small>{{ priceIntelligence.observationCount }} observations · {{ priceIntelligence.comparableProductCount }} comparable listings · deviation {{ priceIntelligence.currentPriceDeviationPercentFromMedian ?? '—' }}%</small><p>{{ priceIntelligence.note }}</p></article>
         <p *ngIf="conditionData">{{ tx.condition }}: <b>{{ conditionData.condition }}</b> · {{ tx.stock }}: {{ conditionData.stockQuantity ?? tx.notSet }} · {{ tx.reserved }}: {{ conditionData.reservedQuantity ?? 0 }} · {{ tx.available }}: {{ conditionData.availableQuantity ?? tx.notSet }} · {{ conditionData.lowStock ? tx.lowStock : tx.stockOkay }}</p>
       </section>
       <section class="panel" *ngIf="active==='groups'">
@@ -124,7 +124,7 @@ export class CommerceHubComponent implements OnInit {
     return Math.max(0,stages.indexOf(status));
   }
   language:'en'|'om'|'am'='en'; active='reviews'; message=''; isError=false;
-  productId=0; reviewOrderId=0; rating=5; comment=''; reviewData:any=null; priceHistory:any[]=[]; sellerPrices:any[]=[]; conditionData:any=null;
+  productId=0; reviewOrderId=0; rating=5; comment=''; reviewData:any=null; priceHistory:any[]=[]; sellerPrices:any[]=[]; conditionData:any=null; priceIntelligence:any=null;
   groups:any[]=[]; joinQuantities:Record<number,number>={}; group:any={productId:0,targetQuantity:10,regularUnitPriceEtb:100,discountUnitPriceEtb:90,expiresAt:''};
   returnOrderId=0; returnReason=''; returns:any[]=[]; stock:any={quantity:0,lowStockThreshold:5,condition:'NEW'}; inventory:any[]=[]; loyalty:any=null; orders:any[]=[]; trackOrderId=0; deliveryInfo:any=null; courierDeliveryId=""; courierStatus="IN_TRANSIT"; referral:any=null; referralCode="";
   promotions:any[]=[];
@@ -145,6 +145,7 @@ export class CommerceHubComponent implements OnInit {
   addReview(){this.call('post',`/api/commerce/products/${this.productId}/reviews`,{orderId:this.reviewOrderId,rating:this.rating,comment:this.comment},()=>{this.comment='';this.loadReviews();});}
   loadPrices(){this.call('get',`/api/commerce/products/${this.productId}/price-history`,null,x=>this.priceHistory=x);}
   loadSellerPrices(){this.call('get',`/api/commerce/products/${this.productId}/seller-prices`,null,x=>this.sellerPrices=x);}
+  loadPriceIntelligence(){if(!this.productId){this.message='Enter a product ID first.';this.isError=true;return;}this.http.get('/api/commerce/products/'+this.productId+'/price-intelligence').subscribe({next:x=>{this.priceIntelligence=x;this.message='Price insight loaded from recorded snapshots.';this.isError=false;},error:()=>{this.message='Could not load price insight.';this.isError=true;}});}
   loadCondition(){this.call('get',`/api/commerce/products/${this.productId}/condition-stock`,null,x=>this.conditionData=x);}
   loadGroups(){this.call('get','/api/commerce/group-buys',null,x=>this.groups=x);}
   createGroup(){const payload={...this.group,expiresAt:new Date(this.group.expiresAt).toISOString()};this.call('post','/api/commerce/group-buys',payload,()=>this.loadGroups());}
