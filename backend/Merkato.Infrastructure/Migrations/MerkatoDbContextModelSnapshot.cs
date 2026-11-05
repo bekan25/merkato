@@ -312,6 +312,23 @@ namespace Merkato.Infrastructure.Migrations
                     b.ToTable("InspectionWindows");
                 });
 
+            modelBuilder.Entity("Merkato.Domain.Entities.WishlistItem", b =>
+                {
+                    b.HasOne("Merkato.Domain.Entities.User", null).WithMany().HasForeignKey("BuyerId").OnDelete(DeleteBehavior.Cascade).IsRequired();
+                    b.HasOne("Merkato.Domain.Entities.Product", null).WithMany().HasForeignKey("ProductId").OnDelete(DeleteBehavior.Cascade).IsRequired();
+                });
+
+            modelBuilder.Entity("Merkato.Domain.Entities.PriceAlert", b =>
+                {
+                    b.HasOne("Merkato.Domain.Entities.User", null).WithMany().HasForeignKey("BuyerId").OnDelete(DeleteBehavior.Cascade).IsRequired();
+                    b.HasOne("Merkato.Domain.Entities.Product", null).WithMany().HasForeignKey("ProductId").OnDelete(DeleteBehavior.Cascade).IsRequired();
+                });
+
+            modelBuilder.Entity("Merkato.Domain.Entities.UserNotification", b =>
+                {
+                    b.HasOne("Merkato.Domain.Entities.User", null).WithMany().HasForeignKey("UserId").OnDelete(DeleteBehavior.Cascade).IsRequired();
+                });
+
             modelBuilder.Entity("Merkato.Domain.Entities.LedgerEntry", b =>
                 {
                     b.Property<long>("Id")
@@ -739,6 +756,53 @@ namespace Merkato.Infrastructure.Migrations
                     b.HasKey("Id");
                     b.HasIndex("OrderId").IsUnique();
                     b.ToTable("AffiliateCommissions");
+                });
+
+            modelBuilder.Entity("Merkato.Domain.Entities.WishlistItem", b =>
+                {
+                    b.Property<long>("Id").ValueGeneratedOnAdd().HasColumnType("bigint");
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+                    b.Property<long>("BuyerId").HasColumnType("bigint");
+                    b.Property<long>("ProductId").HasColumnType("bigint");
+                    b.Property<DateTime>("CreatedAt").HasColumnType("timestamp with time zone");
+                    b.HasKey("Id");
+                    b.HasIndex("BuyerId");
+                    b.HasIndex("BuyerId", "ProductId").IsUnique();
+                    b.HasIndex("ProductId");
+                    b.ToTable("WishlistItems");
+                });
+
+            modelBuilder.Entity("Merkato.Domain.Entities.PriceAlert", b =>
+                {
+                    b.Property<long>("Id").ValueGeneratedOnAdd().HasColumnType("bigint");
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+                    b.Property<long>("BuyerId").HasColumnType("bigint");
+                    b.Property<long>("ProductId").HasColumnType("bigint");
+                    b.Property<decimal>("TargetPriceEtb").HasColumnType("numeric(18,4)");
+                    b.Property<bool>("IsActive").HasColumnType("boolean");
+                    b.Property<DateTime>("CreatedAt").HasColumnType("timestamp with time zone");
+                    b.Property<DateTime?>("TriggeredAt").HasColumnType("timestamp with time zone");
+                    b.HasKey("Id");
+                    b.HasIndex("BuyerId", "ProductId", "IsActive");
+                    b.HasIndex("ProductId");
+                    b.ToTable("PriceAlerts");
+                });
+
+            modelBuilder.Entity("Merkato.Domain.Entities.UserNotification", b =>
+                {
+                    b.Property<long>("Id").ValueGeneratedOnAdd().HasColumnType("bigint");
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+                    b.Property<long>("UserId").HasColumnType("bigint");
+                    b.Property<string>("Type").IsRequired().HasMaxLength(40).HasColumnType("character varying(40)");
+                    b.Property<string>("Title").IsRequired().HasMaxLength(160).HasColumnType("character varying(160)");
+                    b.Property<string>("Message").IsRequired().HasMaxLength(1000).HasColumnType("character varying(1000)");
+                    b.Property<string>("ActionUrl").HasColumnType("text");
+                    b.Property<bool>("IsRead").HasColumnType("boolean");
+                    b.Property<DateTime>("CreatedAt").HasColumnType("timestamp with time zone");
+                    b.Property<DateTime?>("ReadAt").HasColumnType("timestamp with time zone");
+                    b.HasKey("Id");
+                    b.HasIndex("UserId", "IsRead", "CreatedAt");
+                    b.ToTable("UserNotifications");
                 });
 
             modelBuilder.Entity("Merkato.Domain.Entities.ProductListingDetail", b =>
