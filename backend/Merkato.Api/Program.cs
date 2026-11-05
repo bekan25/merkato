@@ -509,7 +509,9 @@ app.MapGet("/api/v1/discovery/products", async Task<IResult> (
             product.Category,
             product.Emoji,
             product.ImageUrl,
-            product.SellerId
+            product.SellerId,
+            sellerVerified = db.Users.Where(user => user.Id == product.SellerId && user.Role == Merkato.Domain.Enums.UserRole.MERCHANT)
+                .Select(user => user.IsSellerVerified).FirstOrDefault()
         })
         .ToListAsync(ct);
 
