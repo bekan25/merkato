@@ -309,7 +309,9 @@ public sealed class CommerceGrowthController(MerkatoDbContext db, IEscrowService
         var referrals = await db.AffiliateReferrals.AsNoTracking().CountAsync(x => x.AffiliateUserId == CurrentUserId && x.ReferredUserId != null, ct);
         var commissions = await db.AffiliateCommissions.AsNoTracking().Where(x => x.AffiliateUserId == CurrentUserId)
             .Select(x => new { x.CommissionEtb, x.Status, x.CreatedAt }).ToListAsync(ct);
-        return Ok(new { profile.ReferralCode, referrals, commissions, totalCommissionEtb = commissions.Sum(x => x.CommissionEtb) });
+        var rewardCoupons = await db.PromotionCoupons.AsNoTracking().Where(x => x.AssignedUserId == CurrentUserId && x.IsActive)
+            .Select(x => new { x.Code, x.Title, x.DiscountType, x.DiscountValue, x.ExpiresAt }).ToListAsync(ct);
+        return Ok(new { profile.ReferralCode, referrals, commissions, rewardCoupons, totalCommissionEtb = commissions.Sum(x => x.CommissionEtb) });
     }
 
     [Authorize]
@@ -355,8 +357,22 @@ public sealed class CommerceGrowthController(MerkatoDbContext db, IEscrowService
         if (pending is null) return Conflict("No tracked referral visit was found for this account.");
         pending.ReferredUserId = CurrentUserId;
         pending.RegisteredAt = DateTime.UtcNow;
+        var welcomeCoupon = new PromotionCoupon {
+            Code = "WELCOME" + Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(4)),
+            Title = "MERKATO referral welcome reward",
+            DiscountType = "FIXED",
+            DiscountValue = 50m,
+            MinimumOrderEtb = 200m,
+            UsageLimit = 1,
+            PerUserLimit = 1,
+            AssignedUserId = CurrentUserId,
+            StartsAt = DateTime.UtcNow,
+            ExpiresAt = DateTime.UtcNow.AddDays(30),
+            CreatedBy = profile.UserId
+        };
+        db.PromotionCoupons.Add(welcomeCoupon);
         await db.SaveChangesAsync(ct);
-        return Ok(new { claimed = true, referrerUserId = profile.UserId });
+        return Ok(new { claimed = true, referrerUserId = profile.UserId, reward = new { welcomeCoupon.Code, discountEtb = welcomeCoupon.DiscountValue, minimumOrderEtb = welcomeCoupon.MinimumOrderEtb, welcomeCoupon.ExpiresAt } });
     }
 
 }
