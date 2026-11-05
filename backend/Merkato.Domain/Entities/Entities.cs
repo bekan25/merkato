@@ -25,6 +25,8 @@ public class User
 
 public class Order
 {
+    public long? SourcingRequestId { get; set; }
+    public long? SourcingOfferId { get; set; }
     public long Id { get; set; }
     public string OrderNumber { get; set; } = string.Empty;
     public long BuyerId { get; set; }
