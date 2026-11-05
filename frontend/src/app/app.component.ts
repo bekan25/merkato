@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -93,7 +93,7 @@ import { AuthService } from './core/auth.service';
     }
   `]
 })
-export class AppComponent {
+export class AppComponent implements OnInit {
   auth = inject(AuthService);
   private router = inject(Router);
   private http = inject(HttpClient);
@@ -101,6 +101,20 @@ export class AppComponent {
   searchDepartment = 'All';
   mobileNavOpen = false;
   language: 'en' | 'om' | 'am' = this.restoreLanguage();
+
+  ngOnInit(): void {
+    const code = new URLSearchParams(window.location.search).get('ref')?.trim().toUpperCase();
+    if (!code || !/^[A-Z0-9-]{4,40}$/.test(code)) return;
+    try {
+      localStorage.setItem('merkato_referral_code', code);
+      let visitorKey = localStorage.getItem('merkato_visitor_key');
+      if (!visitorKey) {
+        visitorKey = crypto.randomUUID();
+        localStorage.setItem('merkato_visitor_key', visitorKey);
+      }
+      this.http.post(`/api/commerce/referrals/${encodeURIComponent(code)}/click`, { visitorKey }).subscribe({ error: () => {} });
+    } catch { /* Referral tracking is optional when browser storage is unavailable. */ }
+  }
 
   private readonly translations: Record<string, Record<string, string>> = {
     en: { announcement: 'Discover local stores. Shop with confidence.', searchPlaceholder: 'Search MERKATO Ethiopia', delivering: 'Delivering across', helloSignIn: 'Hello, sign in', account: 'Account', myAccount: 'My account', cart: 'Cart', language: 'Choose language', departments: 'All departments', finds: "Today's finds", shopProducts: 'Shop products', sell: 'Sell on MERKATO', workspace: 'My workspace', commerceHub: 'Commerce Hub' },
