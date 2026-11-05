@@ -432,6 +432,75 @@ if (adminBootstrapRequested)
             "Configured MERKATO_ADMIN_PHONE belongs to a non-admin account. Resolve this manually.");
     }
 }
+// ============================================================
+// PRODUCT DISCOVERY
+// ============================================================
+// A bounded, database-backed discovery endpoint for storefront search.
+// It deliberately returns public catalogue fields only.
+app.MapGet("/api/v1/discovery/products", async (
+    MerkatoDbContext db,
+    string? q,
+    string? category,
+    decimal? maxPriceEtb,
+    int? limit,
+    CancellationToken ct) =>
+{
+    if (maxPriceEtb is < 0)
+    {
+        return Results.BadRequest(new { message = "maxPriceEtb must be zero or greater." });
+    }
+
+    var take = Math.Clamp(limit ?? 12, 1, 24);
+    var products = db.Products
+        .AsNoTracking()
+        .Where(product => product.IsActive);
+
+    if (!string.IsNullOrWhiteSpace(q))
+    {
+        var term = q.Trim().ToLowerInvariant();
+        products = products.Where(product =>
+            product.Name.ToLower().Contains(term) ||
+            product.Category.ToLower().Contains(term) ||
+            product.Location.ToLower().Contains(term));
+    }
+
+    if (!string.IsNullOrWhiteSpace(category))
+    {
+        var selectedCategory = category.Trim().ToLowerInvariant();
+        products = products.Where(product =>
+            product.Category.ToLower() == selectedCategory);
+    }
+
+    if (maxPriceEtb.HasValue)
+    {
+        products = products.Where(product => product.PriceEtb <= maxPriceEtb.Value);
+    }
+
+    var results = await products
+        .OrderByDescending(product => product.CreatedAt)
+        .ThenBy(product => product.Id)
+        .Take(take)
+        .Select(product => new
+        {
+            product.Id,
+            product.Name,
+            product.PriceEtb,
+            product.Location,
+            product.Category,
+            product.Emoji,
+            product.ImageUrl,
+            product.SellerId
+        })
+        .ToListAsync(ct);
+
+    return Results.Ok(new
+    {
+        items = results,
+        count = results.Count,
+        limit = take
+    });
+}).AllowAnonymous();
+
 app.Run();
 
 
