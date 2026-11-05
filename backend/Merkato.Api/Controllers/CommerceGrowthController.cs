@@ -95,10 +95,56 @@ public sealed class CommerceGrowthController(MerkatoDbContext db, IEscrowService
     [HttpGet("group-buys")]
     public async Task<IActionResult> GroupBuys(CancellationToken ct)
     {
+        await ExpireStaleGroupBuysAsync(ct);
         var now = DateTime.UtcNow;
         var rows = await db.GroupBuys.AsNoTracking().Where(x => x.Status == GroupBuyStatus.OPEN && x.ExpiresAt > now)
             .OrderBy(x => x.ExpiresAt).Select(x => new { x.Id, x.ProductId, productName = db.Products.Where(p => p.Id == x.ProductId).Select(p => p.Name).FirstOrDefault(), x.OrganizerId, x.TargetQuantity, x.JoinedQuantity, x.RegularUnitPriceEtb, x.DiscountUnitPriceEtb, x.ExpiresAt, progressPercent = Math.Min(100, (int)(100m * x.JoinedQuantity / x.TargetQuantity)) }).ToListAsync(ct);
         return Ok(rows);
+    }
+
+    private async Task ExpireStaleGroupBuysAsync(CancellationToken ct)
+    {
+        var now = DateTime.UtcNow;
+        var expiredIds = await db.GroupBuys.AsNoTracking()
+            .Where(x => (x.Status == GroupBuyStatus.OPEN || x.Status == GroupBuyStatus.TARGET_REACHED) && x.ExpiresAt <= now)
+            .Select(x => x.Id)
+            .ToListAsync(ct);
+
+        foreach (var groupId in expiredIds)
+        {
+            await using var tx = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, ct);
+            var group = await db.GroupBuys.AsNoTracking().FirstOrDefaultAsync(x => x.Id == groupId, ct);
+            if (group is null) { await tx.RollbackAsync(ct); continue; }
+
+            // Claim expiry exactly once. Concurrent public listing requests cannot release
+            // the same reserved units twice.
+            var claimed = await db.GroupBuys
+                .Where(x => x.Id == groupId &&
+                            (x.Status == GroupBuyStatus.OPEN || x.Status == GroupBuyStatus.TARGET_REACHED) &&
+                            x.ExpiresAt <= now)
+                .ExecuteUpdateAsync(update => update.SetProperty(x => x.Status, GroupBuyStatus.EXPIRED), ct);
+
+            if (claimed == 1)
+            {
+                var reservedQuantity = await db.GroupBuyMembers
+                    .Where(x => x.GroupBuyId == groupId)
+                    .Select(x => (int?)x.Quantity)
+                    .SumAsync(ct) ?? 0;
+
+                if (reservedQuantity > 0)
+                {
+                    await db.ProductListingDetails
+                        .Where(x => x.ProductId == group.ProductId)
+                        .ExecuteUpdateAsync(update => update.SetProperty(
+                            x => x.ReservedQuantity,
+                            x => x.ReservedQuantity >= reservedQuantity
+                                ? x.ReservedQuantity - reservedQuantity
+                                : 0), ct);
+                }
+            }
+
+            await tx.CommitAsync(ct);
+        }
     }
 
     [Authorize(Roles = "MERCHANT,ADMIN")]
