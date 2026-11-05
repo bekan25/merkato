@@ -121,7 +121,7 @@ public sealed class PromotionsController(MerkatoDbContext db) : ControllerBase
         return null;
     }
 
-    internal static decimal CalculateDiscount(PromotionCoupon coupon, decimal subtotal)
+    public static decimal CalculateDiscount(PromotionCoupon coupon, decimal subtotal)
     {
         var amount = coupon.DiscountType == "PERCENT" ? subtotal * coupon.DiscountValue / 100m : coupon.DiscountValue;
         if (coupon.MaximumDiscountEtb.HasValue) amount = Math.Min(amount, coupon.MaximumDiscountEtb.Value);
