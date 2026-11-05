@@ -183,6 +183,43 @@ public class PaymentsController : ControllerBase
                 var paidOrder = await _db.Orders.AsNoTracking().FirstOrDefaultAsync(x => x.Id == transaction.OrderId, ct);
                 if (paidOrder is not null)
                 {
+                    // Attribute a verified purchase to the buyer's most recent approved creator post click
+                    // for the same product within 30 days. A unique OrderId index makes webhook retries safe.
+                    if (paidOrder.ProductId.HasValue && !await _db.CreatorCommissions.AnyAsync(x => x.OrderId == paidOrder.Id, ct))
+                    {
+                        var attributionSince = DateTime.UtcNow.AddDays(-30);
+                        var attributedPost = await (
+                            from click in _db.SocialCommerceClicks.AsNoTracking()
+                            join post in _db.SocialCommercePosts.AsNoTracking() on click.PostId equals post.Id
+                            where click.ViewerId == paidOrder.BuyerId
+                                && click.CreatedAt >= attributionSince
+                                && post.ProductId == paidOrder.ProductId.Value
+                                && post.Status == "APPROVED"
+                                && post.CreatorId != paidOrder.BuyerId
+                            orderby click.CreatedAt descending
+                            select post
+                        ).FirstOrDefaultAsync(ct);
+
+                        if (attributedPost is not null)
+                        {
+                            var eligibleAmount = paidOrder.UnitPriceEtb * paidOrder.Quantity;
+                            var rate = 5m;
+                            _db.CreatorCommissions.Add(new CreatorCommission
+                            {
+                                CreatorId = attributedPost.CreatorId,
+                                OrderId = paidOrder.Id,
+                                PostId = attributedPost.Id,
+                                EligibleAmountEtb = eligibleAmount,
+                                RatePercent = rate,
+                                CommissionEtb = Math.Round(eligibleAmount * rate / 100m, 2, MidpointRounding.AwayFromZero),
+                                Status = "HELD",
+                                CreatedAt = DateTime.UtcNow
+                            });
+                            try { await _db.SaveChangesAsync(ct); }
+                            catch (DbUpdateException) { _db.ChangeTracker.Clear(); }
+                        }
+                    }
+
                     var referral = await _db.AffiliateReferrals.FirstOrDefaultAsync(x => x.ReferredUserId == paidOrder.BuyerId, ct);
                     if (referral is not null && !await _db.PromotionCoupons.AnyAsync(x => x.SourceReferralId == referral.Id, ct))
                     {
