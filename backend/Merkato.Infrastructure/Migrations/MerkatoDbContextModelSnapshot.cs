@@ -469,6 +469,12 @@ b.Property<long>("SellerId")
                                         b.Property<long>("SellerId")
                         .HasColumnType("bigint");
 
+                    b.Property<long?>("SourcingRequestId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("SourcingOfferId")
+                        .HasColumnType("bigint");
+
                     b.Property<decimal>("TotalAmountEtb")
                         .HasColumnType("numeric(18,4)");
 
