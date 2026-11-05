@@ -119,6 +119,12 @@ export class ApiService {
     return this.http.post<MerkatoProduct>(`${this.baseUrl}/products`, payload);
   }
 
+  uploadProductImage(id: number, image: File): Observable<MerkatoProduct> {
+    const form = new FormData();
+    form.append('image', image, image.name);
+    return this.http.post<MerkatoProduct>(`${this.baseUrl}/products/${id}/image`, form);
+  }
+
   updateProduct(id: number, payload: { name: string; priceEtb: number; location: string; category: string; emoji: string }): Observable<MerkatoProduct> {
     return this.http.put<MerkatoProduct>(`${this.baseUrl}/products/${id}`, payload);
   }
