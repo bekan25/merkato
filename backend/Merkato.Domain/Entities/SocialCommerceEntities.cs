@@ -23,3 +23,16 @@ public sealed class SocialCommerceClick
  public string VisitorHash {get;set;}=string.Empty;
  public DateTime CreatedAt {get;set;}=DateTime.UtcNow;
 }
+public sealed class CreatorCommission
+{
+ public long Id {get;set;}
+ public long CreatorId {get;set;}
+ public long OrderId {get;set;}
+ public long PostId {get;set;}
+ public decimal EligibleAmountEtb {get;set;}
+ public decimal RatePercent {get;set;}=5m;
+ public decimal CommissionEtb {get;set;}
+ public string Status {get;set;}="HELD";
+ public DateTime CreatedAt {get;set;}=DateTime.UtcNow;
+ public DateTime? ReleasedAt {get;set;}
+}
