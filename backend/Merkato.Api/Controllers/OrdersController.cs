@@ -142,6 +142,8 @@ public class OrdersController : ControllerBase
             var now = DateTime.UtcNow;
             if (!appliedCoupon.IsActive || appliedCoupon.StartsAt > now || appliedCoupon.ExpiresAt <= now)
                 return Conflict(new { message = "Coupon is not currently active." });
+            if (appliedCoupon.AssignedUserId.HasValue && appliedCoupon.AssignedUserId.Value != buyerId)
+                return Conflict(new { message = "This reward coupon belongs to another buyer account." });
             if (appliedCoupon.SellerId.HasValue && appliedCoupon.SellerId.Value != product.SellerId)
                 return Conflict(new { message = "Coupon is valid only for products from its participating merchant." });
             if (request.AmountEtb < appliedCoupon.MinimumOrderEtb)
