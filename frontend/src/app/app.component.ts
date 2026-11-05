@@ -10,30 +10,31 @@ import { AuthService } from './core/auth.service';
   imports: [CommonModule, FormsModule, RouterOutlet, RouterLink, RouterLinkActive],
   template: `
     <div class="app-shell">
-      <div class="announcement">MERKATO ETHIOPIA <span>•</span> Discover local stores. Shop with confidence.</div>
+      <div class="announcement">MERKATO ETHIOPIA <span>•</span> {{ t('announcement') }}</div>
       <header class="site-header">
         <a class="brand" routerLink="/" aria-label="MERKATO home"><span class="brand-mark">M</span><span>merkato<small>ETHIOPIAN MARKETPLACE</small></span></a>
         <form class="global-search" (ngSubmit)="searchMarketplace()" role="search">
           <select [(ngModel)]="searchDepartment" name="department" aria-label="Search department">
             <option value="All">All</option><option value="Electronics">Electronics</option><option value="Fashion">Fashion</option><option value="Home & Living">Home & Living</option><option value="Food">Food</option><option value="Beauty">Beauty</option><option value="Other">Other</option>
           </select>
-          <input [(ngModel)]="headerSearch" name="q" placeholder="Search MERKATO Ethiopia" aria-label="Search MERKATO products">
+          <input [(ngModel)]="headerSearch" name="q" [placeholder]="t('searchPlaceholder')" aria-label="Search MERKATO products">
           <button type="submit" aria-label="Search">⌕</button>
         </form>
         <div class="header-actions">
-          <a class="delivery-link" routerLink="/" fragment="marketplace"><small>Delivering across</small><strong>🇪🇹 Ethiopia</strong></a>
-          <a class="account-link" *ngIf="!auth.isAuthenticated" routerLink="/login"><small>Hello, sign in</small><strong>Account</strong></a>
-          <a class="account-link" *ngIf="auth.isAuthenticated" [routerLink]="auth.dashboardPath()"><small>Hello, {{auth.user?.fullName?.split(' ')?.[0]}}</small><strong>My account</strong></a>
-          <a class="cart-link" routerLink="/cart"><span class="cart-icon">🛒</span><strong>Cart</strong><span class="cart-count">{{cartCount}}</span></a>
+          <label class="language-picker" aria-label="Choose language"><span aria-hidden="true">◎</span><select [(ngModel)]="language" (ngModelChange)="changeLanguage($event)" name="siteLanguage" [attr.aria-label]="t('language')"><option value="en">EN</option><option value="om">OR</option><option value="am">አማ</option></select></label>
+          <a class="delivery-link" routerLink="/" fragment="marketplace"><small>{{ t('delivering') }}</small><strong>🇪🇹 Ethiopia</strong></a>
+          <a class="account-link" *ngIf="!auth.isAuthenticated" routerLink="/login"><small>{{ t('helloSignIn') }}</small><strong>{{ t('account') }}</strong></a>
+          <a class="account-link" *ngIf="auth.isAuthenticated" [routerLink]="auth.dashboardPath()"><small>Hello, {{auth.user?.fullName?.split(' ')?.[0]}}</small><strong>{{ t('myAccount') }}</strong></a>
+          <a class="cart-link" routerLink="/cart"><span class="cart-icon">🛒</span><strong>{{ t('cart') }}</strong><span class="cart-count">{{cartCount}}</span></a>
         </div>
       </header>
       <button class="mobile-menu-toggle" type="button" (click)="mobileNavOpen = !mobileNavOpen" [attr.aria-expanded]="mobileNavOpen" aria-controls="main-department-nav"><span>{{mobileNavOpen ? '×' : '☰'}}</span>{{mobileNavOpen ? 'Close menu' : 'Browse MERKATO'}}</button>
       <nav id="main-department-nav" class="department-nav" [class.mobile-open]="mobileNavOpen" aria-label="Main navigation">
-        <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}" (click)="closeMobileNav()">☰ All departments</a>
-        <a routerLink="/" fragment="categories" (click)="closeMobileNav()">Today's finds</a>
-        <a routerLink="/" fragment="marketplace" (click)="closeMobileNav()">Shop products</a>
-        <a routerLink="/" fragment="how-it-works" (click)="closeMobileNav()">Sell on MERKATO</a>
-        <a *ngIf="auth.isAuthenticated" [routerLink]="auth.dashboardPath()" (click)="closeMobileNav()">My workspace</a>
+        <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}" (click)="closeMobileNav()">☰ {{ t('departments') }}</a>
+        <a routerLink="/" fragment="categories" (click)="closeMobileNav()">{{ t('finds') }}</a>
+        <a routerLink="/" fragment="marketplace" (click)="closeMobileNav()">{{ t('shopProducts') }}</a>
+        <a routerLink="/" fragment="how-it-works" (click)="closeMobileNav()">{{ t('sell') }}</a>
+        <a *ngIf="auth.isAuthenticated" [routerLink]="auth.dashboardPath()" (click)="closeMobileNav()">{{ t('workspace') }}</a>
       </nav>
       <main><router-outlet /></main>
       <footer class="site-footer"><a class="brand footer-brand" routerLink="/"><span class="brand-mark">M</span><span>merkato<small>ETHIOPIAN MARKETPLACE</small></span></a><span>Connecting Ethiopia, one marketplace.</span><span>© 2026 MERKATO</span></footer>
@@ -57,6 +58,11 @@ import { AuthService } from './core/auth.service';
     .department-nav a{font-weight:700;padding:9px 12px;border-radius:9px;transition:background .2s,color .2s}.department-nav a:hover,.department-nav a.active{color:#087b4d;background:#e5f1e6}
     .mobile-menu-toggle{display:none}
 
+    .language-picker{display:inline-flex;align-items:center;gap:5px;height:34px;padding:0 9px;border:1px solid #dce8dc;border-radius:22px;background:#fff;color:#087b4d;white-space:nowrap}
+    .language-picker>span{font-size:17px;line-height:1}
+    .language-picker select{width:44px;border:0;outline:0;background:transparent;color:#214d37;font-size:10px;font-weight:800;cursor:pointer}
+    .language-picker:focus-within{box-shadow:0 0 0 3px #087b4d20;border-color:#8db99a}
+    @media(max-width:760px){.language-picker{height:30px;padding:0 7px;gap:3px}.language-picker>span{font-size:15px}.language-picker select{width:39px;font-size:9px}}
     .announcement{background:linear-gradient(90deg,#064b35,#08734b);font-weight:700;letter-spacing:.02em}
     .site-header{min-height:78px;gap:clamp(12px,2.5vw,34px)}
     .global-search{height:48px;border-radius:28px;max-width:760px}
@@ -91,6 +97,27 @@ export class AppComponent {
   headerSearch = '';
   searchDepartment = 'All';
   mobileNavOpen = false;
+  language: 'en' | 'om' | 'am' = this.restoreLanguage();
+
+  private readonly translations: Record<string, Record<string, string>> = {
+    en: { announcement: 'Discover local stores. Shop with confidence.', searchPlaceholder: 'Search MERKATO Ethiopia', delivering: 'Delivering across', helloSignIn: 'Hello, sign in', account: 'Account', myAccount: 'My account', cart: 'Cart', language: 'Choose language', departments: 'All departments', finds: "Today's finds", shopProducts: 'Shop products', sell: 'Sell on MERKATO', workspace: 'My workspace' },
+    om: { announcement: 'Daldaliittiwwan naannoo argadhaa. Ofitti amanamummaa waliin bitadhaa.', searchPlaceholder: 'Oomishaalee MERKATO keessatti barbaadi', delivering: 'Geejjibni', helloSignIn: 'Akkam, seeni', account: 'Herrega', myAccount: 'Herrega koo', cart: 'Gaarii bittaa', language: 'Afaan filadhu', departments: 'Ramaddiiwwan', finds: 'Har’a kan argaman', shopProducts: 'Oomishaalee bitadhu', sell: 'MERKATO irratti gurguri', workspace: 'Iddoo hojii koo' },
+    am: { announcement: 'የአካባቢ መደብሮችን ያግኙ። በመተማመን ይግዙ።', searchPlaceholder: 'በMERKATO ኢትዮጵያ ይፈልጉ', delivering: 'የሚያደርሰው', helloSignIn: 'ሰላም፣ ይግቡ', account: 'መለያ', myAccount: 'የእኔ መለያ', cart: 'ጋሪ', language: 'ቋንቋ ይምረጡ', departments: 'ሁሉም ዘርፎች', finds: 'የዛሬ ምርጦች', shopProducts: 'ምርቶችን ይግዙ', sell: 'በMERKATO ይሽጡ', workspace: 'የእኔ የሥራ ቦታ' }
+  };
+
+  private restoreLanguage(): 'en' | 'om' | 'am' {
+    try {
+      const saved = localStorage.getItem('merkato_language');
+      return saved === 'om' || saved === 'am' ? saved : 'en';
+    } catch { return 'en'; }
+  }
+
+  t(key: string): string { return this.translations[this.language]?.[key] || this.translations.en[key] || key; }
+
+  changeLanguage(value: string): void {
+    this.language = value === 'om' || value === 'am' ? value : 'en';
+    try { localStorage.setItem('merkato_language', this.language); } catch { /* Storage may be unavailable. */ }
+  }
 
   closeMobileNav(): void { this.mobileNavOpen = false; }
 
