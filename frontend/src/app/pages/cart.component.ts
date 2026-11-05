@@ -15,20 +15,20 @@ interface CartLine { product: MerkatoProduct; quantity: number; }
   template: `
     <section class="cart-page">
       <div class="cart-heading">
-        <a routerLink="/" class="back-link">← Continue shopping</a>
-        <span class="eyebrow">YOUR MARKET BAG</span>
-        <h1>Shopping cart</h1>
-        <p>Review your selected products before placing an order.</p>
-        <p class="form-error" *ngIf="error">{{error}} <a routerLink="/login">Sign in</a></p>
+        <a routerLink="/" class="back-link">← {{ t('continueShopping') }}</a>
+        <span class="eyebrow">{{ t('marketBag') }}</span>
+        <h1>{{ t('shoppingCart') }}</h1>
+        <p>{{ t('reviewCart') }}</p>
+        <p class="form-error" *ngIf="error">{{error}} <a routerLink="/login">{{ t('signIn') }}</a></p>
       </div>
       <div class="cart-layout">
         <div class="cart-items">
-          <div *ngIf="loading" class="state-panel"><span class="loader"></span><strong>Loading your cart...</strong></div>
+          <div *ngIf="loading" class="state-panel"><span class="loader"></span><strong>{{ t('loadingCart') }}</strong></div>
           <div *ngIf="!loading && !lines.length" class="state-panel">
             <span class="state-icon">🛍️</span>
-            <strong>Your cart is waiting for something good.</strong>
-            <p>Explore local products and add your favourites.</p>
-            <a routerLink="/" class="btn btn-primary">Explore marketplace ↗</a>
+            <strong>{{ t('emptyCart') }}</strong>
+            <p>{{ t('emptyCartHelp') }}</p>
+            <a routerLink="/" class="btn btn-primary">{{ t('explore') }} ↗</a>
           </div>
           <article class="cart-line" *ngFor="let line of lines">
             <div class="cart-product-image">
@@ -47,22 +47,22 @@ interface CartLine { product: MerkatoProduct; quantity: number; }
                 <button type="button" (click)="changeQuantity(line,-1)" aria-label="Decrease quantity">−</button>
                 <span>{{line.quantity}}</span>
                 <button type="button" (click)="changeQuantity(line,1)" aria-label="Increase quantity">+</button>
-                <button type="button" class="remove-line" (click)="remove(line.product.id)">Remove</button>
+                <button type="button" class="remove-line" (click)="remove(line.product.id)">{{ t('remove') }}</button>
               </div>
             </div>
             <strong class="line-total">{{line.product.priceEtb * line.quantity | number:'1.2-2'}} ETB</strong>
           </article>
         </div>
         <aside class="checkout-panel" *ngIf="lines.length">
-          <span class="eyebrow">ORDER SUMMARY</span>
-          <h2>Almost yours.</h2>
+          <span class="eyebrow">{{ t('orderSummary') }}</span>
+          <h2>{{ t('almostYours') }}</h2>
           <div class="summary-row"><span>Items ({{itemCount}})</span><strong>{{subtotal | number:'1.2-2'}} ETB</strong></div>
-          <div class="summary-row"><span>Delivery fee</span><strong>Calculated per order</strong></div>
-          <div class="summary-total"><span>Subtotal</span><strong>{{subtotal | number:'1.2-2'}} ETB</strong></div>
+          <div class="summary-row"><span>{{ t('deliveryFee') }}</span><strong>{{ t('calculatedPerOrder') }}</strong></div>
+          <div class="summary-total"><span>{{ t('subtotal') }}</span><strong>{{subtotal | number:'1.2-2'}} ETB</strong></div>
           <form (ngSubmit)="checkout()">
-            <label>Delivery address<textarea name="address" [(ngModel)]="address" required rows="3" placeholder="House number, street, area..."></textarea></label>
-            <label>City / area<input name="city" [(ngModel)]="cityArea" required></label>
-            <label>Payment method<select name="paymentRail" [(ngModel)]="paymentRail">
+            <label>{{ t('deliveryAddress') }}<textarea name="address" [(ngModel)]="address" required rows="3" placeholder="{{ t('addressPlaceholder') }}"></textarea></label>
+            <label>{{ t('cityArea') }}<input name="city" [(ngModel)]="cityArea" required></label>
+            <label>{{ t('paymentMethod') }}<select name="paymentRail" [(ngModel)]="paymentRail">
               <option [ngValue]="0">Telebirr</option><option [ngValue]="1">CBE Birr</option>
               <option [ngValue]="2">Awash Birr</option><option [ngValue]="3">Bank of Abyssinia</option>
               <option [ngValue]="4">Sandbox (testing)</option>
@@ -70,7 +70,7 @@ interface CartLine { product: MerkatoProduct; quantity: number; }
             <p class="checkout-note">Order creation and payment initiation are connected. A real provider checkout or payment confirmation still depends on verified merchant gateway credentials and webhook setup.</p>
             <p class="form-error" *ngIf="error">{{error}}</p>
             <button class="btn btn-primary checkout-button" [disabled]="submitting || loading">
-              {{submitting ? 'Submitting order...' : 'Place order request'}} <span>↗</span>
+              {{submitting ? '{{ t('submitting') }}' : '{{ t('placeOrder') }}'}} <span>↗</span>
             </button>
           </form>
           <p class="checkout-success" *ngIf="success">{{success}}</p>
@@ -130,7 +130,19 @@ export class CartComponent implements OnInit {
   paymentRail = 0;
   private failedImageIds = new Set<number>();
 
+  language: 'en' | 'om' | 'am' = this.currentLanguage();
+  private readonly languageListener = () => { this.language = this.currentLanguage(); };
+  private readonly translations: Record<string, Record<string, string>> = {
+    en:{continueShopping:'Continue shopping',marketBag:'YOUR MARKET BAG',shoppingCart:'Shopping cart',reviewCart:'Review your selected products before placing an order.',signIn:'Sign in',loadingCart:'Loading your cart...',emptyCart:'Your cart is waiting for something good.',emptyCartHelp:'Explore local products and add your favourites.',explore:'Explore marketplace',remove:'Remove',orderSummary:'ORDER SUMMARY',almostYours:'Almost yours.',deliveryFee:'Delivery fee',calculatedPerOrder:'Calculated per order',subtotal:'Subtotal',deliveryAddress:'Delivery address',addressPlaceholder:'House number, street, area...',cityArea:'City / area',paymentMethod:'Payment method',submitting:'Submitting order...',placeOrder:'Place order request'},
+    om:{continueShopping:'Bittaa itti fufi',marketBag:'GAARII BITTAA KEE',shoppingCart:'Gaarii bittaa',reviewCart:'Oomishaalee filatte osoo ajaja hin galchin ilaali.',signIn:'Seeni',loadingCart:'Gaarii bittaa fe’aa jira...',emptyCart:'Gaarri bittaa kee oomisha gaarii eeggataa jira.',emptyCartHelp:'Oomishaalee naannoo ilaaliitii warra jaallatte dabali.',explore:'Gabaa qoradhu',remove:'Haqi',orderSummary:'CUUNFAA AJAAJAA',almostYours:'Siif dhihaateera.',deliveryFee:'Kaffaltii geejjibaa',calculatedPerOrder:'Ajaja hundaaf shallagama',subtotal:'Ida’ama xiqqaa',deliveryAddress:'Teessoo geejjibaa',addressPlaceholder:'Lakkoofsa mana, daandii, naannoo...',cityArea:'Magaalaa / naannoo',paymentMethod:'Mala kaffaltii',submitting:'Ajaja ergaa jira...',placeOrder:'Ajaja galchi'},
+    am:{continueShopping:'ግዢዎን ይቀጥሉ',marketBag:'የገበያ ቦርሳዎ',shoppingCart:'የግዢ ጋሪ',reviewCart:'ትዕዛዝ ከማስገባትዎ በፊት የመረጧቸውን ምርቶች ይመልከቱ።',signIn:'ይግቡ',loadingCart:'ጋሪዎን በመጫን ላይ...',emptyCart:'ጋሪዎ ጥሩ ምርት እየጠበቀ ነው።',emptyCartHelp:'አካባቢያዊ ምርቶችን ይመልከቱና የሚወዷቸውን ይጨምሩ።',explore:'ገበያውን ይመልከቱ',remove:'አስወግድ',orderSummary:'የትዕዛዝ ማጠቃለያ',almostYours:'ሊደርስዎ ተቃርቧል።',deliveryFee:'የማድረሻ ክፍያ',calculatedPerOrder:'በእያንዳንዱ ትዕዛዝ ይሰላል',subtotal:'ንዑስ ድምር',deliveryAddress:'የማድረሻ አድራሻ',addressPlaceholder:'የቤት ቁጥር፣ መንገድ፣ አካባቢ...',cityArea:'ከተማ / አካባቢ',paymentMethod:'የክፍያ ዘዴ',submitting:'ትዕዛዝ በመላክ ላይ...',placeOrder:'ትዕዛዝ ያስገቡ'}
+  };
+  private currentLanguage(): 'en' | 'om' | 'am' { try { const v=localStorage.getItem('merkato_language'); return v==='om'||v==='am'?v:'en'; } catch { return 'en'; } }
+  t(key:string):string { return this.translations[this.language]?.[key] || this.translations['en'][key] || key; }
+
+
   ngOnInit(): void {
+    window.addEventListener('merkato-language-change', this.languageListener);
     if (!this.auth.isAuthenticated) {
       this.loading = false;
       this.error = 'Sign in as a buyer to place an order.';
