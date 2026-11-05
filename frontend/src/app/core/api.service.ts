@@ -82,6 +82,34 @@ export class ApiService {
     );
   }
 
+  getWholesaleTiers(productId: number): Observable<WholesalePriceTier[]> {
+    return this.http.get<WholesalePriceTier[]>(`${this.baseUrl}/v1/wholesale/products/${productId}/tiers`);
+  }
+
+  saveWholesaleTiers(productId: number, tiers: WholesaleTierInput[]): Observable<{ productId: number; count: number }> {
+    return this.http.put<{ productId: number; count: number }>(`${this.baseUrl}/v1/wholesale/products/${productId}/tiers`, { tiers });
+  }
+
+  createWholesaleRequest(payload: CreateWholesaleRequest): Observable<{ id: number; requestNumber: string; status: string }> {
+    return this.http.post<{ id: number; requestNumber: string; status: string }>(`${this.baseUrl}/v1/wholesale/requests`, payload);
+  }
+
+  getMyWholesaleRequests(): Observable<WholesaleRequest[]> {
+    return this.http.get<WholesaleRequest[]>(`${this.baseUrl}/v1/wholesale/requests/mine`);
+  }
+
+  getWholesaleInbox(): Observable<WholesaleRequest[]> {
+    return this.http.get<WholesaleRequest[]>(`${this.baseUrl}/v1/wholesale/requests/inbox`);
+  }
+
+  quoteWholesaleRequest(id: number, unitPriceEtb: number, note = ''): Observable<unknown> {
+    return this.http.post(`${this.baseUrl}/v1/wholesale/requests/${id}/quote`, { unitPriceEtb, note });
+  }
+
+  acceptWholesaleQuote(id: number): Observable<unknown> {
+    return this.http.post(`${this.baseUrl}/v1/wholesale/requests/${id}/accept`, {});
+  }
+
   askShoppingAssistant(message: string): Observable<ShoppingAssistantResponse> {
     return this.http.post<ShoppingAssistantResponse>(`${this.baseUrl}/assistant/chat`, { message });
   }
@@ -182,4 +210,14 @@ export interface AdminAnalytics {
 export interface ShoppingAssistantResponse {
   message: string;
   suggestedProducts: Array<Pick<MerkatoProduct, 'id' | 'name' | 'category' | 'location' | 'priceEtb' | 'emoji'>>;
+}
+
+
+export interface WholesalePriceTier { id: number; minimumQuantity: number; unitPriceEtb: number; }
+export interface WholesaleTierInput { minimumQuantity: number; unitPriceEtb: number; }
+export interface CreateWholesaleRequest { productId: number; quantity: number; requestedUnitPriceEtb: number; note?: string; }
+export interface WholesaleRequest {
+  id: number; requestNumber: string; productId: number; buyerId: number; sellerId: number;
+  quantity: number; requestedUnitPriceEtb: number; quotedUnitPriceEtb?: number | null;
+  status: string; buyerNote?: string | null; sellerNote?: string | null; createdAt: string;
 }
