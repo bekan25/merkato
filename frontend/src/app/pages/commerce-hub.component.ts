@@ -94,5 +94,5 @@ export class CommerceHubComponent implements OnInit {
   updateDelivery(){this.call('post',`/api/deliveries/${this.courierDeliveryId}/status`,this.courierStatus,()=>this.trackDelivery());}
   loadReferral(){this.call('get','/api/commerce/referrals/me',null,x=>this.referral=x);}
   createReferral(){this.call('post','/api/commerce/referrals/me',{},x=>this.referral=x);}
-  claimReferral(){this.call('post',`/api/commerce/referrals/${this.referralCode}/claim`,{},()=>{this.referralCode='';this.loadReferral();});}
+  claimReferral(){const visitorKey=localStorage.getItem('merkato_visitor_key')||'';this.call('post',`/api/commerce/referrals/${this.referralCode}/claim`,{visitorKey},()=>{this.referralCode='';this.loadReferral();});}
 }
