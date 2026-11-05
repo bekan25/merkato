@@ -81,6 +81,7 @@ public class EscrowService : IEscrowService
         var order = await _db.Orders.FindAsync(new object[] { orderId }, ct)
             ?? throw new KeyNotFoundException($"Order {orderId} not found");
 
+        await using var transaction = await _db.Database.BeginTransactionAsync(ct);
         var escrow = await _db.EscrowAccounts.FirstOrDefaultAsync(e => e.OrderId == orderId, ct);
         // Replayed verified webhooks must not reserve stock or create a second ledger lock.
         if (escrow?.Status == EscrowState.HELD)
@@ -141,6 +142,7 @@ public class EscrowService : IEscrowService
 
         await _audit.LogAsync(order.BuyerId, "BUYER", "ESCROW_LOCK", "ESCROW", orderId.ToString(), "SUCCESS", $"Locked {amountEtb} ETB", ct);
         await _db.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
 
         return escrow;
     }
