@@ -68,6 +68,7 @@ interface CartLine { product: MerkatoProduct; quantity: number; }
             <div class="delivery-quote" *ngIf="deliveryFeeEtb !== null"><strong>{{deliveryFeeEtb | number:'1.2-2'}} ETB / order</strong><small>MERKATO indicative estimate · final courier charge may differ</small></div>
             <div class="coupon-box">
               <label for="coupon-code">Discount or referral coupon</label>
+              <label class="coupon-product-label">Apply to product<select name="couponProduct" [(ngModel)]="couponProductId" [disabled]="couponValidating || !!appliedCoupon"><option *ngFor="let line of lines" [ngValue]="line.product.id">{{line.product.name}} · {{line.product.priceEtb | number:'1.0-2'}} ETB</option></select></label>
               <div class="coupon-input-row"><input id="coupon-code" name="couponCode" [(ngModel)]="couponCode" maxlength="40" placeholder="e.g. WELCOME1234" [disabled]="couponValidating || !!appliedCoupon"><button type="button" (click)="applyCoupon()" [disabled]="couponValidating || !couponCode.trim() || !lines.length || !!appliedCoupon">{{couponValidating ? 'Checking…' : appliedCoupon ? 'Applied ✓' : 'Apply'}}</button></div>
               <p class="coupon-success" *ngIf="appliedCoupon">{{appliedCoupon.title}} · −{{appliedCoupon.discountEtb | number:'1.2-2'}} ETB <button type="button" (click)="removeCoupon()">Remove</button></p>
               <p class="form-error" *ngIf="couponError">{{couponError}}</p>
@@ -160,7 +161,7 @@ interface CartLine { product: MerkatoProduct; quantity: number; }
     .checkout-panel label{display:grid;gap:7px;color:#43594a;font-size:11px;font-weight:750}
     .checkout-panel input,.checkout-panel select,.checkout-panel textarea{width:100%;min-height:44px;padding:11px 12px;border:1px solid #dfe8de;border-radius:10px;background:rgba(250,252,249,.94);color:#253c2e;font:12px 'DM Sans',sans-serif;outline:none;resize:vertical}
     .checkout-panel input:focus,.checkout-panel select:focus,.checkout-panel textarea:focus{border-color:#94b499;box-shadow:0 0 0 4px rgba(148,180,153,.16)}
-    .coupon-box{display:grid;gap:8px;padding:13px;border:1px dashed #d8c28c;border-radius:12px;background:#fffdf7}.coupon-box>label{color:#695323;font-weight:800}.coupon-input-row{display:flex;gap:8px}.coupon-input-row input{min-width:0;flex:1;text-transform:uppercase}.coupon-input-row button{border:0;border-radius:9px;padding:0 14px;background:#b58a25;color:#fff;font-size:11px;font-weight:800;cursor:pointer}.coupon-input-row button:disabled{opacity:.55;cursor:not-allowed}.coupon-box small{color:#887d67;font-size:9px;line-height:1.5}.coupon-success{margin:0;color:#267245;font-size:11px}.coupon-success button{margin-left:8px;border:0;background:none;color:#a14e4e;font-size:10px;font-weight:800;cursor:pointer}
+    .coupon-box{display:grid;gap:8px;padding:13px;border:1px dashed #d8c28c;border-radius:12px;background:#fffdf7}.coupon-box>label{color:#695323;font-weight:800}.coupon-input-row{display:flex;gap:8px}.coupon-product-label{display:grid;gap:5px;color:#7a6a45;font-size:10px}.coupon-product-label select{min-height:38px!important;padding:7px 9px!important}.coupon-input-row input{min-width:0;flex:1;text-transform:uppercase}.coupon-input-row button{border:0;border-radius:9px;padding:0 14px;background:#b58a25;color:#fff;font-size:11px;font-weight:800;cursor:pointer}.coupon-input-row button:disabled{opacity:.55;cursor:not-allowed}.coupon-box small{color:#887d67;font-size:9px;line-height:1.5}.coupon-success{margin:0;color:#267245;font-size:11px}.coupon-success button{margin-left:8px;border:0;background:none;color:#a14e4e;font-size:10px;font-weight:800;cursor:pointer}
     .checkout-note{padding:12px;border-radius:10px;background:#f7f5ee;color:#7d725f;font-size:10px;line-height:1.65}
     .checkout-button{width:100%;min-height:48px;border-radius:11px}
     .checkout-success{padding:12px;border:1px solid #cce4d1;border-radius:10px;background:#f0f8f1;color:#28623b;font-size:11px;line-height:1.6}
@@ -187,6 +188,7 @@ export class CartComponent implements OnInit, OnDestroy {
   deliveryQuoteLoading = false;
   paymentRail = 0;
   couponCode = '';
+  couponProductId = 0;
   couponValidating = false;
   couponError = '';
   appliedCoupon: { code: string; title: string; discountEtb: number; subtotalEtb: number; totalEtb: number; expiresAt: string } | null = null;
@@ -230,6 +232,7 @@ export class CartComponent implements OnInit, OnDestroy {
         this.lines = stored
           .map(item => ({ product: products.find(product => product.id === item.productId)!, quantity: item.quantity }))
           .filter(line => !!line.product);
+        this.couponProductId = this.lines[0]?.product.id || 0;
         this.persist();
         this.loading = false;
       },
@@ -303,7 +306,7 @@ export class CartComponent implements OnInit, OnDestroy {
     if (!this.auth.isAuthenticated || this.auth.user?.role !== 'BUYER') { this.couponError = 'Sign in as a buyer to use a coupon.'; return; }
     this.couponValidating = true;
     try {
-      this.appliedCoupon = await firstValueFrom(this.api.validateCoupon(this.couponCode.trim().toUpperCase(), this.lines[0].product.id));
+      this.appliedCoupon = await firstValueFrom(this.api.validateCoupon(this.couponCode.trim().toUpperCase(), this.couponProductId || this.lines[0].product.id));
       this.couponCode = this.appliedCoupon.code;
     } catch (err: any) {
       this.couponError = err?.error?.message || err?.error || 'This coupon could not be validated for the first product in your cart.';
@@ -341,7 +344,7 @@ export class CartComponent implements OnInit, OnDestroy {
             deliveryCourier: 'BEU_DELIVERY',
             deliveryAddress: this.address.trim(),
             cityArea: this.cityArea.trim(),
-            ...(!couponConsumed && this.appliedCoupon ? { couponCode: this.appliedCoupon.code } : {})
+            ...(!couponConsumed && this.appliedCoupon && line.product.id === this.couponProductId ? { couponCode: this.appliedCoupon.code } : {})
           }));
           if (!couponConsumed && this.appliedCoupon) couponConsumed = true;
           created++;
