@@ -91,18 +91,43 @@ public class EscrowService : IEscrowService
 
         if (escrow == null)
         {
-            var product = await _db.Products.FirstOrDefaultAsync(p => p.SellerId == order.SellerId && p.Name == order.ProductTitle, ct);
-            if (product is not null)
+            // Resolve the exact product identity persisted on checkout. Product titles are
+            // mutable and may be shared by different listings, so never use them for stock.
+            // The conditional SQL update also protects group-buy reservations and prevents
+            // two concurrent verified payments from consuming the same available unit.
+            if (order.ProductId.HasValue)
             {
-                var listing = await _db.ProductListingDetails.FirstOrDefaultAsync(x => x.ProductId == product.Id, ct);
-                if (listing is not null)
+                var now = DateTime.UtcNow;
+                var reserved = await _db.ProductListingDetails
+                    .Where(x => x.ProductId == order.ProductId.Value &&
+                                x.StockQuantity - x.ReservedQuantity >= 1)
+                    .ExecuteUpdateAsync(setters => setters
+                        .SetProperty(x => x.StockQuantity, x => x.StockQuantity - 1)
+                        .SetProperty(x => x.UpdatedAt, now), ct);
+
+                if (reserved == 0)
                 {
-                    if (listing.StockQuantity < 1)
+                    throw new InvalidOperationException("This product is out of available stock. Existing group-buy reservations are protected.");
+                }
+            }
+            else
+            {
+                // Historical orders without ProductId retain the legacy title lookup.
+                var legacyProduct = await _db.Products.AsNoTracking()
+                    .FirstOrDefaultAsync(p => p.SellerId == order.SellerId && p.Name == order.ProductTitle, ct);
+                if (legacyProduct is not null)
+                {
+                    var legacyListing = await _db.ProductListingDetails.FirstOrDefaultAsync(x => x.ProductId == legacyProduct.Id, ct);
+                    if (legacyListing is not null)
                     {
-                        throw new InvalidOperationException("This product is out of stock.");
+                        var available = await _db.ProductListingDetails
+                            .Where(x => x.ProductId == legacyProduct.Id && x.StockQuantity - x.ReservedQuantity >= 1)
+                            .ExecuteUpdateAsync(setters => setters
+                                .SetProperty(x => x.StockQuantity, x => x.StockQuantity - 1)
+                                .SetProperty(x => x.UpdatedAt, DateTime.UtcNow), ct);
+                        if (available == 0)
+                            throw new InvalidOperationException("This product is out of available stock.");
                     }
-                    listing.StockQuantity -= 1;
-                    listing.UpdatedAt = DateTime.UtcNow;
                 }
             }
 
