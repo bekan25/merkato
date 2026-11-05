@@ -38,6 +38,21 @@ public sealed class SocialCommerceController(MerkatoDbContext db):ControllerBase
    .Skip((page-1)*pageSize).Take(pageSize).ToListAsync(ct);
   return Ok(new{page,pageSize,items=rows});
  }
+ [Authorize(Roles="BUYER,MERCHANT")]
+ [HttpGet("commissions/mine")]
+ public async Task<IActionResult> MyCommissions(CancellationToken ct)
+ {
+  var id=UserId();if(id is null)return Unauthorized();
+  var rows=await _dbCreatorCommissions(ct,id.Value);
+  return Ok(new { totalEtb=rows.Sum(x=>x.CommissionEtb), items=rows });
+ }
+ private async Task<List<object>> _dbCreatorCommissions(CancellationToken ct,long creatorId)
+ {
+  return await db.CreatorCommissions.AsNoTracking().Where(x=>x.CreatorId==creatorId)
+   .OrderByDescending(x=>x.CreatedAt)
+   .Select(x=>new object[]{x.Id,x.OrderId,x.PostId,x.EligibleAmountEtb,x.RatePercent,x.CommissionEtb,x.Status,x.CreatedAt,x.ReleasedAt})
+   .ToListAsync(ct);
+ }
  [Authorize]
  [HttpGet("posts/mine")]
  public async Task<IActionResult> MyPosts(CancellationToken ct)
