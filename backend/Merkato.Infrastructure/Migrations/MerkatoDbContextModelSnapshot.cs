@@ -776,6 +776,8 @@ namespace Merkato.Infrastructure.Migrations
                     b.Property<decimal?>("MaximumDiscountEtb").HasColumnType("numeric(18,4)");
                     b.Property<decimal>("MinimumOrderEtb").HasColumnType("numeric(18,4)");
                     b.Property<long?>("SellerId").HasColumnType("bigint");
+                    b.Property<long?>("AssignedUserId").HasColumnType("bigint");
+                    b.Property<long?>("SourceReferralId").HasColumnType("bigint");
                     b.Property<int?>("UsageLimit").HasColumnType("integer");
                     b.Property<int>("PerUserLimit").HasColumnType("integer");
                     b.Property<DateTime>("StartsAt").HasColumnType("timestamp with time zone");
@@ -785,6 +787,7 @@ namespace Merkato.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt").HasColumnType("timestamp with time zone");
                     b.HasKey("Id");
                     b.HasIndex("Code").IsUnique();
+                    b.HasIndex("SourceReferralId").IsUnique();
                     b.HasIndex("IsActive", "StartsAt", "ExpiresAt");
                     b.ToTable("PromotionCoupons");
                 });
