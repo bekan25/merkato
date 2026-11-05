@@ -76,6 +76,40 @@ public class DeliveriesController : ControllerBase
         });
     }
 
+    // Courier/admin lookup by delivery reference. Buyer and merchant access
+    // remains restricted to the participants on the linked order.
+    [HttpGet("{id}")]
+    [Authorize(Roles = "BUYER,MERCHANT,COURIER,ADMIN")]
+    public async Task<IActionResult> GetDelivery(string id, CancellationToken ct)
+    {
+        var result = await _db.Deliveries.AsNoTracking()
+            .Where(x => x.DeliveryId == id)
+            .Join(_db.Orders.AsNoTracking(), delivery => delivery.OrderId, order => order.Id,
+                (delivery, order) => new
+                {
+                    delivery.DeliveryId, delivery.OrderId, status = delivery.Status.ToString(),
+                    delivery.CourierType, delivery.RiderName, delivery.RiderPhone,
+                    delivery.FeeEtb, delivery.DispatchedAt, delivery.DeliveredAt,
+                    delivery.CreatedAt, delivery.UpdatedAt, order.BuyerId, order.SellerId
+                })
+            .FirstOrDefaultAsync(ct);
+        if (result == null) return NotFound(new { message = "Delivery not found." });
+
+        var claim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!long.TryParse(claim, out var userId)) return Unauthorized();
+        if (!User.IsInRole("ADMIN") && !User.IsInRole("COURIER") &&
+            !((User.IsInRole("BUYER") && result.BuyerId == userId) ||
+              (User.IsInRole("MERCHANT") && result.SellerId == userId)))
+            return Forbid();
+
+        return Ok(new
+        {
+            result.DeliveryId, result.OrderId, result.status, result.CourierType,
+            result.RiderName, result.RiderPhone, result.FeeEtb, result.DispatchedAt,
+            result.DeliveredAt, result.CreatedAt, result.UpdatedAt
+        });
+    }
+
     // ============================================================
     // UPDATE DELIVERY STATUS
     // ONLY COURIER / ADMIN
