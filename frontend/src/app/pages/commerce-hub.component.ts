@@ -88,5 +88,10 @@ export class CommerceHubComponent implements OnInit {
   saveStock(){this.call('put',`/api/commerce/products/${this.productId}/stock`,this.stock,()=>{this.loadCondition();this.loadInventory();});}
   loadInventory(){this.call('get','/api/commerce/merchant/inventory',null,x=>this.inventory=x);}
   loadLoyalty(){this.call('get','/api/commerce/loyalty/me',null,x=>this.loyalty=x);}
-  loadOrders(){this.call('get','/api/orders/mine',null,x=>this.orders=x);}\n  trackDelivery(){this.call('get',`/api/commerce/orders/${this.trackOrderId}/delivery`,null,x=>this.deliveryInfo=x);}\n  updateDelivery(){this.call('post',`/api/deliveries/${this.courierDeliveryId}/status`,this.courierStatus,()=>this.trackDelivery());}\n  loadReferral(){this.call('get','/api/commerce/referrals/me',null,x=>this.referral=x);}\n  createReferral(){this.call('post','/api/commerce/referrals/me',{},x=>this.referral=x);}\n  claimReferral(){this.call('post',`/api/commerce/referrals/${this.referralCode}/claim`,{},()=>{this.referralCode='';this.loadReferral();});}
+  loadOrders(){this.call('get','/api/orders/mine',null,x=>this.orders=x);}
+  trackDelivery(){this.call('get',`/api/commerce/orders/${this.trackOrderId}/delivery`,null,x=>this.deliveryInfo=x);}
+  updateDelivery(){this.call('post',`/api/deliveries/${this.courierDeliveryId}/status`,this.courierStatus,()=>this.trackDelivery());}
+  loadReferral(){this.call('get','/api/commerce/referrals/me',null,x=>this.referral=x);}
+  createReferral(){this.call('post','/api/commerce/referrals/me',{},x=>this.referral=x);}
+  claimReferral(){this.call('post',`/api/commerce/referrals/${this.referralCode}/claim`,{},()=>{this.referralCode='';this.loadReferral();});}
 }
