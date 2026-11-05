@@ -18,10 +18,10 @@ import { RouterLink } from '@angular/router';
       <section class="growth-engines" aria-label="MERKATO growth engines">
         <article class="engine-card">
           <span class="engine-kicker">01 · FIND IT</span><h2>One Request</h2>
-          <p>Ask a merchant for a product-specific wholesale quote, then review the response in your account.</p>
+          <p>Post one open product request and receive comparable offers from multiple merchants.</p>
           <label>Product ID<input type="number" min="1" [(ngModel)]="productId" placeholder="Enter a listed product ID"></label>
-          <a class="engine-action" [routerLink]="productId > 0 ? ['/wholesale', productId] : ['/']">Open product request <span>↗</span></a>
-          <small>Current connection: existing product-specific wholesale RFQ. Multi-merchant open sourcing is a separate backend milestone.</small>
+          <a class="engine-action" routerLink="/sourcing">Open One Request <span>↗</span></a>
+          <small>Multi-merchant request, seller offers, buyer comparison and offer selection are available in One Request.</small>
         </article>
         <article class="engine-card">
           <span class="engine-kicker">02 · COMPARE IT</span><h2>Smart Price</h2>
