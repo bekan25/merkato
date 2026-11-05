@@ -312,6 +312,13 @@ namespace Merkato.Infrastructure.Migrations
                     b.ToTable("InspectionWindows");
                 });
 
+            modelBuilder.Entity("Merkato.Domain.Entities.CouponRedemption", b =>
+                {
+                    b.HasOne("Merkato.Domain.Entities.PromotionCoupon", null).WithMany().HasForeignKey("CouponId").OnDelete(DeleteBehavior.Restrict).IsRequired();
+                    b.HasOne("Merkato.Domain.Entities.User", null).WithMany().HasForeignKey("BuyerId").OnDelete(DeleteBehavior.Restrict).IsRequired();
+                    b.HasOne("Merkato.Domain.Entities.Order", null).WithMany().HasForeignKey("OrderId").OnDelete(DeleteBehavior.Restrict).IsRequired();
+                });
+
             modelBuilder.Entity("Merkato.Domain.Entities.WishlistItem", b =>
                 {
                     b.HasOne("Merkato.Domain.Entities.User", null).WithMany().HasForeignKey("BuyerId").OnDelete(DeleteBehavior.Cascade).IsRequired();
@@ -756,6 +763,47 @@ namespace Merkato.Infrastructure.Migrations
                     b.HasKey("Id");
                     b.HasIndex("OrderId").IsUnique();
                     b.ToTable("AffiliateCommissions");
+                });
+
+            modelBuilder.Entity("Merkato.Domain.Entities.PromotionCoupon", b =>
+                {
+                    b.Property<long>("Id").ValueGeneratedOnAdd().HasColumnType("bigint");
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+                    b.Property<string>("Code").IsRequired().HasMaxLength(40).HasColumnType("character varying(40)");
+                    b.Property<string>("Title").IsRequired().HasMaxLength(120).HasColumnType("character varying(120)");
+                    b.Property<string>("DiscountType").IsRequired().HasMaxLength(12).HasColumnType("character varying(12)");
+                    b.Property<decimal>("DiscountValue").HasColumnType("numeric(18,4)");
+                    b.Property<decimal?>("MaximumDiscountEtb").HasColumnType("numeric(18,4)");
+                    b.Property<decimal>("MinimumOrderEtb").HasColumnType("numeric(18,4)");
+                    b.Property<long?>("SellerId").HasColumnType("bigint");
+                    b.Property<int?>("UsageLimit").HasColumnType("integer");
+                    b.Property<int>("PerUserLimit").HasColumnType("integer");
+                    b.Property<DateTime>("StartsAt").HasColumnType("timestamp with time zone");
+                    b.Property<DateTime>("ExpiresAt").HasColumnType("timestamp with time zone");
+                    b.Property<bool>("IsActive").HasColumnType("boolean");
+                    b.Property<long>("CreatedBy").HasColumnType("bigint");
+                    b.Property<DateTime>("CreatedAt").HasColumnType("timestamp with time zone");
+                    b.HasKey("Id");
+                    b.HasIndex("Code").IsUnique();
+                    b.HasIndex("IsActive", "StartsAt", "ExpiresAt");
+                    b.ToTable("PromotionCoupons");
+                });
+
+            modelBuilder.Entity("Merkato.Domain.Entities.CouponRedemption", b =>
+                {
+                    b.Property<long>("Id").ValueGeneratedOnAdd().HasColumnType("bigint");
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+                    b.Property<long>("CouponId").HasColumnType("bigint");
+                    b.Property<long>("BuyerId").HasColumnType("bigint");
+                    b.Property<long>("OrderId").HasColumnType("bigint");
+                    b.Property<decimal>("DiscountEtb").HasColumnType("numeric(18,4)");
+                    b.Property<DateTime>("RedeemedAt").HasColumnType("timestamp with time zone");
+                    b.HasKey("Id");
+                    b.HasIndex("CouponId", "BuyerId");
+                    b.HasIndex("BuyerId");
+                    b.HasIndex("OrderId").IsUnique();
+                    b.HasIndex("OrderId");
+                    b.ToTable("CouponRedemptions");
                 });
 
             modelBuilder.Entity("Merkato.Domain.Entities.WishlistItem", b =>
