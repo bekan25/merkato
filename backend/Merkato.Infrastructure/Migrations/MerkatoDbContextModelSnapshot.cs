@@ -743,7 +743,7 @@ namespace Merkato.Infrastructure.Migrations
 
             modelBuilder.Entity("Merkato.Domain.Entities.ProductListingDetail", b =>
             {
-                b.Property<long>("ProductId").HasColumnType("bigint");
+                b.Property<long>("ProductId").ValueGeneratedNever().HasColumnType("bigint");
                 b.Property<int>("Condition").HasColumnType("integer");
                 b.Property<int>("StockQuantity").HasColumnType("integer");
                 b.Property<int>("LowStockThreshold").HasColumnType("integer");
