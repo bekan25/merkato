@@ -43,15 +43,12 @@ public sealed class SocialCommerceController(MerkatoDbContext db):ControllerBase
  public async Task<IActionResult> MyCommissions(CancellationToken ct)
  {
   var id=UserId();if(id is null)return Unauthorized();
-  var rows=await _dbCreatorCommissions(ct,id.Value);
-  return Ok(new { totalEtb=rows.Sum(x=>x.CommissionEtb), items=rows });
- }
- private async Task<List<object>> _dbCreatorCommissions(CancellationToken ct,long creatorId)
- {
-  return await db.CreatorCommissions.AsNoTracking().Where(x=>x.CreatorId==creatorId)
-   .OrderByDescending(x=>x.CreatedAt)
-   .Select(x=>new object[]{x.Id,x.OrderId,x.PostId,x.EligibleAmountEtb,x.RatePercent,x.CommissionEtb,x.Status,x.CreatedAt,x.ReleasedAt})
+  var query=db.CreatorCommissions.AsNoTracking().Where(x=>x.CreatorId==id.Value);
+  var total=await query.SumAsync(x=>(decimal?)x.CommissionEtb,ct)??0m;
+  var items=await query.OrderByDescending(x=>x.CreatedAt)
+   .Select(x=>new{x.Id,x.OrderId,x.PostId,x.EligibleAmountEtb,x.RatePercent,x.CommissionEtb,x.Status,x.CreatedAt,x.ReleasedAt})
    .ToListAsync(ct);
+  return Ok(new{totalEtb=total,items});
  }
  [Authorize]
  [HttpGet("posts/mine")]
