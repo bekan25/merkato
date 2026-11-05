@@ -416,7 +416,45 @@ public class ProductsController : ControllerBase
 
         if (!string.IsNullOrWhiteSpace(product.ImageUrl))
         {
-            var webRoot = _environment.WebRootPath;
+            var cloudName = _configuration["Cloudinary:CloudName"];
+            var cloudApiKey = _configuration["Cloudinary:ApiKey"];
+            var cloudApiSecret = _configuration["Cloudinary:ApiSecret"];
+
+            if (!string.IsNullOrWhiteSpace(cloudName) &&
+                !string.IsNullOrWhiteSpace(cloudApiKey) &&
+                !string.IsNullOrWhiteSpace(cloudApiSecret) &&
+                Uri.TryCreate(product.ImageUrl, UriKind.Absolute, out var imageUri) &&
+                imageUri.Host.EndsWith("cloudinary.com", StringComparison.OrdinalIgnoreCase))
+            {
+                var publicId = $"merkato/products/product_{product.Id}";
+                var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString();
+                var signatureBase = $"public_id={publicId}&timestamp={timestamp}{cloudApiSecret}";
+                var signature = Convert.ToHexString(SHA1.HashData(Encoding.UTF8.GetBytes(signatureBase))).ToLowerInvariant();
+
+                using var content = new FormUrlEncodedContent(new Dictionary<string, string>
+                {
+                    ["public_id"] = publicId,
+                    ["timestamp"] = timestamp,
+                    ["api_key"] = cloudApiKey,
+                    ["signature"] = signature
+                });
+                var client = _httpClientFactory.CreateClient();
+                using var response = await client.PostAsync(
+                    $"https://api.cloudinary.com/v1_1/{Uri.EscapeDataString(cloudName)}/image/destroy",
+                    content,
+                    HttpContext.RequestAborted);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning("Cloudinary image deletion failed with status {StatusCode}.",
+                        (int)response.StatusCode);
+                    return StatusCode(StatusCodes.Status502BadGateway,
+                        "Image storage provider could not delete the image. Please try again.");
+                }
+            }
+            else
+            {
+                var webRoot = _environment.WebRootPath;
 
             if (string.IsNullOrWhiteSpace(webRoot))
             {
@@ -438,8 +476,9 @@ public class ProductsController : ControllerBase
                     uploadDirectory,
                     fileName);
 
-                if (System.IO.File.Exists(filePath))
+                    if (System.IO.File.Exists(filePath))
                     System.IO.File.Delete(filePath);
+                }
             }
 
             product.ImageUrl = null;
