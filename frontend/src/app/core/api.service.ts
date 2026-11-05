@@ -139,7 +139,7 @@ export class ApiService {
     return this.http.delete<void>(`${this.baseUrl}/products/${id}`);
   }
 
-  createOrder(payload: { sellerId: number; productTitle: string; amountEtb: number; deliveryFeeEtb: number; paymentRail: number; deliveryCourier: string; deliveryAddress: string; cityArea: string }): Observable<MerkatoOrder> {
+  createOrder(payload: { sellerId: number; productTitle: string; amountEtb: number; deliveryFeeEtb: number; paymentRail: number; deliveryCourier: string; deliveryAddress: string; cityArea: string; couponCode?: string }): Observable<MerkatoOrder> {
     return this.http.post<MerkatoOrder>(`${this.baseUrl}/orders`, payload);
   }
 
@@ -194,6 +194,26 @@ export class ApiService {
 
   releaseDispute(id: number, notes: string): Observable<unknown> {
     return this.http.post(`${this.baseUrl}/disputes/${id}/release`, { notes });
+  }
+
+  validateCoupon(code: string, productId: number): Observable<{ code: string; title: string; discountEtb: number; subtotalEtb: number; totalEtb: number; expiresAt: string }> {
+    return this.http.post<{ code: string; title: string; discountEtb: number; subtotalEtb: number; totalEtb: number; expiresAt: string }>(`${this.baseUrl}/promotions/validate`, { code, productId });
+  }
+
+  getActivePromotions(): Observable<Array<{ title: string; discountType: string; discountValue: number; maximumDiscountEtb?: number | null; minimumOrderEtb: number; expiresAt: string; merchantPromotion: boolean }>> {
+    return this.http.get<Array<{ title: string; discountType: string; discountValue: number; maximumDiscountEtb?: number | null; minimumOrderEtb: number; expiresAt: string; merchantPromotion: boolean }>>(`${this.baseUrl}/promotions/active`);
+  }
+
+  createPromotion(payload: { code: string; title: string; discountType: 'PERCENT' | 'FIXED'; discountValue: number; maximumDiscountEtb?: number | null; minimumOrderEtb: number; usageLimit?: number | null; perUserLimit: number; startsAt: string; expiresAt: string; sellerId?: number | null }): Observable<unknown> {
+    return this.http.post(`${this.baseUrl}/promotions`, payload);
+  }
+
+  getMyPromotions(): Observable<Array<{ id: number; code: string; title: string; discountType: string; discountValue: number; minimumOrderEtb: number; maximumDiscountEtb?: number | null; usageLimit?: number | null; perUserLimit: number; startsAt: string; expiresAt: string; isActive: boolean; usedCount: number }>> {
+    return this.http.get<Array<{ id: number; code: string; title: string; discountType: string; discountValue: number; minimumOrderEtb: number; maximumDiscountEtb?: number | null; usageLimit?: number | null; perUserLimit: number; startsAt: string; expiresAt: string; isActive: boolean; usedCount: number }>>(`${this.baseUrl}/promotions/mine`);
+  }
+
+  deactivatePromotion(id: number): Observable<void> {
+    return this.http.post<void>(`${this.baseUrl}/promotions/${id}/deactivate`, {});
   }
 
   getWishlist(): Observable<Array<{ id: number; productId: number; name: string; priceEtb: number; location: string; category: string; imageUrl?: string | null; createdAt: string }>> {
