@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Data;
 using Merkato.Application.DTOs;
 using Merkato.Application.Interfaces;
 using Merkato.Domain.Entities;
@@ -129,7 +130,32 @@ public class OrdersController : ControllerBase
         if (request.AmountEtb != product.PriceEtb)
             return Conflict(new { message = "The product price has changed. Refresh the marketplace and try again.", currentPriceEtb = product.PriceEtb });
 
-        var riskDecision = await _risk.EvaluateOrderRiskAsync(buyerId, request.AmountEtb + expectedDeliveryFee, ct);
+        await using var checkoutTransaction = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+        PromotionCoupon? appliedCoupon = null;
+        decimal discountEtb = 0m;
+        if (!string.IsNullOrWhiteSpace(request.CouponCode))
+        {
+            var couponCode = request.CouponCode.Trim().ToUpperInvariant();
+            if (couponCode.Length > 40) return BadRequest(new { message = "Coupon code is too long." });
+            appliedCoupon = await _db.PromotionCoupons.FirstOrDefaultAsync(x => x.Code == couponCode, ct);
+            if (appliedCoupon is null) return Conflict(new { message = "Coupon code is invalid." });
+            var now = DateTime.UtcNow;
+            if (!appliedCoupon.IsActive || appliedCoupon.StartsAt > now || appliedCoupon.ExpiresAt <= now)
+                return Conflict(new { message = "Coupon is not currently active." });
+            if (appliedCoupon.SellerId.HasValue && appliedCoupon.SellerId.Value != product.SellerId)
+                return Conflict(new { message = "Coupon is valid only for products from its participating merchant." });
+            if (request.AmountEtb < appliedCoupon.MinimumOrderEtb)
+                return Conflict(new { message = "Coupon minimum order requirement is not met.", minimumOrderEtb = appliedCoupon.MinimumOrderEtb });
+            var totalUses = await _db.CouponRedemptions.CountAsync(x => x.CouponId == appliedCoupon.Id, ct);
+            var buyerUses = await _db.CouponRedemptions.CountAsync(x => x.CouponId == appliedCoupon.Id && x.BuyerId == buyerId, ct);
+            if (appliedCoupon.UsageLimit.HasValue && totalUses >= appliedCoupon.UsageLimit.Value)
+                return Conflict(new { message = "Coupon usage limit has been reached." });
+            if (buyerUses >= appliedCoupon.PerUserLimit)
+                return Conflict(new { message = "You have already used this coupon the maximum number of times." });
+            discountEtb = PromotionsController.CalculateDiscount(appliedCoupon, request.AmountEtb);
+        }
+
+        var riskDecision = await _risk.EvaluateOrderRiskAsync(buyerId, request.AmountEtb - discountEtb + expectedDeliveryFee, ct);
         if (riskDecision != RiskDecision.ALLOW)
             return Conflict(new { message = "This order requires additional verification and cannot be placed yet.", riskDecision = riskDecision.ToString() });
 
@@ -139,7 +165,7 @@ public class OrdersController : ControllerBase
             BuyerId = buyerId,
             SellerId = request.SellerId,
             ProductTitle = product.Name,
-            TotalAmountEtb = request.AmountEtb + expectedDeliveryFee,
+            TotalAmountEtb = request.AmountEtb - discountEtb + expectedDeliveryFee,
             DeliveryFeeEtb = expectedDeliveryFee,
             PaymentRail = request.PaymentRail,
             DeliveryCourier = string.IsNullOrWhiteSpace(request.DeliveryCourier) ? "BEU_DELIVERY" : request.DeliveryCourier.Trim(),
@@ -153,6 +179,16 @@ public class OrdersController : ControllerBase
 
         _db.Orders.Add(order);
         await _db.SaveChangesAsync(ct);
+
+        if (appliedCoupon is not null)
+        {
+            _db.CouponRedemptions.Add(new CouponRedemption {
+                CouponId = appliedCoupon.Id, BuyerId = buyerId, OrderId = order.Id,
+                DiscountEtb = discountEtb, RedeemedAt = DateTime.UtcNow
+            });
+            await _db.SaveChangesAsync(ct);
+        }
+        await checkoutTransaction.CommitAsync(ct);
 
         var response = new OrderResponseDto(
             order.Id, order.OrderNumber, order.BuyerId, order.SellerId,
