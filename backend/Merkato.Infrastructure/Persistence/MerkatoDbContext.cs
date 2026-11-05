@@ -102,7 +102,7 @@ public class MerkatoDbContext : DbContext
             e.Property(x => x.QuotedUnitPriceEtb).HasColumnType("numeric(18,4)");
         });
         modelBuilder.Entity<SourcingRequest>(e => { e.HasIndex(x => x.RequestNumber).IsUnique(); e.HasIndex(x => new { x.BuyerId, x.CreatedAt }); e.HasIndex(x => new { x.Status, x.ExpiresAt }); e.Property(x => x.RequestNumber).HasMaxLength(24).IsRequired(); e.Property(x => x.Title).HasMaxLength(160).IsRequired(); e.Property(x => x.Description).HasMaxLength(2000).IsRequired(); e.Property(x => x.Category).HasMaxLength(100).IsRequired(); e.Property(x => x.City).HasMaxLength(100).IsRequired(); e.Property(x => x.Status).HasMaxLength(24).IsRequired(); e.Property(x => x.TargetUnitPriceEtb).HasColumnType("numeric(18,4)"); });
-        modelBuilder.Entity<SourcingOffer>(e => { e.HasIndex(x => new { x.SourcingRequestId, x.SellerId }).IsUnique(); e.HasIndex(x => new { x.SellerId, x.Status }); e.Property(x => x.UnitPriceEtb).HasColumnType("numeric(18,4)"); e.Property(x => x.Note).HasMaxLength(1000); e.Property(x => x.Status).HasMaxLength(24).IsRequired(); });
+        modelBuilder.Entity<SourcingOffer>(e => { e.HasIndex(x => x.ProductId); e.HasIndex(x => new { x.SourcingRequestId, x.SellerId }).IsUnique(); e.HasIndex(x => new { x.SellerId, x.Status }); e.Property(x => x.UnitPriceEtb).HasColumnType("numeric(18,4)"); e.Property(x => x.Note).HasMaxLength(1000); e.Property(x => x.Status).HasMaxLength(24).IsRequired(); });
         modelBuilder.Entity<SocialCommercePost>(e => { e.HasIndex(x => new { x.Status, x.PublishedAt }); e.HasIndex(x => new { x.CreatorId, x.CreatedAt }); e.Property(x => x.Caption).HasMaxLength(1200).IsRequired(); e.Property(x => x.MediaUrl).HasMaxLength(2048).IsRequired(); e.Property(x => x.MediaType).HasMaxLength(8).IsRequired(); e.Property(x => x.Status).HasMaxLength(16).IsRequired(); e.Property(x => x.ModerationNote).HasMaxLength(1000); });
         modelBuilder.Entity<SocialCommerceClick>(e => { e.HasIndex(x => new { x.PostId, x.VisitorHash }).IsUnique(); e.Property(x => x.VisitorHash).HasMaxLength(64).IsRequired(); });
         modelBuilder.Entity<AffiliateProfile>(e => {
@@ -154,6 +154,7 @@ public class MerkatoDbContext : DbContext
             entity.HasIndex(o => o.BuyerId);
             entity.HasIndex(o => o.SellerId);
             entity.HasIndex(o => o.ProductId);
+            entity.HasIndex(o => o.SourcingRequestId).IsUnique();
             entity.HasIndex(o => new { o.InventoryReservationState, o.InventoryReservationExpiresAt });
 
             entity.Property(o => o.TotalAmountEtb)
