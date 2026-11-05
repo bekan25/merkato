@@ -30,7 +30,7 @@ public sealed class InventoryReservationExpiryService(
                     await using var transaction = await db.Database.BeginTransactionAsync(stoppingToken);
                     var productId = await db.Orders.AsNoTracking()
                         .Where(x => x.Id == orderId)
-                        .Select(x => x.ProductId)
+                        .Select(x => new { x.ProductId, x.Quantity })
                         .FirstOrDefaultAsync(stoppingToken);
 
                     var claimed = await db.Orders
@@ -43,13 +43,13 @@ public sealed class InventoryReservationExpiryService(
 
                     if (claimed == 1)
                     {
-                        if (!productId.HasValue)
-                            throw new InvalidOperationException($"Reserved order {orderId} has no product reference.");
+                        if (productId?.ProductId is not long reservedProductId || productId.Quantity < 1)
+                            throw new InvalidOperationException($"Reserved order {orderId} has invalid product or quantity data.");
 
                         var released = await db.ProductListingDetails
-                            .Where(x => x.ProductId == productId.Value && x.ReservedQuantity >= 1)
+                            .Where(x => x.ProductId == reservedProductId && x.ReservedQuantity >= productId.Quantity)
                             .ExecuteUpdateAsync(update => update
-                                .SetProperty(x => x.ReservedQuantity, x => x.ReservedQuantity - 1)
+                                .SetProperty(x => x.ReservedQuantity, x => x.ReservedQuantity - productId.Quantity)
                                 .SetProperty(x => x.UpdatedAt, now), stoppingToken);
                         if (released != 1)
                             throw new InvalidOperationException($"Could not release inventory for expired order {orderId}.");
