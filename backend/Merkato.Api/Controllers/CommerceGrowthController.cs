@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Merkato.Application.Interfaces;
 using Merkato.Domain.Entities;
 using Merkato.Domain.Enums;
 using Merkato.Infrastructure.Persistence;
@@ -10,7 +11,7 @@ namespace Merkato.Api.Controllers;
 
 [ApiController]
 [Route("api/commerce")]
-public sealed class CommerceGrowthController(MerkatoDbContext db) : ControllerBase
+public sealed class CommerceGrowthController(MerkatoDbContext db, IEscrowService escrow) : ControllerBase
 {
     private long CurrentUserId => long.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : 0;
 
@@ -201,7 +202,20 @@ public sealed class CommerceGrowthController(MerkatoDbContext db) : ControllerBa
         var request = await db.ReturnRequests.FirstOrDefaultAsync(x => x.Id == id, ct);
         if (request is null) return NotFound();
         if (request.Status != ReturnStatus.RECEIVED) return Conflict("Returned item must be received before refund confirmation.");
-        request.Status = ReturnStatus.REFUNDED; request.ResolutionNote = ("Refund reference: " + input.ProviderReference.Trim()).Substring(0, Math.Min(2000, 18 + input.ProviderReference.Trim().Length)); request.UpdatedAt = DateTime.UtcNow;
+        var order = await db.Orders.FirstOrDefaultAsync(x => x.Id == request.OrderId, ct);
+        if (order is null) return NotFound("Related order not found.");
+        if (order.EscrowState == EscrowState.RELEASED) return Conflict("Escrow has already been released; use the dispute resolution process.");
+        if (order.EscrowState != EscrowState.REFUNDED)
+        {
+            try { await escrow.RefundFundsToBuyerAsync(order.Id, CurrentUserId, "Approved return. Provider reference: " + input.ProviderReference.Trim(), ct); }
+            catch (InvalidOperationException ex) { return Conflict(ex.Message); }
+            catch (KeyNotFoundException ex) { return Conflict(ex.Message); }
+        }
+        var payment = await db.PaymentTransactions.Where(x => x.OrderId == order.Id && x.Status == PaymentStatus.VERIFIED).OrderByDescending(x => x.CreatedAt).FirstOrDefaultAsync(ct);
+        if (payment is not null) payment.Status = PaymentStatus.REFUNDED;
+        request.Status = ReturnStatus.REFUNDED;
+        request.ResolutionNote = ("Refund reference: " + input.ProviderReference.Trim()).Substring(0, Math.Min(2000, 18 + input.ProviderReference.Trim().Length));
+        request.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(ct);
         return Ok(new { request.Id, status = request.Status.ToString() });
     }
