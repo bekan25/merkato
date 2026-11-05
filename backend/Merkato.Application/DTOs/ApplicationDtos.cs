@@ -33,7 +33,8 @@ public record CreateOrderDto(
     PaymentRail PaymentRail,
     string DeliveryCourier,
     string DeliveryAddress,
-    string CityArea
+    string CityArea,
+    string? CouponCode = null
 );
 
 public record OrderResponseDto(
