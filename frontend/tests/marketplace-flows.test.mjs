@@ -115,3 +115,18 @@ test('group buying reserves physical stock atomically and releases it on expiry 
   assert.match(hub, /availableQuantity/);
   assert.match(hub, /cancelGroup\(id:number\)/);
 });
+
+test('checkout and verified-purchase reviews retain the exact product identity', async () => {
+  const cart = await read('../src/app/pages/cart.component.ts');
+  const api = await read('../src/app/core/api.service.ts');
+  const orders = await read('../../backend/Merkato.Api/Controllers/OrdersController.cs');
+  const growth = await read('../../backend/Merkato.Api/Controllers/CommerceGrowthController.cs');
+  const migration = await read('../../backend/Merkato.Infrastructure/Migrations/20261105190000_AddOrderProductReference.cs');
+
+  assert.match(cart, /productId: line\.product\.id/);
+  assert.match(api, /productId\?: number/);
+  assert.match(orders, /ProductId = product\.Id/);
+  assert.match(orders, /request\.ProductId\.Value/);
+  assert.match(growth, /x\.ProductId == product\.Id/);
+  assert.match(migration, /IX_Orders_ProductId/);
+});
