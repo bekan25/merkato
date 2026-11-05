@@ -454,6 +454,7 @@ app.MapGet("/api/v1/discovery/products", async Task<IResult> (
     MerkatoDbContext db,
     string? q,
     string? category,
+    string? location,
     decimal? maxPriceEtb,
     int? limit,
     CancellationToken ct) =>
@@ -475,6 +476,12 @@ app.MapGet("/api/v1/discovery/products", async Task<IResult> (
             product.Name.ToLower().Contains(term) ||
             product.Category.ToLower().Contains(term) ||
             product.Location.ToLower().Contains(term));
+    }
+
+    if (!string.IsNullOrWhiteSpace(location))
+    {
+        var selectedLocation = location.Trim().ToLowerInvariant();
+        products = products.Where(product => product.Location.ToLower().Contains(selectedLocation));
     }
 
     if (!string.IsNullOrWhiteSpace(category))
