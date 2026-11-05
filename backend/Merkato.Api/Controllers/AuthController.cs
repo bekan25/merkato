@@ -148,7 +148,21 @@ public class AuthController : ControllerBase
         });
     }
 
-    [Authorize]\n    [HttpPost("logout")]\n    public async Task<IActionResult> Logout()\n    {\n        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);\n        if (!long.TryParse(userIdClaim, out var userId)) return Unauthorized();\n        var user = await _db.Users.FindAsync(userId);\n        if (user is null) return Unauthorized();\n        user.TokenVersion++;\n        user.UpdatedAt = DateTime.UtcNow;\n        await _db.SaveChangesAsync();\n        return NoContent();\n    }\n\n    private AuthResponseDto CreateAuthResponse(User user) =>
+    [Authorize]
+    [HttpPost("logout")]
+    public async Task<IActionResult> Logout()
+    {
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!long.TryParse(userIdClaim, out var userId)) return Unauthorized();
+        var user = await _db.Users.FindAsync(userId);
+        if (user is null) return Unauthorized();
+        user.TokenVersion++;
+        user.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
+
+    private AuthResponseDto CreateAuthResponse(User user) =>
         new(GenerateToken(user), user.Id, user.PhoneNumber, user.FullName,
             user.Role, user.TrustScore, user.IsFaydaVerified);
 
@@ -165,7 +179,8 @@ public class AuthController : ControllerBase
             new(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new(ClaimTypes.Name, user.FullName),
             new(ClaimTypes.MobilePhone, user.PhoneNumber),
-            new(ClaimTypes.Role, user.Role.ToString())
+            new(ClaimTypes.Role, user.Role.ToString()),
+            new("token_version", user.TokenVersion.ToString())
         };
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
