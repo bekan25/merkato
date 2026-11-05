@@ -9,6 +9,42 @@ import { ApiService, MerkatoProduct, MerkatoOrder, MerkatoDispute, MerchantAnaly
   standalone: true,
   selector: 'app-dashboard',
   imports: [CommonModule, FormsModule, RouterLink],
+  styles: [`
+    .product-editor{margin:22px 0 28px;padding:26px;background:#f7f8f7;border:1px solid #e7ebe7;border-radius:22px;color:#18231d}
+    .editor-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:22px}
+    .editor-heading h3{font-size:25px;margin:7px 0 5px;letter-spacing:-.7px}
+    .editor-heading p,.editor-card-title p,.publish-card p{margin:0;color:#778179;font-size:13px}
+    .editor-step{font-weight:800;color:#16834f;background:#e3f7e9;padding:10px 13px;border-radius:12px}
+    .editor-step small{font-size:10px;letter-spacing:1px}
+    .editor-layout{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(260px,.9fr);gap:18px}
+    .editor-main,.editor-aside{display:grid;align-content:start;gap:18px;min-width:0}
+    .editor-card{background:#fff;border:1px solid #e9ede9;border-radius:17px;padding:20px;box-shadow:0 5px 18px #142b1b08}
+    .editor-card-title{display:flex;align-items:center;gap:12px;margin-bottom:19px}
+    .editor-icon{width:39px;height:39px;display:grid;place-items:center;background:#e7f8ec;color:#16834f;border-radius:12px;font-size:20px}
+    .editor-card-title h4,.publish-card h4{margin:0 0 4px;font-size:16px}
+    .product-editor label{display:block;font-size:12px;font-weight:700;color:#354139;margin:14px 0}
+    .product-editor input:not([type=file]){display:block;width:100%;box-sizing:border-box;margin-top:8px;padding:13px 14px;border:1px solid #e2e8e2;border-radius:11px;background:#f8faf8;color:#1b2920;outline:none}
+    .product-editor input:focus{border-color:#37b96b;box-shadow:0 0 0 3px #37b96b20}
+    .price-input{display:flex;align-items:center;margin-top:8px;background:#f8faf8;border:1px solid #e2e8e2;border-radius:11px;overflow:hidden}
+    .price-input span{padding:0 13px;color:#16834f;font-weight:800;font-size:12px}
+    .price-input input{margin:0!important;border:0!important;border-radius:0!important;background:transparent!important}
+    .editor-note{display:flex;flex-direction:column;gap:5px;background:#f0f8f2;border-radius:12px;padding:13px;color:#607066;font-size:12px;line-height:1.5}
+    .editor-note strong{color:#187343}
+    .upload-drop{position:relative;display:flex!important;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:145px;border:1.5px dashed #a9d8b7;border-radius:14px;background:#f5fbf6;color:#23422e!important;text-align:center;cursor:pointer}
+    .upload-drop input[type=file]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+    .upload-drop small,.image-empty small{font-size:11px;font-weight:400;color:#89948c}
+    .upload-symbol{display:grid;place-items:center;width:38px;height:38px;border-radius:50%;background:#dff5e5;color:#16834f;font-size:24px}
+    .image-empty{display:flex;flex-direction:column;align-items:center;gap:6px;padding:18px;color:#a1aaa3;font-size:12px}
+    .image-empty span{font-size:30px}
+    .editor-preview{margin-top:14px}
+    .editor-preview img{width:100%;max-height:220px;object-fit:contain;border-radius:12px;background:#f4f5f4}
+    .publish-card{background:#f0f8f2}
+    .publish-button,.cancel-button{width:100%;justify-content:center;margin-top:12px}
+    .catalogue-product{display:flex;align-items:center;gap:10px;min-width:170px}
+    .catalogue-product img,.catalogue-placeholder{width:42px;height:42px;object-fit:cover;border-radius:9px;background:#f0f3f0}
+    .catalogue-placeholder{display:grid;place-items:center;color:#829087}
+    @media(max-width:760px){.product-editor{padding:16px}.editor-layout{grid-template-columns:1fr}.editor-heading h3{font-size:21px}}
+  `],
   template: `
     <section class="workspace">
       <aside class="workspace-sidebar"><a routerLink="/" class="brand"><span class="brand-mark">M</span><span>merkato<small>WORKSPACE</small></span></a><div class="workspace-user"><span class="user-avatar">{{user?.fullName?.slice(0,1)}}</span><div><strong>{{user?.fullName}}</strong><small>{{user?.role}}</small></div></div><span class="side-label">WORKSPACE</span><a routerLink="/dashboard" class="side-link active">▦ <span>Overview</span></a><a routerLink="/" class="side-link">⌕ <span>Marketplace</span></a><a *ngIf="user?.role === 'MERCHANT' || user?.role === 'ADMIN'" href="#products" class="side-link">▤ <span>Products</span></a><a *ngIf="user?.role === 'ADMIN'" href="#admin-note" class="side-link">⚙ <span>Administration</span></a><div class="sidebar-bottom"><a routerLink="/" class="side-link">↗ <span>View marketplace</span></a><button class="side-link side-logout" (click)="logout()">⇥ <span>Sign out</span></button></div></aside>
@@ -47,8 +83,30 @@ import { ApiService, MerkatoProduct, MerkatoOrder, MerkatoDispute, MerchantAnaly
           <small>Do not submit passwords, PINs or identity document numbers. This business review is separate from Fayda identity verification.</small>
         </section>
         <section class="workspace-section" *ngIf="user?.role === 'MERCHANT' || user?.role === 'ADMIN'" id="products"><div class="workspace-section-head"><div><span class="eyebrow">YOUR CATALOGUE</span><h2>Product management</h2><p>Products currently available in the marketplace API.</p></div><button class="btn btn-primary" (click)="toggleProductForm()">{{showProductForm ? 'Close form' : '+ Add product'}}</button></div>
-          <form class="product-form" *ngIf="showProductForm" (ngSubmit)="createProduct()"><label>Product name<input name="name" [(ngModel)]="draft.name" required maxlength="180"></label><label>Price (ETB)<input name="price" [(ngModel)]="draft.priceEtb" type="number" min="0.01" step="0.01" required></label><label>Category<input name="category" [(ngModel)]="draft.category" required maxlength="100"></label><label>Location<input name="location" [(ngModel)]="draft.location" required maxlength="160"></label><label class="image-upload-field">Product photo <span class="muted">JPEG, PNG or WebP · max 5 MB</span><input name="productImage" type="file" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" (change)="onImageSelected($event)"></label><div class="product-image-preview" *ngIf="imagePreviewUrl"><img [src]="imagePreviewUrl" alt="Selected product preview"><button type="button" class="btn btn-outline" (click)="clearSelectedImage()">Remove photo</button></div><button class="btn btn-primary" [disabled]="saving">{{saving ? 'Saving...' : (editingProductId ? 'Update product' : 'Save product')}}</button><button type="button" class="btn btn-outline" *ngIf="editingProductId" (click)="cancelEdit()">Cancel edit</button><p class="form-error" *ngIf="productError">{{productError}}</p></form>
-          <div *ngIf="merchantProducts.length" class="table-wrap"><table><thead><tr><th>Product</th><th>Category</th><th>Price</th><th>Location</th><th>Status</th><th>Actions</th></tr></thead><tbody><tr *ngFor="let p of merchantProducts"><td>{{p.name}}</td><td>{{p.category}}</td><td>{{p.priceEtb | number:'1.2-2'}} ETB</td><td>{{p.location}}</td><td><span class="status-pill">Active</span></td><td class="product-actions"><button type="button" (click)="editProduct(p)">Edit</button><button type="button" (click)="removeProduct(p)">Archive</button></td></tr></tbody></table></div>
+          <form class="product-editor" *ngIf="showProductForm" (ngSubmit)="createProduct()">
+            <div class="editor-heading"><div><span class="eyebrow">MERCHANT STUDIO</span><h3>{{editingProductId ? 'Edit product' : 'Create a new product'}}</h3><p>Publish a clear, accurate listing for buyers across Ethiopia.</p></div><span class="editor-step">01 <small>/ PRODUCT</small></span></div>
+            <div class="editor-layout">
+              <div class="editor-main">
+                <section class="editor-card"><div class="editor-card-title"><span class="editor-icon">▤</span><div><h4>General information</h4><p>Give your product a clear name and category.</p></div></div>
+                  <label>Product name <input name="name" [(ngModel)]="draft.name" required maxlength="180" placeholder="e.g. Handmade leather bag"></label>
+                  <label>Category <input name="category" [(ngModel)]="draft.category" required maxlength="100" placeholder="e.g. Fashion, Electronics, Home"></label>
+                  <label>Store location <input name="location" [(ngModel)]="draft.location" required maxlength="160" placeholder="City or delivery area"></label>
+                </section>
+                <section class="editor-card"><div class="editor-card-title"><span class="editor-icon">◈</span><div><h4>Pricing & availability</h4><p>Set the selling price in Ethiopian birr.</p></div></div>
+                  <label>Base price <div class="price-input"><span>ETB</span><input name="price" [(ngModel)]="draft.priceEtb" type="number" min="0.01" step="0.01" required placeholder="0.00"></div></label>
+                  <div class="editor-note"><strong>Pricing tip</strong><span>Use a competitive, accurate price. Buyers complete payment through MERKATO's verified checkout flow.</span></div>
+                </section>
+              </div>
+              <aside class="editor-aside"><section class="editor-card image-card"><div class="editor-card-title"><span class="editor-icon">▧</span><div><h4>Product image</h4><p>Show buyers what they are ordering.</p></div></div>
+                  <label class="upload-drop" for="merchantProductImage"><span class="upload-symbol">＋</span><strong>{{imagePreviewUrl ? 'Change product photo' : 'Upload product photo'}}</strong><small>JPEG, PNG or WebP · Maximum 5 MB</small><input id="merchantProductImage" name="productImage" type="file" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" (change)="onImageSelected($event)"></label>
+                  <div class="product-image-preview editor-preview" *ngIf="imagePreviewUrl"><img [src]="imagePreviewUrl" alt="Selected product preview"><button type="button" class="btn btn-outline" (click)="clearSelectedImage()">Remove photo</button></div>
+                  <div class="image-empty" *ngIf="!imagePreviewUrl"><span>▧</span><strong>Image preview</strong><small>Your selected image will appear here.</small></div>
+                </section>
+                <section class="editor-card publish-card"><h4>Ready to list?</h4><p>Check the product details before publishing to the marketplace.</p><button class="btn btn-primary publish-button" [disabled]="saving">{{saving ? 'Saving product...' : (editingProductId ? '✓ Save changes' : '＋ Publish product')}}</button><button type="button" class="btn btn-outline cancel-button" *ngIf="editingProductId" (click)="cancelEdit()">Cancel editing</button><p class="form-error" *ngIf="productError">{{productError}}</p></section>
+              </aside>
+            </div>
+          </form>
+          <div *ngIf="merchantProducts.length" class="table-wrap"><table><thead><tr><th>Product</th><th>Category</th><th>Price</th><th>Location</th><th>Status</th><th>Actions</th></tr></thead><tbody><tr *ngFor="let p of merchantProducts"><td class="catalogue-product"><img *ngIf="p.imageUrl" [src]="p.imageUrl" [alt]="p.name"><span *ngIf="!p.imageUrl" class="catalogue-placeholder">▧</span><strong>{{p.name}}</strong></td><td>{{p.category}}</td><td>{{p.priceEtb | number:'1.2-2'}} ETB</td><td>{{p.location}}</td><td><span class="status-pill">Active</span></td><td class="product-actions"><button type="button" (click)="editProduct(p)">Edit</button><button type="button" (click)="removeProduct(p)">Archive</button></td></tr></tbody></table></div>
           <div class="empty-inline" *ngIf="!merchantProducts.length">No products are currently returned by the API. Add your first product when signed in as a merchant.</div>
         </section>
         <section class="workspace-section" *ngIf="user?.role === 'MERCHANT' || user?.role === 'ADMIN'"><span class="eyebrow">ORDER FULFILMENT</span><h2>Incoming orders</h2><div *ngIf="merchantOrders.length" class="table-wrap"><table><thead><tr><th>Order</th><th>Product</th><th>Buyer</th><th>Total</th><th>Delivery</th></tr></thead><tbody><tr *ngFor="let order of merchantOrders"><td>{{order.orderNumber}}</td><td>{{order.productTitle}}</td><td>#{{order.buyerId}}</td><td>{{order.totalAmountEtb | number:'1.2-2'}} ETB</td><td>{{order.deliveryStatus}}</td></tr></tbody></table></div><div class="empty-inline" *ngIf="!merchantOrders.length">No incoming orders have been recorded yet.</div></section>
