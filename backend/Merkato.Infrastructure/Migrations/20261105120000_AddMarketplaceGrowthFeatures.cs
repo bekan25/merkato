@@ -26,7 +26,7 @@ public sealed class AddMarketplaceGrowthFeatures : Migration
                 "BuyerId" bigint NOT NULL REFERENCES "Users"("Id") ON DELETE RESTRICT,
                 "OrderId" bigint NOT NULL REFERENCES "Orders"("Id") ON DELETE RESTRICT,
                 "Rating" integer NOT NULL CHECK ("Rating" BETWEEN 1 AND 5),
-                "Comment" varchar(2000) NOT NULL DEFAULT '',
+                "Comment" text NOT NULL DEFAULT '',
                 "CreatedAt" timestamptz NOT NULL DEFAULT now(),
                 CONSTRAINT "UX_ProductReviews_ProductId_BuyerId" UNIQUE ("ProductId","BuyerId")
             );
@@ -65,9 +65,9 @@ public sealed class AddMarketplaceGrowthFeatures : Migration
                 "OrderId" bigint NOT NULL REFERENCES "Orders"("Id") ON DELETE RESTRICT,
                 "BuyerId" bigint NOT NULL REFERENCES "Users"("Id") ON DELETE RESTRICT,
                 "SellerId" bigint NOT NULL REFERENCES "Users"("Id") ON DELETE RESTRICT,
-                "Reason" varchar(2000) NOT NULL,
+                "Reason" text NOT NULL,
                 "EvidenceUrl" text NULL,
-                "ResolutionNote" varchar(2000) NULL,
+                "ResolutionNote" text NULL,
                 "Status" integer NOT NULL DEFAULT 0,
                 "CreatedAt" timestamptz NOT NULL DEFAULT now(),
                 "UpdatedAt" timestamptz NOT NULL DEFAULT now(),
