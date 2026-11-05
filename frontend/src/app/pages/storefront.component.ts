@@ -78,6 +78,7 @@ import { ShoppingAssistantComponent } from '../components/shopping-assistant.com
             <span class="product-location">⌖ {{product.location || 'Ethiopia'}}</span>
             <button class="product-title-button" type="button" (click)="openQuickView(product)">{{product.name}}</button>
             <div class="product-bottom"><strong>{{product.priceEtb | number:'1.2-2'}} <small>ETB</small></strong><button (click)="addToCart(product)" class="add-button" type="button" [attr.aria-label]="'Add ' + product.name + ' to cart'">+</button></div>
+            <a class="wholesale-link" [routerLink]="['/wholesale', product.id]">Bulk pricing &amp; wholesale ↗</a>
           </div>
         </article>
       </div>
@@ -111,7 +112,8 @@ import { ShoppingAssistantComponent } from '../components/shopping-assistant.com
     </div>
   `,
   styles: [`
-     .price-filter{width:100px;min-width:0;padding:10px;border:1px solid #e5e9e3;border-radius:10px;background:#fff;color:#34463a;font-size:11px}
+     .wholesale-link{display:inline-flex;margin-top:10px;color:#087653;font-size:12px;font-weight:700;text-decoration:none}.wholesale-link:hover{text-decoration:underline}
+    .price-filter{width:100px;min-width:0;padding:10px;border:1px solid #e5e9e3;border-radius:10px;background:#fff;color:#34463a;font-size:11px}
     .compare-bar{margin:18px 0;padding:14px 16px;border:1px solid #dce7dc;border-radius:14px;background:#f7faf5;color:#264634;font-size:12px}
     .compare-bar>button{float:right;border:0;background:none;color:#8a5737;font-weight:700;cursor:pointer}
     .compare-items{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
