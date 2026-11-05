@@ -805,7 +805,6 @@ namespace Merkato.Infrastructure.Migrations
                     b.HasIndex("CouponId", "BuyerId");
                     b.HasIndex("BuyerId");
                     b.HasIndex("OrderId").IsUnique();
-                    b.HasIndex("OrderId");
                     b.ToTable("CouponRedemptions");
                 });
 
