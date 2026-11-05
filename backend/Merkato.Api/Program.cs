@@ -9,6 +9,7 @@ using Merkato.Infrastructure.Services;
 using Merkato.Api.Services;
 using Scalar.AspNetCore;
 using System.Text;
+using System.Security.Claims;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
@@ -111,6 +112,29 @@ builder.Services
 
                 ClockSkew = TimeSpan.Zero
             };
+
+        options.Events = new JwtBearerEvents
+        {
+            OnTokenValidated = async context =>
+            {
+                var userIdText = context.Principal?.FindFirstValue(ClaimTypes.NameIdentifier);
+                var versionText = context.Principal?.FindFirstValue("token_version");
+                if (!long.TryParse(userIdText, out var userId) || !int.TryParse(versionText, out var tokenVersion))
+                {
+                    context.Fail("Invalid session token.");
+                    return;
+                }
+
+                var db = context.HttpContext.RequestServices.GetRequiredService<MerkatoDbContext>();
+                var account = await db.Users.AsNoTracking()
+                    .Where(user => user.Id == userId)
+                    .Select(user => new { user.IsSuspended, user.TokenVersion })
+                    .SingleOrDefaultAsync(context.HttpContext.RequestAborted);
+
+                if (account is null || account.IsSuspended || account.TokenVersion != tokenVersion)
+                    context.Fail("Session is no longer valid.");
+            }
+        };
     });
 
 builder.Services.AddAuthorization();
