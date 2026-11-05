@@ -138,7 +138,7 @@ public sealed class CommerceGrowthController(MerkatoDbContext db, IEscrowService
 
         foreach (var groupId in expiredIds)
         {
-            await using var tx = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, ct);
+            await using var tx = await db.Database.BeginTransactionAsync(ct);
             var group = await db.GroupBuys.AsNoTracking().FirstOrDefaultAsync(x => x.Id == groupId, ct);
             if (group is null) { await tx.RollbackAsync(ct); continue; }
 
@@ -244,11 +244,17 @@ public sealed class CommerceGrowthController(MerkatoDbContext db, IEscrowService
     [HttpPost("group-buys/{id:long}/cancel")]
     public async Task<IActionResult> CancelGroupBuy(long id, CancellationToken ct)
     {
-        await using var tx = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, ct);
-        var group = await db.GroupBuys.FirstOrDefaultAsync(x => x.Id == id, ct);
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        var group = await db.GroupBuys.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, ct);
         if (group is null) return NotFound();
         if (!User.IsInRole("ADMIN") && group.OrganizerId != CurrentUserId) return Forbid();
-        if (group.Status is not (GroupBuyStatus.OPEN or GroupBuyStatus.TARGET_REACHED))
+
+        // Claim cancellation exactly once before releasing the shared inventory counter.
+        var claimed = await db.GroupBuys
+            .Where(x => x.Id == id &&
+                        (x.Status == GroupBuyStatus.OPEN || x.Status == GroupBuyStatus.TARGET_REACHED))
+            .ExecuteUpdateAsync(update => update.SetProperty(x => x.Status, GroupBuyStatus.CANCELLED), ct);
+        if (claimed != 1)
             return Conflict("Only an open or target-reached group buy can be cancelled.");
 
         var reservedQuantity = await db.GroupBuyMembers
@@ -267,10 +273,8 @@ public sealed class CommerceGrowthController(MerkatoDbContext db, IEscrowService
                 return Conflict("Reserved inventory is inconsistent. The group was not cancelled; contact support.");
         }
 
-        group.Status = GroupBuyStatus.CANCELLED;
-        await db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
-        return Ok(new { group.Id, status = group.Status.ToString(), releasedQuantity = reservedQuantity });
+        return Ok(new { group.Id, status = GroupBuyStatus.CANCELLED.ToString(), releasedQuantity = reservedQuantity });
     }
 
     [Authorize(Roles = "BUYER")]
