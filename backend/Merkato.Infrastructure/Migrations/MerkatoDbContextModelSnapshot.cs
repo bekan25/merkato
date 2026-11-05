@@ -863,6 +863,7 @@ namespace Merkato.Infrastructure.Migrations
                 b.Property<long>("ProductId").ValueGeneratedNever().HasColumnType("bigint");
                 b.Property<int>("Condition").HasColumnType("integer");
                 b.Property<int>("StockQuantity").HasColumnType("integer");
+                b.Property<int>("ReservedQuantity").HasColumnType("integer");
                 b.Property<int>("LowStockThreshold").HasColumnType("integer");
                 b.Property<DateTime>("UpdatedAt").HasColumnType("timestamp with time zone");
                 b.HasKey("ProductId");
