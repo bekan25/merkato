@@ -9,9 +9,12 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
   frontend:
-    name: Angular build
+    name: Angular build and flow contract tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -23,18 +26,21 @@ jobs:
       - name: Install frontend dependencies
         working-directory: frontend
         run: npm ci
+      - name: Frontend tests
+        working-directory: frontend
+        run: npm test
       - name: Build Angular application
         working-directory: frontend
         run: npm run build
 
   backend:
-    name: ASP.NET Core tests
+    name: ASP.NET Core 10 tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 8.0.x
+          dotnet-version: 10.0.x
       - name: Restore
         run: dotnet restore backend/Merkato.sln
       - name: Build
@@ -43,14 +49,12 @@ jobs:
         run: dotnet test backend/Merkato.sln --configuration Release --no-build
 
   containers:
-    name: Container image builds
+    name: Container image and Compose validation
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Build API image
-        run: docker build --file backend/Dockerfile --tag merkato-api:ci .
-      - name: Build web image
-        run: docker build --file frontend/Dockerfile --tag merkato-web:ci .
+      - name: Build combined API and storefront image
+        run: docker build --file backend/Dockerfile --tag merkato:ci .
       - name: Validate Compose deployment configuration
         env:
           POSTGRES_DB: merkato_ci
