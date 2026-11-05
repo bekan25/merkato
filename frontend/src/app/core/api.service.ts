@@ -5,6 +5,7 @@ import { Observable, map } from 'rxjs';
 export interface MerkatoProduct {
   id: number;
   sellerId: number;
+  sellerVerified?: boolean;
   name: string;
   priceEtb: number;
   location: string;
