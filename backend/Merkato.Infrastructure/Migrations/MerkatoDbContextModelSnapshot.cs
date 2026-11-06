@@ -312,6 +312,12 @@ b.Property<long>("SellerId")
                     b.ToTable("InspectionWindows");
                 });
 
+            modelBuilder.Entity("Merkato.Domain.Entities.PaymentReceipt", b =>
+                {
+                    b.HasOne("Merkato.Domain.Entities.Order", null).WithMany().HasForeignKey("OrderId").OnDelete(DeleteBehavior.Restrict).IsRequired();
+                    b.HasOne("Merkato.Domain.Entities.PaymentTransaction", null).WithMany().HasForeignKey("PaymentTransactionId").OnDelete(DeleteBehavior.Restrict).IsRequired();
+                });
+
             modelBuilder.Entity("Merkato.Domain.Entities.CouponRedemption", b =>
                 {
                     b.HasOne("Merkato.Domain.Entities.PromotionCoupon", null).WithMany().HasForeignKey("CouponId").OnDelete(DeleteBehavior.Restrict).IsRequired();
