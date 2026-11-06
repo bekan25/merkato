@@ -159,7 +159,8 @@ public sealed class PaymentReceiptsController : ControllerBase
         var receipt = await _db.PaymentReceipts.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, ct);
         if (receipt is null) return NotFound();
         Response.Headers.CacheControl = "no-store, private";
-        return File(receipt.Content, receipt.ContentType, receipt.FileName);
+        Response.Headers["X-Content-Type-Options"] = "nosniff";
+        return File(receipt.Content, receipt.ContentType);
     }
 
     [HttpPost("admin/{id:long}/review")]
@@ -231,6 +232,10 @@ public sealed class PaymentReceiptsController : ControllerBase
         catch (InvalidOperationException ex)
         {
             return Conflict(new { error = ex.Message });
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
+        {
+            return Conflict(new { error = "This provider transaction reference has already been used." });
         }
 
         return Ok(new
