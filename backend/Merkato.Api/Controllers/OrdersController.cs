@@ -41,7 +41,9 @@ public class OrdersController : ControllerBase
                 order.Id, order.OrderNumber, order.BuyerId, order.SellerId,
                 order.ProductTitle, order.Quantity, order.UnitPriceEtb, order.TotalAmountEtb, order.DeliveryFeeEtb,
                 order.PaymentRail, order.DeliveryCourier, order.DeliveryAddress,
-                order.EscrowState, order.DeliveryStatus, order.CreatedAt))
+                order.EscrowState, order.DeliveryStatus, order.CreatedAt,
+                order.ProductSubtotalEtb, order.DiscountEtb, order.MerchantCommissionRatePercent,
+                order.MerchantCommissionEtb, order.BuyerServiceFeeRatePercent, order.BuyerServiceFeeEtb))
             .ToListAsync(ct);
 
         return Ok(orders);
@@ -164,7 +166,16 @@ public class OrdersController : ControllerBase
             discountEtb = PromotionsController.CalculateDiscount(appliedCoupon, request.AmountEtb);
         }
 
-        var riskDecision = await _risk.EvaluateOrderRiskAsync(buyerId, request.AmountEtb - discountEtb + expectedDeliveryFee, ct);
+        var feeSettings = await _db.MarketplaceFeeSettings.AsNoTracking().FirstOrDefaultAsync(x => x.Id == 1, ct)
+            ?? new MarketplaceFeeSettings();
+        var eligibleSubtotal = Math.Max(0m, request.AmountEtb - discountEtb);
+        var merchantRate = feeSettings.IsEnabled ? feeSettings.MerchantCommissionRatePercent : 0m;
+        var buyerRate = feeSettings.IsEnabled ? feeSettings.BuyerServiceFeeRatePercent : 0m;
+        var merchantCommission = Math.Round(eligibleSubtotal * merchantRate / 100m, 2, MidpointRounding.AwayFromZero);
+        var buyerServiceFee = Math.Round(eligibleSubtotal * buyerRate / 100m, 2, MidpointRounding.AwayFromZero);
+        var buyerPayable = eligibleSubtotal + buyerServiceFee + expectedDeliveryFee;
+
+        var riskDecision = await _risk.EvaluateOrderRiskAsync(buyerId, buyerPayable, ct);
         if (riskDecision != RiskDecision.ALLOW)
             return Conflict(new { message = "This order requires additional verification and cannot be placed yet.", riskDecision = riskDecision.ToString() });
 
@@ -188,8 +199,14 @@ public class OrdersController : ControllerBase
             InventoryReservationState = InventoryReservationState.RESERVED,
             InventoryReservationExpiresAt = reservationTime.AddMinutes(15),
             ProductTitle = product.Name,
-            TotalAmountEtb = request.AmountEtb - discountEtb + expectedDeliveryFee,
+            TotalAmountEtb = buyerPayable,
             DeliveryFeeEtb = expectedDeliveryFee,
+            ProductSubtotalEtb = request.AmountEtb,
+            DiscountEtb = discountEtb,
+            MerchantCommissionRatePercent = merchantRate,
+            MerchantCommissionEtb = merchantCommission,
+            BuyerServiceFeeRatePercent = buyerRate,
+            BuyerServiceFeeEtb = buyerServiceFee,
             PaymentRail = request.PaymentRail,
             DeliveryCourier = string.IsNullOrWhiteSpace(request.DeliveryCourier) ? "BEU_DELIVERY" : request.DeliveryCourier.Trim(),
             DeliveryAddress = request.DeliveryAddress.Trim(),
@@ -217,7 +234,9 @@ public class OrdersController : ControllerBase
             order.Id, order.OrderNumber, order.BuyerId, order.SellerId,
             order.ProductTitle, order.Quantity, order.UnitPriceEtb, order.TotalAmountEtb, order.DeliveryFeeEtb,
             order.PaymentRail, order.DeliveryCourier, order.DeliveryAddress,
-            order.EscrowState, order.DeliveryStatus, order.CreatedAt);
+            order.EscrowState, order.DeliveryStatus, order.CreatedAt,
+            order.ProductSubtotalEtb, order.DiscountEtb, order.MerchantCommissionRatePercent,
+            order.MerchantCommissionEtb, order.BuyerServiceFeeRatePercent, order.BuyerServiceFeeEtb);
 
         return Ok(response);
     }
