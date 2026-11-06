@@ -23,7 +23,7 @@ Example for a 10,000 ETB product and 80 ETB delivery:
 - Merchant commission: 100 ETB
 - Buyer service fee: 50 ETB
 - Buyer pays: 10,130 ETB
-- Merchant receivable: 10,030 ETB (including the currently modeled delivery amount; courier remittance remains a separate operational integration).
+- Merchant receivable: 9,980 ETB (including the currently modeled delivery amount; courier remittance remains a separate operational integration).
 
 ## Order snapshots
 
