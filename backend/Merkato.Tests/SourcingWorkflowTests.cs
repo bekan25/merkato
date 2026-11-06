@@ -23,14 +23,17 @@ public sealed class SourcingWorkflowTests
   var options=new DbContextOptionsBuilder<MerkatoDbContext>().UseInMemoryDatabase(nameof(BuyerCanPublishAndMultipleMerchantsCanOffer)).Options;
   await using var db=new MerkatoDbContext(options);
   db.Users.AddRange(new User{Id=10,PhoneNumber="merchant-10",FullName="Seller 10",Role=UserRole.MERCHANT},new User{Id=11,PhoneNumber="merchant-11",FullName="Seller 11",Role=UserRole.MERCHANT});
+  db.Products.AddRange(
+   new Product{Id=100,SellerId=10,Name="Seller 10 laptop",Category="Electronics",PriceEtb=45000,Location="Addis Ababa",IsActive=true},
+   new Product{Id=101,SellerId=11,Name="Seller 11 laptop",Category="Electronics",PriceEtb=43000,Location="Addis Ababa",IsActive=true});
   await db.SaveChangesAsync();
   var buyer=Controller(db,1,"BUYER");
   var created=Assert.IsType<OkObjectResult>(await buyer.Create(new CreateSourcingRequest{Title="Office laptop",Description="Core i5 laptop, 16GB RAM",Category="Electronics",City="Addis Ababa",Quantity=5,ValidDays=7},CancellationToken.None));
   var id=(long)created.Value!.GetType().GetProperty("Id")!.GetValue(created.Value)!;
   var sellerOne=Controller(db,10,"MERCHANT");
   var sellerTwo=Controller(db,11,"MERCHANT");
-  Assert.IsType<OkObjectResult>(await sellerOne.Offer(id,new SubmitSourcingOffer{UnitPriceEtb=45000,AvailableQuantity=8,LeadTimeDays=2},CancellationToken.None));
-  Assert.IsType<OkObjectResult>(await sellerTwo.Offer(id,new SubmitSourcingOffer{UnitPriceEtb=43000,AvailableQuantity=6,LeadTimeDays=4},CancellationToken.None));
+  Assert.IsType<OkObjectResult>(await sellerOne.Offer(id,new SubmitSourcingOffer{ProductId=100,UnitPriceEtb=45000,AvailableQuantity=8,LeadTimeDays=2},CancellationToken.None));
+  Assert.IsType<OkObjectResult>(await sellerTwo.Offer(id,new SubmitSourcingOffer{ProductId=101,UnitPriceEtb=43000,AvailableQuantity=6,LeadTimeDays=4},CancellationToken.None));
   var offers=Assert.IsType<OkObjectResult>(await buyer.Offers(id,CancellationToken.None));
   var rows=Assert.IsAssignableFrom<System.Collections.IEnumerable>(offers.Value);
   Assert.NotNull(rows);
