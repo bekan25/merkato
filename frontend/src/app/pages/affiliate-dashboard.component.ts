@@ -14,11 +14,11 @@ import { AuthService } from '../core/auth.service';
   <a routerLink="/commerce">← Commerce Hub</a>
   <header><span>MERKATO PARTNER NETWORK</span><h1>Affiliate earnings</h1><p>Share your referral link. When a referred customer completes an eligible paid order and escrow is released, your commission becomes available.</p></header>
   <p class="notice" *ngIf="message">{{message}}</p><p class="error" *ngIf="error">{{error}}</p>
-  <section class="panel" *ngIf="!profile?.enrolled">
+  <section class="panel" *ngIf="profileLoaded && !profile?.enrolled">
    <h2>Join the affiliate programme</h2><p>Get a unique referral code and share it with customers. Your referral commission rate is currently 2% of eligible product subtotal, excluding delivery.</p>
    <button [disabled]="busy" (click)="enroll()">{{busy?'Please wait…':'Create my referral link'}}</button>
   </section>
-  <ng-container *ngIf="profile?.enrolled">
+  <ng-container *ngIf="profileLoaded && profile?.enrolled">
    <section class="panel"><div class="head"><div><small>YOUR REFERRAL CODE</small><h2>{{profile.referralCode}}</h2></div><button (click)="copyLink()">Copy referral link</button></div><p class="muted">{{shareUrl}}</p><p>Share your link. Registration attribution is attached to the referred account and the first eligible verified purchase can earn a commission.</p></section>
    <section class="metrics">
     <article><small>HELD</small><strong>{{totals.heldEtb | number:'1.2-2'}} ETB</strong><span>Waiting for escrow release</span></article>
@@ -39,12 +39,12 @@ import { AuthService } from '../core/auth.service';
 })
 export class AffiliateDashboardComponent implements OnInit {
  private http=inject(HttpClient); auth=inject(AuthService);
- busy=false; message=''; error=''; profile:any=null; items:any[]=[]; adminItems:any[]=[]; payoutRefs:any={};
+ busy=false; profileLoaded=false; message=''; error=''; profile:any=null; items:any[]=[]; adminItems:any[]=[]; payoutRefs:any={};
  totals:any={heldEtb:0,availableEtb:0,paidEtb:0,reversedEtb:0};
  referrals:any[]=[];referralCount=0;registeredCount=0;
  get shareUrl(){return this.profile?.referralCode ? location.origin+'/login?mode=register&ref='+encodeURIComponent(this.profile.referralCode):'';}
  ngOnInit(){this.load();if(this.auth.hasRole(['ADMIN']))this.loadAdmin();}
- load(){this.http.get<any>('/api/v1/affiliates/profile').subscribe({next:p=>{this.profile=p;if(p.enrolled){this.loadCommissions();this.loadReferrals();}},error:()=>this.error='Could not load affiliate profile.'});}
+ load(){this.profileLoaded=false;this.http.get<any>('/api/v1/affiliates/profile').subscribe({next:p=>{this.profile=p;this.profileLoaded=true;if(p.enrolled){this.loadCommissions();this.loadReferrals();}},error:()=>{this.profileLoaded=true;this.error='Could not load affiliate profile.';}});}
  enroll(){this.busy=true;this.http.post<any>('/api/v1/affiliates/enroll',{}).subscribe({next:()=>{this.busy=false;this.message='Affiliate profile created.';this.load();},error:e=>{this.busy=false;this.error=e?.error?.detail||e?.error?.title||'Could not create affiliate profile.';}});}
  loadCommissions(){this.http.get<any>('/api/v1/affiliates/commissions/mine').subscribe({next:r=>{this.items=r.items||[];this.totals=r.totals||this.totals;},error:()=>this.error='Could not load commission history.'});}
  loadReferrals(){this.http.get<any>('/api/v1/affiliates/referrals/mine').subscribe({next:r=>{this.referrals=r.items||[];this.referralCount=r.count||0;this.registeredCount=r.registeredCount||0;},error:()=>this.error='Could not load referrals.'});}
