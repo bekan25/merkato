@@ -66,13 +66,11 @@ jobs:
         run: dotnet build backend/Merkato.sln --configuration Release --no-restore
       - name: Test
         run: dotnet test backend/Merkato.sln --configuration Release --no-build
-      - name: Diagnose EF Core model snapshot drift
+      - name: Verify EF Core model snapshot and apply migrations
         run: |
           dotnet tool install --global dotnet-ef --version 10.0.14
           echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
-          dotnet ef migrations add DiagnosePendingModelChanges --project backend/Merkato.Infrastructure --startup-project backend/Merkato.Api
-          cat backend/Merkato.Infrastructure/Migrations/*_DiagnosePendingModelChanges.cs
-          cat backend/Merkato.Infrastructure/Migrations/*_DiagnosePendingModelChanges.Designer.cs
+          dotnet ef migrations has-pending-model-changes --project backend/Merkato.Infrastructure --startup-project backend/Merkato.Api
           dotnet ef database update --project backend/Merkato.Infrastructure --startup-project backend/Merkato.Api
 
   containers:
