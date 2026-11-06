@@ -44,9 +44,11 @@ import { ShoppingAssistantComponent } from '../components/shopping-assistant.com
 
     <section id="categories" class="category-section section-wrap">
       <div class="section-heading"><div><span class="eyebrow">{{ t('exploreYourWay') }}</span><h2>{{ t('nextFavourite') }}</h2></div><span class="muted">{{ t('browseCategory') }}</span></div>
-      <div class="category-list">
-        <button *ngFor="let item of categories" (click)="selectCategory(item.name)" [class.selected]="category === item.name" [attr.aria-pressed]="category === item.name">
-          <span>{{item.icon}}</span>{{item.name}}
+      <div class="category-list category-image-grid">
+        <button *ngFor="let item of categories" type="button" (click)="selectCategory(item.name)" [class.selected]="category === item.name" [attr.aria-pressed]="category === item.name" [attr.aria-label]="'Browse ' + item.name">
+          <img class="category-photo" [src]="item.image" [alt]="item.name + ' category'" loading="lazy" decoding="async">
+          <span class="category-shade" aria-hidden="true"></span>
+          <span class="category-caption"><span class="category-icon" aria-hidden="true">{{item.icon}}</span><strong>{{item.name}}</strong><small>Explore collection <span aria-hidden="true">↗</span></small></span>
         </button>
       </div>
     </section>
@@ -205,6 +207,21 @@ import { ShoppingAssistantComponent } from '../components/shopping-assistant.com
     .hero-feature-stack strong{font-size:10px;color:#173b2d}.hero-feature-stack small{font-size:8px;color:#849087;margin-top:3px}
     .trust-strip{background:#fff;padding-top:20px;padding-bottom:20px}
     .trust-strip strong{height:32px;width:32px;display:grid;place-items:center;background:#edf5ed;border-radius:50%;color:#087b4d}
+    .category-list.category-image-grid{grid-template-columns:repeat(6,minmax(0,1fr));gap:16px}
+    .category-image-grid>button{position:relative;isolation:isolate;height:190px;min-width:0;overflow:hidden;padding:0;border:1px solid #ffffffaa;border-radius:18px;background:#173b2d;color:#fff;display:block;text-align:left;box-shadow:0 12px 28px #173b2d16;transition:transform .25s ease,box-shadow .25s ease,border-color .25s ease}
+    .category-image-grid .category-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2;transition:transform .55s cubic-bezier(.2,.7,.2,1);background:#e7eee7}
+    .category-image-grid .category-shade{position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,#071b1420 0%,#071b1440 38%,#071b14d9 100%);transition:background .25s ease}
+    .category-image-grid .category-caption{position:absolute;inset:auto 15px 15px;display:grid;gap:5px;color:#fff}
+    .category-image-grid .category-icon{display:grid;place-items:center;width:34px;height:34px;border:1px solid #ffffff70;border-radius:11px;background:#ffffff24;backdrop-filter:blur(8px);font-size:18px}
+    .category-image-grid .category-caption strong{font:800 14px Manrope,sans-serif;letter-spacing:-.2px;text-shadow:0 2px 8px #0008}
+    .category-image-grid .category-caption small{display:flex;align-items:center;gap:5px;color:#ffffffd9;font-size:9px;font-weight:700;letter-spacing:.2px}
+    .category-image-grid>button:hover,.category-image-grid>button.selected{transform:translateY(-5px);border-color:#e0b45f;box-shadow:0 18px 38px #173b2d2b}
+    .category-image-grid>button:hover .category-photo,.category-image-grid>button.selected .category-photo{transform:scale(1.08)}
+    .category-image-grid>button.selected .category-shade{background:linear-gradient(180deg,#087b4d22,#063b2be8)}
+    .category-image-grid>button:focus-visible{outline:3px solid #dfa94e;outline-offset:3px}
+    @media(max-width:1050px){.category-list.category-image-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.category-image-grid>button{height:180px}}
+    @media(max-width:600px){.category-list.category-image-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}.category-image-grid>button{height:155px;border-radius:15px}.category-image-grid .category-caption{inset:auto 11px 12px}.category-image-grid .category-caption strong{font-size:12px}}
+    @media(prefers-reduced-motion:reduce){.category-image-grid>button,.category-image-grid .category-photo{transition:none}}
     .category-section{padding-top:58px;padding-bottom:50px;background:#fff}
     .category-list{grid-template-columns:repeat(6,minmax(0,1fr));gap:14px}
     .category-list button{height:112px;border-radius:15px;background:#f5f7f2;border-color:transparent;color:#263b30;font-size:12px;box-shadow:0 5px 16px #183b2b08}
@@ -290,7 +307,14 @@ export class StorefrontComponent implements OnInit, OnDestroy {
     return items;
   }
 
-  categories = [{name:'Electronics',icon:'💻'},{name:'Fashion',icon:'👕'},{name:'Home & Living',icon:'🛋️'},{name:'Food',icon:'🥑'},{name:'Beauty',icon:'💄'},{name:'Other',icon:'✦'}];
+  categories = [
+    {name:'Electronics',icon:'💻',image:'https://images.unsplash.com/photo-1498049794561-7780e7231661?auto=format&fit=crop&w=900&q=85'},
+    {name:'Fashion',icon:'👕',image:'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=900&q=85'},
+    {name:'Home & Living',icon:'🛋️',image:'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=900&q=85'},
+    {name:'Food',icon:'🥑',image:'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=900&q=85'},
+    {name:'Beauty',icon:'💄',image:'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=900&q=85'},
+    {name:'Other',icon:'✦',image:'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=900&q=85'}
+  ];
   categoryOptions = ['All', ...this.categories.map(x => x.name)];
 
   ngOnInit(): void {
