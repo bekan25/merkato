@@ -9,6 +9,8 @@ public class User
     public long Id { get; set; }
     public string? FaydaIdNumber { get; set; }
     public string PhoneNumber { get; set; } = string.Empty;
+    public string? Email { get; set; }
+    public string? PasswordHash { get; set; }
     public string FullName { get; set; } = string.Empty;
     public string PinHash { get; set; } = string.Empty;
     public int FailedLoginAttempts { get; set; } = 0;
