@@ -27,3 +27,11 @@ services:
         value: https://merkato-bekan25.onrender.com
       - key: MERKATO_APPLY_MIGRATIONS
         value: "true"
+      # Required for durable social-commerce image and video uploads.
+      # Configure the values securely in Render; never commit credentials.
+      - key: Cloudinary__CloudName
+        sync: false
+      - key: Cloudinary__ApiKey
+        sync: false
+      - key: Cloudinary__ApiSecret
+        sync: false

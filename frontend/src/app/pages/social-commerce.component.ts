@@ -23,7 +23,22 @@ export class SocialCommerceComponent implements OnInit {
  ngOnInit(){this.loadFeed();if(this.auth.isAuthenticated){this.loadMine();this.loadCommissions();}if(this.auth.hasRole(['ADMIN'])){this.loadQueue();this.loadAdminCommissions();}}
  onMediaTypeChanged(){this.selectedMedia=null;}
  onMediaSelected(event:Event){const input=event.target as HTMLInputElement;const file=input.files?.[0]||null;if(!file){this.selectedMedia=null;return;}const image=this.draft.mediaType==='IMAGE';const allowed=image?['image/jpeg','image/png','image/webp']:['video/mp4','video/webm','video/quicktime'];const max=image?10*1024*1024:100*1024*1024;if(!allowed.includes(file.type)||file.size>max){this.error=image?'Choose JPEG, PNG or WebP up to 10 MB.':'Choose MP4, WebM or MOV up to 100 MB.';input.value='';this.selectedMedia=null;return;}this.error='';this.selectedMedia=file;}
- create(){if(!this.selectedMedia){this.error='Choose a media file before submitting.';return;}const form=new FormData();form.append('productId',String(this.draft.productId));form.append('caption',this.draft.caption);form.append('mediaType',this.draft.mediaType);form.append('media',this.selectedMedia,this.selectedMedia.name);this.busy=true;this.error='';this.http.post('/api/v1/social/posts/upload',form).subscribe({next:()=>{this.busy=false;this.message='Media uploaded securely. Your story is waiting for moderator approval.';this.draft={...this.draft,caption:''};this.selectedMedia=null;this.loadMine();},error:e=>{this.busy=false;this.error=e?.error?.detail||e?.error?.title||e?.error?.message||'Could not upload your media.';}});}
+ create(){if(!this.selectedMedia){this.error='Choose a media file before submitting.';return;}const form=new FormData();form.append('productId',String(this.draft.productId));form.append('caption',this.draft.caption);form.append('mediaType',this.draft.mediaType);form.append('media',this.selectedMedia,this.selectedMedia.name);this.busy=true;this.error='';this.http.post('/api/v1/social/posts/upload',form).subscribe({next:()=>{this.busy=false;this.message='Media uploaded securely. Your story is waiting for moderator approval.';this.draft={...this.draft,caption:''};this.selectedMedia=null;this.loadMine();},error:e=>{this.busy=false;this.error=this.getUploadError(e);}});}
+ getUploadError(e:any):string {
+  const body=e?.error;
+  if(typeof body==='string'&&body.trim())return body;
+  if(body&&typeof body==='object'){
+   const message=body.detail||body.title||body.message||body.error;
+   if(typeof message==='string'&&message.trim())return message;
+  }
+  if(e?.status===0)return 'Could not reach MERKATO. Check your connection and try again.';
+  if(e?.status===401)return 'Your session has expired. Sign in again and retry the upload.';
+  if(e?.status===403)return 'Your account is not allowed to publish social-commerce media.';
+  if(e?.status===413)return 'This video is too large for the upload gateway. Choose a smaller file (maximum 100 MB).';
+  if(e?.status===503)return 'Media storage is not configured. The MERKATO team must add the Cloudinary credentials in Render.';
+  if(e?.status===502)return 'Cloudinary could not accept the file. Check the storage configuration and retry.';
+  return 'Could not upload your media. Please retry with an MP4, WebM or MOV video up to 100 MB.';
+ }
  loadFeed(){this.http.get<any>('/api/v1/social/feed').subscribe({next:x=>this.feed=x.items||[],error:()=>this.error='Could not load stories.'});}
  loadMine(){this.http.get<any[]>('/api/v1/social/posts/mine').subscribe({next:x=>this.mine=x,error:()=>this.error='Could not load your posts.'});}
  loadCommissions(){this.http.get<any>('/api/v1/social/commissions/mine').subscribe({next:x=>{this.commissions=x.items||[];this.commissionTotal=x.totalEtb||0;},error:()=>this.error='Could not load creator commissions.'});}
