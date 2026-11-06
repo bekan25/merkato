@@ -175,7 +175,6 @@ public sealed class PaymentReceiptsController : ControllerBase
         if (string.IsNullOrWhiteSpace(note) || note.Length > 1000)
             return BadRequest(new { error = "A review note of 1 to 1000 characters is required." });
 
-        await using var transaction = await _db.Database.BeginTransactionAsync(ct);
         var receipt = await _db.PaymentReceipts.FirstOrDefaultAsync(x => x.Id == id, ct);
         if (receipt is null) return NotFound();
         if (receipt.Status != "PENDING_REVIEW")
@@ -194,7 +193,6 @@ public sealed class PaymentReceiptsController : ControllerBase
             await _db.SaveChangesAsync(ct);
             await _audit.LogAsync(adminId, "ADMIN", "PAYMENT_RECEIPT_REJECTED",
                 "PAYMENT_RECEIPT", receipt.Id.ToString(), "SUCCESS", note, ct);
-            await transaction.CommitAsync(ct);
             return Ok(new { receiptId = receipt.Id, status = receipt.Status, paymentStatus = payment.Status.ToString() });
         }
 
@@ -229,11 +227,9 @@ public sealed class PaymentReceiptsController : ControllerBase
             await _audit.LogAsync(adminId, "ADMIN", "PAYMENT_MANUALLY_VERIFIED",
                 "PAYMENT", payment.Id.ToString(), "SUCCESS",
                 $"Receipt {receipt.Id}; reference {reference}; {note}", ct);
-            await transaction.CommitAsync(ct);
         }
         catch (InvalidOperationException ex)
         {
-            await transaction.RollbackAsync(ct);
             return Conflict(new { error = ex.Message });
         }
 
