@@ -632,6 +632,31 @@ b.Property<long>("SellerId")
                     b.ToTable("PaymentTransactions");
                 });
 
+            modelBuilder.Entity("Merkato.Domain.Entities.PaymentReceipt", b =>
+                {
+                    b.Property<long>("Id").ValueGeneratedOnAdd().HasColumnType("bigint");
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+                    b.Property<long>("BuyerId").HasColumnType("bigint");
+                    b.Property<byte[]>("Content").IsRequired().HasColumnType("bytea");
+                    b.Property<string>("ContentType").IsRequired().HasMaxLength(100).HasColumnType("character varying(100)");
+                    b.Property<DateTime>("CreatedAt").HasColumnType("timestamp with time zone");
+                    b.Property<string>("FileName").IsRequired().HasMaxLength(255).HasColumnType("character varying(255)");
+                    b.Property<long>("OrderId").HasColumnType("bigint");
+                    b.Property<long>("PaymentTransactionId").HasColumnType("bigint");
+                    b.Property<string>("ReviewNote").HasColumnType("text");
+                    b.Property<DateTime?>("ReviewedAt").HasColumnType("timestamp with time zone");
+                    b.Property<long?>("ReviewedBy").HasColumnType("bigint");
+                    b.Property<string>("Sha256").IsRequired().HasMaxLength(64).HasColumnType("character varying(64)");
+                    b.Property<string>("Status").IsRequired().HasMaxLength(30).HasColumnType("character varying(30)");
+                    b.Property<string>("TransactionReference").HasMaxLength(150).HasColumnType("character varying(150)");
+                    b.HasKey("Id");
+                    b.HasIndex("OrderId");
+                    b.HasIndex("PaymentTransactionId", "CreatedAt");
+                    b.HasIndex("Status", "CreatedAt");
+                    b.HasIndex("TransactionReference").IsUnique().HasFilter("\\"TransactionReference\\" IS NOT NULL");
+                    b.ToTable("PaymentReceipts");
+                });
+
             modelBuilder.Entity("Merkato.Domain.Entities.Product", b =>
                 {
                     b.Property<long>("Id")
