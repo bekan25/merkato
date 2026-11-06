@@ -172,3 +172,17 @@ public class MerkatoBackendTests
     }
 
 }
+
+
+public class AdminPasswordHasherTests
+{
+    [Fact]
+    public void AdminPasswordHasher_UsesSaltedHashAndVerifiesCorrectPassword()
+    {
+        var user = new User { Email = "admin@example.com", Role = UserRole.ADMIN };
+        var hash = AdminPasswordHasher.Hash(user, "a-long-unique-test-password");
+        Assert.NotEqual("a-long-unique-test-password", hash);
+        Assert.True(AdminPasswordHasher.Verify(user, "a-long-unique-test-password", hash, out _));
+        Assert.False(AdminPasswordHasher.Verify(user, "wrong-password", hash, out _));
+    }
+}
