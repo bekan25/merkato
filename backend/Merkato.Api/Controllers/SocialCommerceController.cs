@@ -1,6 +1,8 @@
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
+using System.Net.Http.Headers;
 using Merkato.Domain.Entities;
 using Merkato.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
@@ -10,8 +12,98 @@ using Npgsql;
 namespace Merkato.Api.Controllers;
 [ApiController]
 [Route("api/v1/social")]
-public sealed class SocialCommerceController(MerkatoDbContext db):ControllerBase
+public sealed class SocialCommerceController(
+ MerkatoDbContext db,
+ IConfiguration configuration,
+ IHttpClientFactory httpClientFactory,
+ ILogger<SocialCommerceController> logger):ControllerBase
 {
+ const long MaxImageBytes=10L*1024*1024;
+ const long MaxVideoBytes=100L*1024*1024;
+
+ [Authorize(Roles="BUYER,MERCHANT")]
+ [HttpPost("posts/upload")]
+ [Consumes("multipart/form-data")]
+ [RequestSizeLimit(110L*1024*1024)]
+ [RequestFormLimits(MultipartBodyLengthLimit=110L*1024*1024)]
+ public async Task<IActionResult> UploadAndCreate([FromForm] UploadSocialPost input,CancellationToken ct)
+ {
+  var creator=UserId();if(creator is null)return Unauthorized();
+  if(input.ProductId<1||string.IsNullOrWhiteSpace(input.Caption)||input.Caption.Trim().Length>1200)
+   return BadRequest("A valid product and caption (max 1200 characters) are required.");
+  if(input.Media is null||input.Media.Length==0)return BadRequest("Choose an image or video.");
+  var isImage=string.Equals(input.MediaType,"IMAGE",StringComparison.OrdinalIgnoreCase);
+  var isVideo=string.Equals(input.MediaType,"VIDEO",StringComparison.OrdinalIgnoreCase);
+  if(!isImage&&!isVideo)return BadRequest("Media type must be IMAGE or VIDEO.");
+  var maxBytes=isImage?MaxImageBytes:MaxVideoBytes;
+  if(input.Media.Length>maxBytes)return BadRequest(isImage?"Images must not exceed 10 MB.":"Videos must not exceed 100 MB.");
+  var extension=Path.GetExtension(input.Media.FileName).ToLowerInvariant();
+  var allowedExtensions=isImage?new[]{".jpg",".jpeg",".png",".webp"}:new[]{".mp4",".webm",".mov"};
+  var allowedTypes=isImage?new[]{"image/jpeg","image/png","image/webp"}:new[]{"video/mp4","video/webm","video/quicktime"};
+  if(!allowedExtensions.Contains(extension)||!allowedTypes.Contains(input.Media.ContentType,StringComparer.OrdinalIgnoreCase))
+   return BadRequest("File extension and content type do not match an allowed media format.");
+  var product=await db.Products.AsNoTracking().FirstOrDefaultAsync(x=>x.Id==input.ProductId&&x.IsActive,ct);
+  if(product is null)return NotFound("Active product not found.");
+  var cloudName=configuration["Cloudinary:CloudName"];
+  var apiKey=configuration["Cloudinary:ApiKey"];
+  var apiSecret=configuration["Cloudinary:ApiSecret"];
+  if(string.IsNullOrWhiteSpace(cloudName)||string.IsNullOrWhiteSpace(apiKey)||string.IsNullOrWhiteSpace(apiSecret))
+   return StatusCode(StatusCodes.Status503ServiceUnavailable,"Media storage is not configured. Set Cloudinary__CloudName, Cloudinary__ApiKey and Cloudinary__ApiSecret.");
+  await using var mediaStream=input.Media.OpenReadStream();
+  var header=new byte[12];
+  var read=await mediaStream.ReadAsync(header.AsMemory(0,header.Length),ct);
+  if(!IsValidMediaSignature(header,read,isImage,extension))
+   return BadRequest("The uploaded file content does not match its declared media type.");
+  mediaStream.Position=0;
+  var resourceType=isImage?"image":"video";
+  var publicId=$"merkato/social/{creator.Value}/{Guid.NewGuid():N}";
+  var timestamp=DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString();
+  var signatureBase=$"public_id={publicId}&timestamp={timestamp}{apiSecret}";
+  var signature=Convert.ToHexString(SHA1.HashData(Encoding.UTF8.GetBytes(signatureBase))).ToLowerInvariant();
+  using var form=new MultipartFormDataContent();
+  using var fileContent=new StreamContent(mediaStream);
+  fileContent.Headers.ContentType=new MediaTypeHeaderValue(input.Media.ContentType);
+  form.Add(fileContent,"file",Path.GetFileName(input.Media.FileName));
+  form.Add(new StringContent(apiKey),"api_key");
+  form.Add(new StringContent(timestamp),"timestamp");
+  form.Add(new StringContent(publicId),"public_id");
+  form.Add(new StringContent(signature),"signature");
+  using var client=httpClientFactory.CreateClient();
+  using var response=await client.PostAsync($"https://api.cloudinary.com/v1_1/{Uri.EscapeDataString(cloudName)}/{resourceType}/upload",form,ct);
+  if(!response.IsSuccessStatusCode)
+  {
+   logger.LogWarning("Cloudinary social media upload failed with status {StatusCode}.",(int)response.StatusCode);
+   return StatusCode(StatusCodes.Status502BadGateway,"Media storage provider could not accept the upload.");
+  }
+  await using var responseStream=await response.Content.ReadAsStreamAsync(ct);
+  using var payload=await JsonDocument.ParseAsync(responseStream,cancellationToken:ct);
+  if(!payload.RootElement.TryGetProperty("secure_url",out var secureUrl)||string.IsNullOrWhiteSpace(secureUrl.GetString()))
+  {
+   logger.LogWarning("Cloudinary social upload response did not contain secure_url.");
+   return StatusCode(StatusCodes.Status502BadGateway,"Media storage returned an invalid response.");
+  }
+  var mediaUrl=secureUrl.GetString()!;
+  if(!Uri.TryCreate(mediaUrl,UriKind.Absolute,out var mediaUri)||mediaUri.Scheme!=Uri.UriSchemeHttps||!mediaUri.Host.EndsWith("cloudinary.com",StringComparison.OrdinalIgnoreCase))
+   return StatusCode(StatusCodes.Status502BadGateway,"Media storage returned an unsafe media URL.");
+  var post=new SocialCommercePost{CreatorId=creator.Value,ProductId=product.Id,Caption=input.Caption.Trim(),MediaUrl=mediaUrl,MediaType=isImage?"IMAGE":"VIDEO",Status="PENDING"};
+  db.SocialCommercePosts.Add(post);
+  await db.SaveChangesAsync(ct);
+  return CreatedAtAction(nameof(MyPosts),new{},new{post.Id,post.Status,post.MediaUrl,post.MediaType,message="Media uploaded to Cloudinary and submitted for moderation."});
+ }
+
+ static bool IsValidMediaSignature(byte[] b,int length,bool image,string extension)
+ {
+  if(image)
+  {
+   if(extension is ".jpg" or ".jpeg")return length>=3&&b[0]==0xFF&&b[1]==0xD8&&b[2]==0xFF;
+   if(extension==".png")return length>=8&&b.Take(8).SequenceEqual(new byte[]{0x89,0x50,0x4E,0x47,0x0D,0x0A,0x1A,0x0A});
+   if(extension==".webp")return length>=12&&Encoding.ASCII.GetString(b,0,4)=="RIFF"&&Encoding.ASCII.GetString(b,8,4)=="WEBP";
+   return false;
+  }
+  if(extension==".webm")return length>=4&&b[0]==0x1A&&b[1]==0x45&&b[2]==0xDF&&b[3]==0xA3;
+  if(extension is ".mp4" or ".mov")return length>=8&&Encoding.ASCII.GetString(b,4,4)=="ftyp";
+  return false;
+ }
  long? UserId()=>long.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier),out var id)?id:null;
  [Authorize(Roles="BUYER,MERCHANT")]
  [HttpPost("posts")]
@@ -118,5 +210,6 @@ public sealed class SocialCommerceController(MerkatoDbContext db):ControllerBase
  }
 }
 public sealed record CreateSocialPost(long ProductId,string Caption,string MediaUrl,string MediaType="VIDEO");
+public sealed class UploadSocialPost { public long ProductId {get;set;} public string Caption {get;set;}=string.Empty; public string MediaType {get;set;}="VIDEO"; public IFormFile? Media {get;set;} }
 public sealed record ModerateSocialPost(string Decision,string? Note);
 public sealed record SocialClickInput(string VisitorKey);
