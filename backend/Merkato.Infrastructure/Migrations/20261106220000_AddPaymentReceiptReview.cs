@@ -32,6 +32,18 @@ public sealed class AddPaymentReceiptReview : Migration
             constraints: table =>
             {
                 table.PrimaryKey("PK_PaymentReceipts", x => x.Id);
+                table.ForeignKey(
+                    name: "FK_PaymentReceipts_Orders_OrderId",
+                    column: x => x.OrderId,
+                    principalTable: "Orders",
+                    principalColumn: "Id",
+                    onDelete: ReferentialAction.Restrict);
+                table.ForeignKey(
+                    name: "FK_PaymentReceipts_PaymentTransactions_PaymentTransactionId",
+                    column: x => x.PaymentTransactionId,
+                    principalTable: "PaymentTransactions",
+                    principalColumn: "Id",
+                    onDelete: ReferentialAction.Restrict);
             });
 
         migrationBuilder.CreateIndex("IX_PaymentTransactions_RailTransactionId", "PaymentTransactions", "RailTransactionId", unique: true, filter: "\"RailTransactionId\" IS NOT NULL");
