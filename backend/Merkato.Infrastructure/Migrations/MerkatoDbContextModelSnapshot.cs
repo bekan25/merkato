@@ -635,6 +635,8 @@ b.Property<long>("SellerId")
 
                     b.HasIndex("OrderId");
 
+                    b.HasIndex("RailTransactionId").IsUnique().HasFilter("\\"RailTransactionId\\" IS NOT NULL");
+
                     b.ToTable("PaymentTransactions");
                 });
 
