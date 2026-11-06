@@ -58,8 +58,9 @@ interface CartLine { product: MerkatoProduct; quantity: number; }
           <h2>{{ t('almostYours') }}</h2>
           <div class="summary-row"><span>Items ({{itemCount}})</span><strong>{{subtotal | number:'1.2-2'}} ETB</strong></div>
           <div class="summary-row"><span>{{ t('deliveryFee') }} ({{itemCount}} {{ t('orders') }})</span><strong>{{deliveryFeeEtb === null ? t('quoteRequired') : (deliveryFeeEtb * itemCount | number:'1.2-2') + ' ETB'}}</strong></div>
+          <div class="summary-row"><span>Buyer service fee ({{buyerServiceFeeRatePercent}}%)</span><strong>{{buyerServiceFeeEtb | number:'1.2-2'}} ETB</strong></div>
           <div class="summary-row" *ngIf="couponDiscountEtb > 0"><span>Coupon discount</span><strong>−{{couponDiscountEtb | number:'1.2-2'}} ETB</strong></div>
-          <div class="summary-total"><span>{{ t('estimatedTotal') }}</span><strong>{{(subtotal - couponDiscountEtb + (deliveryFeeEtb || 0) * itemCount) | number:'1.2-2'}} ETB</strong></div>
+          <div class="summary-total"><span>{{ t('estimatedTotal') }}</span><strong>{{(subtotal - couponDiscountEtb + buyerServiceFeeEtb + (deliveryFeeEtb || 0) * itemCount) | number:'1.2-2'}} ETB</strong></div>
           <form (ngSubmit)="checkout()">
             <label>{{ t('deliveryAddress') }}<textarea name="address" [(ngModel)]="address" required rows="3" placeholder="{{ t('addressPlaceholder') }}"></textarea></label>
             <label>{{ t('cityArea') }}<select name="city" [(ngModel)]="cityArea" (ngModelChange)="onCityChange()" required>
@@ -184,6 +185,12 @@ export class CartComponent implements OnInit, OnDestroy {
   cityArea = 'Addis Ababa';
   readonly supportedCities = ['Addis Ababa','Adama','Hawassa','Bahir Dar','Dire Dawa','Jimma','Mekelle','Gondar','Dessie'];
   deliveryFeeEtb: number | null = null;
+  merchantCommissionRatePercent = 1;
+  buyerServiceFeeRatePercent = 0.5;
+  get buyerServiceFeeEtb(): number {
+    const eligible = Math.max(0, this.subtotal - this.couponDiscountEtb);
+    return Math.round(eligible * this.buyerServiceFeeRatePercent) / 100;
+  }
   deliveryQuoteError = '';
   deliveryQuoteLoading = false;
   paymentRail = 0;
@@ -209,6 +216,13 @@ export class CartComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     window.addEventListener('merkato-language-change', this.languageListener);
     this.loadDeliveryQuote();
+    this.api.getMarketplaceFees().subscribe({
+      next: fees => {
+        this.merchantCommissionRatePercent = Number(fees.merchantCommissionRatePercent ?? 1);
+        this.buyerServiceFeeRatePercent = Number(fees.buyerServiceFeeRatePercent ?? 0.5);
+      },
+      error: () => { /* Keep launch defaults visible; the API remains authoritative at order creation. */ }
+    });
     if (!this.auth.isAuthenticated) {
       this.loading = false;
       this.error = 'Sign in as a buyer to place an order.';
