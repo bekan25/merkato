@@ -110,7 +110,7 @@ public sealed class SocialCommerceController(
  public async Task<IActionResult> Create(CreateSocialPost input,CancellationToken ct)
  {
   var creator=UserId();if(creator is null)return Unauthorized();
-  if(input.ProductId<1||string.IsNullOrWhiteSpace(input.Caption)||input.Caption.Trim().Length>1200||!Uri.TryCreate(input.MediaUrl,UriKind.Absolute,out var uri)||uri.Scheme!=Uri.UriSchemeHttps||input.MediaUrl.Length>2048||input.MediaType is not ("VIDEO" or "IMAGE"))return BadRequest("Provide a product, caption, HTTPS media URL and VIDEO or IMAGE type.");
+  if(input.ProductId<1||string.IsNullOrWhiteSpace(input.Caption)||input.Caption.Trim().Length>1200||!Uri.TryCreate(input.MediaUrl,UriKind.Absolute,out var uri)||uri.Scheme!=Uri.UriSchemeHttps||!uri.Host.Equals("res.cloudinary.com",StringComparison.OrdinalIgnoreCase)||input.MediaUrl.Length>2048||input.MediaType is not ("VIDEO" or "IMAGE"))return BadRequest("Provide a product, caption, HTTPS media URL and VIDEO or IMAGE type.");
   var product=await db.Products.AsNoTracking().FirstOrDefaultAsync(x=>x.Id==input.ProductId&&x.IsActive,ct);if(product is null)return NotFound("Active product not found.");
   var post=new SocialCommercePost{CreatorId=creator.Value,ProductId=product.Id,Caption=input.Caption.Trim(),MediaUrl=input.MediaUrl.Trim(),MediaType=input.MediaType,Status="PENDING"};
   db.SocialCommercePosts.Add(post);await db.SaveChangesAsync(ct);
