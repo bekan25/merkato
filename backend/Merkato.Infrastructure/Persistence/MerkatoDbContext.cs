@@ -37,6 +37,7 @@ public class MerkatoDbContext : DbContext
     public DbSet<MarketplaceFeeSettings> MarketplaceFeeSettings => Set<MarketplaceFeeSettings>();
     public DbSet<Order> Orders => Set<Order>();
     public DbSet<PaymentTransaction> PaymentTransactions => Set<PaymentTransaction>();
+    public DbSet<PaymentReceipt> PaymentReceipts => Set<PaymentReceipt>();
     public DbSet<EscrowAccount> EscrowAccounts => Set<EscrowAccount>();
     public DbSet<LedgerTransaction> LedgerTransactions => Set<LedgerTransaction>();
     public DbSet<LedgerEntry> LedgerEntries => Set<LedgerEntry>();
@@ -192,6 +193,24 @@ public class MerkatoDbContext : DbContext
 
             entity.Property(p => p.AmountEtb)
                 .HasColumnType("numeric(18,4)");
+        });
+
+        // Private payment evidence; transaction references are globally unique when supplied.
+        modelBuilder.Entity<PaymentReceipt>(entity =>
+        {
+            entity.HasIndex(x => x.OrderId);
+            entity.HasIndex(x => new { x.PaymentTransactionId, x.CreatedAt });
+            entity.HasIndex(x => new { x.Status, x.CreatedAt });
+            entity.HasIndex(x => x.TransactionReference)
+                .IsUnique()
+                .HasFilter("\\"TransactionReference\\" IS NOT NULL");
+            entity.Property(x => x.FileName).HasMaxLength(255).IsRequired();
+            entity.Property(x => x.ContentType).HasMaxLength(100).IsRequired();
+            entity.Property(x => x.Sha256).HasMaxLength(64).IsRequired();
+            entity.Property(x => x.TransactionReference).HasMaxLength(150);
+            entity.Property(x => x.Status).HasMaxLength(30).IsRequired();
+            entity.HasOne<PaymentTransaction>().WithMany().HasForeignKey(x => x.PaymentTransactionId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<Order>().WithMany().HasForeignKey(x => x.OrderId).OnDelete(DeleteBehavior.Restrict);
         });
 
         // EscrowAccount
