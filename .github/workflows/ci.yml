@@ -6,6 +6,7 @@ on:
       - main
       - feature/merkato-professional-marketplace
       - feature/auth-hardening-without-otp
+      - feature/merkato-four-growth-engines
   pull_request:
     branches:
       - main
