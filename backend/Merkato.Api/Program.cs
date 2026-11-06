@@ -353,13 +353,13 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 app.UseCors("MerkatoFrontend");
-app.UseRateLimiter();
 
 // ============================================================
 // AUTHENTICATION
 // ============================================================
 
 app.UseAuthentication();
+app.UseRateLimiter();
 
 // ============================================================
 // AUTHORIZATION
