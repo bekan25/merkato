@@ -82,7 +82,7 @@ public sealed class PaymentReceiptsController : ControllerBase
         {
             PaymentTransactionId = payment.Id,
             OrderId = order.Id,
-            BuyerId = buyerId,
+            BuyerId = order.BuyerId,
             FileName = safeName.Length > 255 ? safeName[^255..] : safeName,
             ContentType = contentType,
             Content = bytes,
