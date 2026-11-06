@@ -136,7 +136,7 @@ public sealed class SocialCommerceController(
  {
   var id=UserId();if(id is null)return Unauthorized();
   var query=db.CreatorCommissions.AsNoTracking().Where(x=>x.CreatorId==id.Value);
-  var total=await query.SumAsync(x=>(decimal?)x.CommissionEtb,ct)??0m;
+  var total=await query.Where(x=>x.Status!="REVERSED").SumAsync(x=>(decimal?)x.CommissionEtb,ct)??0m;
   var items=await query.OrderByDescending(x=>x.CreatedAt)
    .Select(x=>new{x.Id,x.OrderId,x.PostId,x.EligibleAmountEtb,x.RatePercent,x.CommissionEtb,x.Status,x.CreatedAt,x.ReleasedAt,x.PayoutReference,x.PaidAt})
    .ToListAsync(ct);
