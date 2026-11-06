@@ -729,12 +729,6 @@ b.Property<long>("SellerId")
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
                     b.Property<DateTime>("CreatedAt").HasColumnType("timestamp with time zone");
                     b.Property<int>("MinimumQuantity").HasColumnType("integer");
-                    b.Property<long?>("SourcingOfferId")
-                        .HasColumnType("bigint");
-
-                    b.Property<long?>("SourcingRequestId")
-                        .HasColumnType("bigint");
-
                     b.Property<long>("ProductId").HasColumnType("bigint");
                     b.Property<long>("SellerId").HasColumnType("bigint");
                     b.Property<decimal>("UnitPriceEtb").HasColumnType("numeric(18,4)");
