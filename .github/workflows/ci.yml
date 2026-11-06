@@ -66,10 +66,13 @@ jobs:
         run: dotnet build backend/Merkato.sln --configuration Release --no-restore
       - name: Test
         run: dotnet test backend/Merkato.sln --configuration Release --no-build
-      - name: Apply all EF Core migrations to PostgreSQL 16
+      - name: Diagnose EF Core model snapshot drift
         run: |
           dotnet tool install --global dotnet-ef --version 10.0.14
           echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+          dotnet ef migrations add DiagnosePendingModelChanges --project backend/Merkato.Infrastructure --startup-project backend/Merkato.Api
+          cat backend/Merkato.Infrastructure/Migrations/*_DiagnosePendingModelChanges.cs
+          cat backend/Merkato.Infrastructure/Migrations/*_DiagnosePendingModelChanges.Designer.cs
           dotnet ef database update --project backend/Merkato.Infrastructure --startup-project backend/Merkato.Api
 
   containers:
