@@ -404,6 +404,7 @@ b.Property<long>("SellerId")
             modelBuilder.Entity("Merkato.Domain.Entities.MarketplaceFeeSettings", b =>
                 {
                     b.Property<int>("Id")
+                        .ValueGeneratedNever()
                         .HasColumnType("integer");
 
                     b.Property<decimal>("MerchantCommissionRatePercent")
