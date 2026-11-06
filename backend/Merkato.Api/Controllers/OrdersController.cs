@@ -173,7 +173,6 @@ public class OrdersController : ControllerBase
         var feeQuote = MarketplaceFeeCalculator.Calculate(
             request.AmountEtb, discountEtb, expectedDeliveryFee,
             feeSettings.MerchantCommissionRatePercent, feeSettings.BuyerServiceFeeRatePercent, feeSettings.IsEnabled);
-        var eligibleSubtotal = feeQuote.EligibleSubtotalEtb;
         var merchantRate = feeSettings.IsEnabled ? feeSettings.MerchantCommissionRatePercent : 0m;
         var buyerRate = feeSettings.IsEnabled ? feeSettings.BuyerServiceFeeRatePercent : 0m;
         var merchantCommission = feeQuote.MerchantCommissionEtb;
