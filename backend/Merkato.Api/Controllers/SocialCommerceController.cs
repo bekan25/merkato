@@ -138,7 +138,7 @@ public sealed class SocialCommerceController(
   var query=db.CreatorCommissions.AsNoTracking().Where(x=>x.CreatorId==id.Value);
   var total=await query.SumAsync(x=>(decimal?)x.CommissionEtb,ct)??0m;
   var items=await query.OrderByDescending(x=>x.CreatedAt)
-   .Select(x=>new{x.Id,x.OrderId,x.PostId,x.EligibleAmountEtb,x.RatePercent,x.CommissionEtb,x.Status,x.CreatedAt,x.ReleasedAt})
+   .Select(x=>new{x.Id,x.OrderId,x.PostId,x.EligibleAmountEtb,x.RatePercent,x.CommissionEtb,x.Status,x.CreatedAt,x.ReleasedAt,x.PayoutReference,x.PaidAt})
    .ToListAsync(ct);
   return Ok(new{totalEtb=total,items});
  }
@@ -152,6 +152,7 @@ public sealed class SocialCommerceController(
    commissionCount=g.Count(),
    heldEtb=g.Where(x=>x.Status=="HELD").Sum(x=>(decimal?)x.CommissionEtb)??0m,
    availableEtb=g.Where(x=>x.Status=="AVAILABLE").Sum(x=>(decimal?)x.CommissionEtb)??0m,
+   paidEtb=g.Where(x=>x.Status=="PAID").Sum(x=>(decimal?)x.CommissionEtb)??0m,
    reversedEtb=g.Where(x=>x.Status=="REVERSED").Sum(x=>(decimal?)x.CommissionEtb)??0m
   }).FirstOrDefaultAsync(ct);
   var items=await (from commission in query
@@ -162,9 +163,9 @@ public sealed class SocialCommerceController(
     commission.Id,commission.CreatorId,creatorName=creator.FullName,
     commission.OrderId,order.OrderNumber,commission.PostId,
     commission.EligibleAmountEtb,commission.RatePercent,commission.CommissionEtb,
-    commission.Status,commission.CreatedAt,commission.ReleasedAt
+    commission.Status,commission.CreatedAt,commission.ReleasedAt,commission.PayoutReference,commission.PaidAt
    }).Skip((page-1)*pageSize).Take(pageSize).ToListAsync(ct);
-  return Ok(new{page,pageSize,totals=totals??new{commissionCount=0,heldEtb=0m,availableEtb=0m,reversedEtb=0m},items});
+  return Ok(new{page,pageSize,totals=totals??new{commissionCount=0,heldEtb=0m,availableEtb=0m,paidEtb=0m,reversedEtb=0m},items});
  }
  [Authorize(Roles="ADMIN")]
  [HttpPost("commissions/{commissionId:long}/payout")]
