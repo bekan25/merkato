@@ -177,7 +177,7 @@ public sealed class SocialCommerceController(
   // Atomic compare-and-set: two administrators cannot settle the same creator commission.
   var updated=await db.CreatorCommissions
    .Where(x=>x.Id==commissionId&&x.Status=="AVAILABLE")
-   .ExecuteUpdateAsync(s=>s.SetProperty(x=>x.Status,"PAID"),ct);
+   .ExecuteUpdateAsync(s=>s.SetProperty(x=>x.Status,"PAID").SetProperty(x=>x.PayoutReference,reference).SetProperty(x=>x.PaidAt,paidAt),ct);
   if(updated==0)
   {
    var current=await db.CreatorCommissions.AsNoTracking().Where(x=>x.Id==commissionId)
@@ -185,9 +185,7 @@ public sealed class SocialCommerceController(
    if(current is null)return NotFound();
    return Conflict(new{error="Only AVAILABLE creator commissions can be marked as paid.",currentStatus=current.Status});
   }
-  // Payout reference and timestamp are persisted in the shared commission audit table.
-  // CreatorCommission schema does not yet have payout metadata, so don't falsely report an external transfer.
-  return Ok(new{commissionId,status="PAID",payoutReference=reference,paidAt,recordedAs="ADMIN_RECONCILIATION_ONLY"});
+  return Ok(new{commissionId,status="PAID",payoutReference=reference,paidAt,recordedAs="ADMIN_RECONCILIATION_ONLY",note="This records an administrator-confirmed external payout; it does not initiate a bank or mobile-money transfer."});
  }
 
  [Authorize]
