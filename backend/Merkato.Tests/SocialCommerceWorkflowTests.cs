@@ -26,7 +26,7 @@ public sealed class SocialCommerceWorkflowTests
   db.Products.Add(new Product{Id=20,SellerId=6,Name="Phone",Category="Electronics",PriceEtb=10000,IsActive=true});
   await db.SaveChangesAsync();
   var creator=Controller(db,5,"BUYER");
-  var created=Assert.IsType<CreatedAtActionResult>(await creator.Create(new CreateSocialPost(20,"My product story","https://media.example.test/phone.mp4","VIDEO"),CancellationToken.None));
+  var created=Assert.IsType<CreatedAtActionResult>(await creator.Create(new CreateSocialPost(20,"My product story","https://res.cloudinary.com/merkato-test/video/upload/phone.mp4","VIDEO"),CancellationToken.None));
   Assert.Equal("PENDING",created.Value!.GetType().GetProperty("Status")!.GetValue(created.Value));
   var feed=Assert.IsType<OkObjectResult>(await creator.Feed(1,20,CancellationToken.None));
   var items=feed.Value!.GetType().GetProperty("items")!.GetValue(feed.Value);
