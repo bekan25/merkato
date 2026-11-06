@@ -218,8 +218,8 @@ export class CartComponent implements OnInit, OnDestroy {
     this.loadDeliveryQuote();
     this.api.getMarketplaceFees().subscribe({
       next: fees => {
-        this.merchantCommissionRatePercent = Number(fees.merchantCommissionRatePercent ?? 1);
-        this.buyerServiceFeeRatePercent = Number(fees.buyerServiceFeeRatePercent ?? 0.5);
+        this.merchantCommissionRatePercent = fees.isEnabled ? Number(fees.merchantCommissionRatePercent ?? 1) : 0;
+        this.buyerServiceFeeRatePercent = fees.isEnabled ? Number(fees.buyerServiceFeeRatePercent ?? 0.5) : 0;
       },
       error: () => { /* Keep launch defaults visible; the API remains authoritative at order creation. */ }
     });
