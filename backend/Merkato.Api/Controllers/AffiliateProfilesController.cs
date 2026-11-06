@@ -23,7 +23,7 @@ public sealed class AffiliateProfilesController(MerkatoDbContext db) : Controlle
         if (userId is null) return Unauthorized();
         var profile = await db.AffiliateProfiles.AsNoTracking().FirstOrDefaultAsync(x => x.UserId == userId, ct);
         if (profile is null) return Ok(new { enrolled = false, referralCode = (string?)null, isActive = false, referralUrl = (string?)null });
-        return Ok(new { enrolled = true, profile.ReferralCode, profile.IsActive, referralUrl = "/register?ref=" + Uri.EscapeDataString(profile.ReferralCode) });
+        return Ok(new { enrolled = true, profile.ReferralCode, profile.IsActive, referralUrl = "/login?mode=register&ref=" + Uri.EscapeDataString(profile.ReferralCode) });
     }
 
     [HttpPost("enroll")]
