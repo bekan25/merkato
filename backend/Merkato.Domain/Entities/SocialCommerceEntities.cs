@@ -35,4 +35,6 @@ public sealed class CreatorCommission
  public string Status {get;set;}="HELD";
  public DateTime CreatedAt {get;set;}=DateTime.UtcNow;
  public DateTime? ReleasedAt {get;set;}
+ public string? PayoutReference {get;set;}
+ public DateTime? PaidAt {get;set;}
 }
