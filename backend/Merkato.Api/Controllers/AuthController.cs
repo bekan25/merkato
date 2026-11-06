@@ -73,11 +73,15 @@ public class AuthController : ControllerBase
         };
 
         _db.Users.Add(user);
+        await using var registrationTransaction = referringAffiliate is null
+            ? null
+            : await _db.Database.BeginTransactionAsync();
         try
         {
             await _db.SaveChangesAsync();
             if (referringAffiliate is not null && referringAffiliate.UserId != user.Id)
             {
+                var now = DateTime.UtcNow;
                 var visitorHash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes("REGISTER:" + user.Id)));
                 _db.AffiliateReferrals.Add(new AffiliateReferral
                 {
@@ -85,14 +89,32 @@ public class AuthController : ControllerBase
                     ReferralCode = referringAffiliate.ReferralCode,
                     VisitorKeyHash = visitorHash,
                     ReferredUserId = user.Id,
-                    ClickedAt = DateTime.UtcNow,
-                    RegisteredAt = DateTime.UtcNow
+                    ClickedAt = now,
+                    RegisteredAt = now
+                });
+                _db.PromotionCoupons.Add(new PromotionCoupon
+                {
+                    Code = "WELCOME" + Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(4)),
+                    Title = "MERKATO referral welcome reward",
+                    DiscountType = "FIXED",
+                    DiscountValue = 50m,
+                    MinimumOrderEtb = 200m,
+                    UsageLimit = 1,
+                    PerUserLimit = 1,
+                    AssignedUserId = user.Id,
+                    StartsAt = now,
+                    ExpiresAt = now.AddDays(30),
+                    CreatedBy = referringAffiliate.UserId
                 });
                 await _db.SaveChangesAsync();
             }
+            if (registrationTransaction is not null)
+                await registrationTransaction.CommitAsync();
         }
         catch (DbUpdateException)
         {
+            if (registrationTransaction is not null)
+                await registrationTransaction.RollbackAsync();
             return Conflict("User registration or referral attribution could not be completed.");
         }
 
