@@ -203,6 +203,18 @@ export class ApiService {
     return this.http.post('/api/payment-receipts/admin/' + id + '/review', payload);
   }
 
+  getPendingPaymentReceipts(): Observable<PendingPaymentReceipt[]> {
+    return this.http.get<PendingPaymentReceipt[]>(`${this.baseUrl}/payment-receipts/admin/pending`);
+  }
+
+  getPaymentReceiptFile(id: number): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/payment-receipts/admin/${id}/file`, { responseType: 'blob' });
+  }
+
+  reviewPaymentReceipt(id: number, decision: 'APPROVE' | 'REJECT', note: string, transactionReference?: string): Observable<unknown> {
+    return this.http.post(`${this.baseUrl}/payment-receipts/admin/${id}/review`, { decision, note, transactionReference: transactionReference || null });
+  }
+
   getMyOrders(): Observable<MerkatoOrder[]> {
     return this.http.get<MerkatoOrder[]>(`${this.baseUrl}/orders/mine`);
   }
@@ -300,6 +312,13 @@ export class ApiService {
     return this.http.post<void>(`${this.baseUrl}/engagement/notifications/read-all`, {});
   }
 
+}
+
+export interface PendingPaymentReceipt {
+  id: number; orderId: number; orderNumber: string; buyerId: number;
+  paymentTransactionId: number; expectedAmountEtb: number;
+  transactionReference?: string | null; fileName: string; contentType: string;
+  sha256: string; status: string; createdAt: string;
 }
 
 export interface MerchantAnalytics {
