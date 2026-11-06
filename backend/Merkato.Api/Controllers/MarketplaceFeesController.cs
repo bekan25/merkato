@@ -66,8 +66,8 @@ public sealed class MarketplaceFeesController(MerkatoDbContext db) : ControllerB
 
     private static object ToResponse(MarketplaceFeeSettings settings) => new
     {
-        merchantCommissionRatePercent = settings.IsEnabled ? settings.MerchantCommissionRatePercent : 0m,
-        buyerServiceFeeRatePercent = settings.IsEnabled ? settings.BuyerServiceFeeRatePercent : 0m,
+        merchantCommissionRatePercent = settings.MerchantCommissionRatePercent,
+        buyerServiceFeeRatePercent = settings.BuyerServiceFeeRatePercent,
         isEnabled = settings.IsEnabled,
         currency = "ETB",
         updatedAt = settings.UpdatedAt
