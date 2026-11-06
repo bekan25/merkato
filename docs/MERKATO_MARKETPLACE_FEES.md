@@ -27,7 +27,7 @@ Example for a 10,000 ETB product and 80 ETB delivery:
 
 ## Order snapshots
 
-Each new order stores the product subtotal, discount, both percentage rates, and both fee amounts. Updating the global settings affects **new orders only**. Historical orders keep their original fee snapshot. Existing orders migrated with zero snapshots retain the legacy full-release behavior.
+Each new order stores the product subtotal, discount, both percentage rates, and both fee amounts. Updating the global settings affects **new orders only**. Historical orders keep zero merchant/buyer fee snapshots and retain the legacy full-release behavior. Their product subtotal is backfilled from the historical order total less delivery so creator/affiliate commissions on already-pending payments continue using the previous eligible base.
 
 ## APIs
 
