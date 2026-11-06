@@ -12,15 +12,18 @@ import { AuthService } from '../core/auth.service';
   template: `
     <section class="auth-page">
       <div class="auth-aside"><a routerLink="/" class="brand auth-brand"><span class="brand-mark">M</span><span>merkato<small>ETHIOPIAN MARKETPLACE</small></span></a><div class="auth-message"><span class="eyebrow">YOUR MARKET. YOUR PEOPLE.</span><h1>Local commerce,<br><em>without limits.</em></h1><p>One account connects you to a growing community of buyers and merchants across Ethiopia.</p><div class="auth-benefit"><span>✓</span> Discover local products</div><div class="auth-benefit"><span>✓</span> Manage your marketplace activity</div><div class="auth-benefit"><span>✓</span> Built around secure transactions</div></div><span class="auth-footnote">MERKATO · MADE FOR ETHIOPIA</span></div>
-      <div class="auth-form-wrap"><div class="auth-form"><a routerLink="/" class="back-link">← Back to marketplace</a><span class="eyebrow">{{isRegister ? 'JOIN THE MARKETPLACE' : 'WELCOME BACK'}}</span><h2>{{isRegister ? 'Create your account' : 'Sign in to MERKATO'}}</h2><p class="muted">{{isRegister ? 'Choose how you want to participate in MERKATO.' : 'Use your registered phone number and PIN to continue.'}}</p>
+      <div class="auth-form-wrap"><div class="auth-form"><a routerLink="/" class="back-link">← Back to marketplace</a><span class="eyebrow">{{isRegister ? 'JOIN THE MARKETPLACE' : 'WELCOME BACK'}}</span><h2>{{isRegister ? 'Create your account' : 'Sign in to MERKATO'}}</h2><p class="muted">{{isAdminLogin ? 'Administrator access. Use your approved email and password.' : (isRegister ? 'Choose how you want to participate in MERKATO.' : 'Use your registered phone number and PIN to continue.')}}</p>
         <form (ngSubmit)="submit()">
           <label *ngIf="isRegister">Full name<input name="fullName" [(ngModel)]="fullName" required autocomplete="name" placeholder="Your full name"></label>
-          <label>Phone number<input name="phone" [(ngModel)]="phoneNumber" required autocomplete="tel" placeholder="09XXXXXXXX" inputmode="tel"></label>
-          <label>PIN<input name="pin" [(ngModel)]="pin" required type="password" [minlength]="isRegister ? 6 : 4" maxlength="8" autocomplete="current-password" inputmode="numeric" [placeholder]="isRegister ? '6–8 digit PIN' : 'Your PIN'"></label>
+          <label *ngIf="isAdminLogin">Administrator email<input name="adminEmail" [(ngModel)]="email" required type="email" autocomplete="username" placeholder="admin@example.com"></label>
+          <label *ngIf="isAdminLogin">Password<input name="adminPassword" [(ngModel)]="password" required type="password" autocomplete="current-password" maxlength="256" placeholder="Your administrator password"></label>
+          <label *ngIf="!isAdminLogin">Phone number<input name="phone" [(ngModel)]="phoneNumber" required autocomplete="tel" placeholder="09XXXXXXXX" inputmode="tel"></label>
+          <label *ngIf="!isAdminLogin">PIN<input name="pin" [(ngModel)]="pin" required type="password" [minlength]="isRegister ? 6 : 4" maxlength="8" autocomplete="current-password" inputmode="numeric" [placeholder]="isRegister ? '6–8 digit PIN' : 'Your PIN'"></label>
           <label *ngIf="isRegister">I want to join as<select name="role" [(ngModel)]="role"><option value="BUYER">Buyer — discover and shop</option><option value="MERCHANT">Merchant — list my products</option></select></label>
-          <p class="form-error" *ngIf="error">{{error}}</p><button class="btn btn-primary auth-submit" [disabled]="loading">{{loading ? 'Please wait...' : (isRegister ? 'Create account' : 'Sign in securely')}} <span>↗</span></button>
+          <p class="form-error" *ngIf="error">{{error}}</p><button class="btn btn-primary auth-submit" [disabled]="loading">{{loading ? 'Please wait...' : (isAdminLogin ? 'Administrator sign in' : (isRegister ? 'Create account' : 'Sign in securely'))}} <span>↗</span></button>
         </form>
-        <div class="auth-note"><span>⌑</span><p>Your PIN is protected with server-side password hashing. Never share it with anyone.</p></div><p class="auth-register-note">{{isRegister ? 'Already have an account?' : 'New to MERKATO?'}} <button class="link-button" type="button" (click)="toggleMode()">{{isRegister ? 'Sign in' : 'Create a buyer or merchant account'}}</button></p>
+        <div class="auth-note"><span>⌑</span><p>{{isAdminLogin ? 'Administrator passwords are securely hashed on the server. Access is restricted to ADMIN accounts.' : 'Your PIN is protected with server-side password hashing. Never share it with anyone.'}}</p></div><p class="auth-register-note" *ngIf="!isAdminLogin">{{isRegister ? 'Already have an account?' : 'New to MERKATO?'}} <button class="link-button" type="button" (click)="toggleMode()">{{isRegister ? 'Sign in' : 'Create a buyer or merchant account'}}</button></p>
+        <p class="auth-register-note" *ngIf="!isRegister"><button class="link-button" type="button" (click)="toggleAdminMode()">{{isAdminLogin ? '← Buyer / Merchant sign in' : 'Administrator sign in'}}</button></p>
       </div></div>
     </section>
   `,
@@ -59,6 +62,9 @@ export class AuthComponent {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   isRegister = false;
+  isAdminLogin = false;
+  email = '';
+  password = '';
   referralCode = '';
   fullName = '';
   phoneNumber = '';
@@ -69,10 +75,21 @@ export class AuthComponent {
 
   constructor() { this.isRegister = this.route.snapshot.queryParamMap.get('mode') === 'register'; this.referralCode = this.route.snapshot.queryParamMap.get('ref') || ''; }
 
-  toggleMode(): void { this.isRegister = !this.isRegister; this.error = ''; }
+  toggleMode(): void { this.isRegister = !this.isRegister; this.isAdminLogin = false; this.error = ''; }
+
+  toggleAdminMode(): void { this.isAdminLogin = !this.isAdminLogin; this.isRegister = false; this.error = ''; }
 
   submit(): void {
     this.error = '';
+    if (this.isAdminLogin) {
+      if (!this.email.trim() || !this.password) { this.error = 'Enter your administrator email and password.'; return; }
+      this.loading = true;
+      this.auth.adminLogin(this.email.trim(), this.password).subscribe({
+        next: () => { this.loading = false; this.router.navigateByUrl(this.auth.dashboardPath()); },
+        error: (err) => { this.loading = false; this.error = err?.status === 423 ? 'Too many attempts. Please wait before trying again.' : 'Administrator sign-in failed. Check your email and password.'; }
+      });
+      return;
+    }
     if (!this.phoneNumber.trim() || !this.pin.trim()) { this.error = 'Enter your phone number and PIN.'; return; }
     if (this.isRegister && !this.fullName.trim()) { this.error = 'Enter your full name.'; return; }
     const minimumPinLength = this.isRegister ? 6 : 4;
