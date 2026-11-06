@@ -52,11 +52,18 @@ import { ApiService, MerkatoProduct, MerkatoOrder, MerkatoDispute, MerchantAnaly
     .buyer-insights{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0 0 24px}
     .buyer-insights article{padding:16px 18px;border:1px solid #eee9df;border-radius:12px;background:linear-gradient(135deg,#fff,#fbf8f1)}
     .buyer-insights span{display:block;font-size:8px;font-weight:800;letter-spacing:1.1px;color:#89938c}.buyer-insights strong{display:block;font:800 20px Manrope;color:#26382d;margin-top:7px}
+    .fee-settings-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;max-width:760px;margin:18px 0}
+    .fee-settings-form label{display:grid;gap:7px;color:#354139;font-size:12px;font-weight:750}
+    .fee-settings-form input[type=number]{width:100%;box-sizing:border-box;padding:12px;border:1px solid #e2e8e2;border-radius:10px;background:#f8faf8}
+    .fee-settings-form .fee-enabled{display:flex;align-items:center;gap:9px}
+    .fee-settings-form button{justify-self:start}
+    .fee-saved{color:#187343;font-weight:700}
+    @media(max-width:620px){.fee-settings-form{grid-template-columns:1fr}}
     @media(max-width:760px){.product-editor{padding:16px}.editor-layout{grid-template-columns:1fr}.editor-heading h3{font-size:21px}.buyer-shortcuts,.buyer-insights{grid-template-columns:1fr}}
   `],
   template: `
     <section class="workspace">
-      <aside class="workspace-sidebar"><a routerLink="/" class="brand"><span class="brand-mark">M</span><span>merkato<small>WORKSPACE</small></span></a><div class="workspace-user"><span class="user-avatar">{{user?.fullName?.slice(0,1)}}</span><div><strong>{{user?.fullName}}</strong><small>{{user?.role}}</small></div></div><span class="side-label">WORKSPACE</span><a routerLink="/dashboard" class="side-link active">▦ <span>Overview</span></a><a routerLink="/" class="side-link">⌕ <span>Marketplace</span></a><a *ngIf="user?.role === 'MERCHANT' || user?.role === 'ADMIN'" href="#products" class="side-link">▤ <span>Products</span></a><a *ngIf="user?.role === 'ADMIN'" href="#admin-note" class="side-link">⚙ <span>Administration</span></a><div class="sidebar-bottom"><a routerLink="/" class="side-link">↗ <span>View marketplace</span></a><button class="side-link side-logout" (click)="logout()">⇥ <span>Sign out</span></button></div></aside>
+      <aside class="workspace-sidebar"><a routerLink="/" class="brand"><span class="brand-mark">M</span><span>merkato<small>WORKSPACE</small></span></a><div class="workspace-user"><span class="user-avatar">{{user?.fullName?.slice(0,1)}}</span><div><strong>{{user?.fullName}}</strong><small>{{user?.role}}</small></div></div><span class="side-label">WORKSPACE</span><a routerLink="/dashboard" class="side-link active">▦ <span>Overview</span></a><a routerLink="/" class="side-link">⌕ <span>Marketplace</span></a><a *ngIf="user?.role === 'MERCHANT' || user?.role === 'ADMIN'" href="#products" class="side-link">▤ <span>Products</span></a><a *ngIf="user?.role === 'ADMIN'" href="#marketplace-fees" class="side-link">⚙ <span>Administration</span></a><div class="sidebar-bottom"><a routerLink="/" class="side-link">↗ <span>View marketplace</span></a><button class="side-link side-logout" (click)="logout()">⇥ <span>Sign out</span></button></div></aside>
       <div class="workspace-main"><header class="workspace-topbar"><div><span class="eyebrow">MERKATO WORKSPACE</span><h1>{{heading}}</h1></div><span class="workspace-date">Ethiopia · ETB</span></header>
         <section class="welcome-panel"><div><span class="eyebrow">GOOD TO SEE YOU</span><h2>Welcome, {{user?.fullName?.split(' ')?.[0]}}.</h2><p>{{welcomeText}}</p></div><div class="welcome-symbol">✳</div></section>
         <section class="buyer-shortcuts" *ngIf="user?.role === 'BUYER'">
@@ -131,7 +138,7 @@ import { ApiService, MerkatoProduct, MerkatoOrder, MerkatoDispute, MerchantAnaly
           <div *ngIf="merchantProducts.length" class="table-wrap"><table><thead><tr><th>Product</th><th>Category</th><th>Price</th><th>Location</th><th>Status</th><th>Actions</th></tr></thead><tbody><tr *ngFor="let p of merchantProducts"><td class="catalogue-product"><img *ngIf="p.imageUrl" [src]="p.imageUrl" [alt]="p.name"><span *ngIf="!p.imageUrl" class="catalogue-placeholder">▧</span><strong>{{p.name}}</strong></td><td>{{p.category}}</td><td>{{p.priceEtb | number:'1.2-2'}} ETB</td><td>{{p.location}}</td><td><span class="status-pill">Active</span></td><td class="product-actions"><button type="button" (click)="editProduct(p)">Edit</button><button type="button" (click)="removeProduct(p)">Archive</button></td></tr></tbody></table></div>
           <div class="empty-inline" *ngIf="!merchantProducts.length">No products are currently returned by the API. Add your first product when signed in as a merchant.</div>
         </section>
-        <section class="workspace-section" *ngIf="user?.role === 'MERCHANT' || user?.role === 'ADMIN'"><span class="eyebrow">ORDER FULFILMENT</span><h2>Incoming orders</h2><div *ngIf="merchantOrders.length" class="table-wrap"><table><thead><tr><th>Order</th><th>Product</th><th>Buyer</th><th>Total</th><th>Delivery</th></tr></thead><tbody><tr *ngFor="let order of merchantOrders"><td>{{order.orderNumber}}</td><td>{{order.productTitle}}</td><td>#{{order.buyerId}}</td><td>{{order.totalAmountEtb | number:'1.2-2'}} ETB</td><td>{{order.deliveryStatus}}</td></tr></tbody></table></div><div class="empty-inline" *ngIf="!merchantOrders.length">No incoming orders have been recorded yet.</div></section>
+        <section class="workspace-section" *ngIf="user?.role === 'MERCHANT' || user?.role === 'ADMIN'"><span class="eyebrow">ORDER FULFILMENT</span><h2>Incoming orders</h2><div *ngIf="merchantOrders.length" class="table-wrap"><table><thead><tr><th>Order</th><th>Product</th><th>Buyer</th><th>Buyer total</th><th>MERKATO fees</th><th>Est. merchant settlement</th><th>Delivery</th></tr></thead><tbody><tr *ngFor="let order of merchantOrders"><td>{{order.orderNumber}}</td><td>{{order.productTitle}}</td><td>#{{order.buyerId}}</td><td>{{order.totalAmountEtb | number:'1.2-2'}} ETB</td><td>{{((order.merchantCommissionEtb || 0) + (order.buyerServiceFeeEtb || 0)) | number:'1.2-2'}} ETB</td><td>{{(order.totalAmountEtb - (order.merchantCommissionEtb || 0) - (order.buyerServiceFeeEtb || 0)) | number:'1.2-2'}} ETB</td><td>{{order.deliveryStatus}}</td></tr></tbody></table></div><div class="empty-inline" *ngIf="!merchantOrders.length">No incoming orders have been recorded yet.</div></section>
         <section class="workspace-section" *ngIf="user?.role === 'BUYER'"><div class="workspace-section-head"><div><span class="eyebrow">YOUR SHOPPING</span><h2>Your orders</h2><p>Recent orders created from your buyer account.</p></div><a routerLink="/cart" class="btn btn-outline">Open cart</a></div><div *ngIf="buyerOrders.length" class="table-wrap"><table><thead><tr><th>Order</th><th>Product</th><th>Total</th><th>Escrow</th><th>Date</th></tr></thead><tbody><tr *ngFor="let order of buyerOrders"><td>{{order.orderNumber}}</td><td>{{order.productTitle}}</td><td>{{order.totalAmountEtb | number:'1.2-2'}} ETB</td><td><span class="status-pill">{{order.escrowState}}</span></td><td>{{order.createdAt | date:'mediumDate'}}</td></tr></tbody></table></div><div class="empty-inline" *ngIf="!buyerOrders.length">No orders have been created yet. Browse the marketplace and add products to your cart.</div><a routerLink="/" class="btn btn-primary">Explore products ↗</a></section>
         <section class="workspace-section" *ngIf="user?.role === 'ADMIN' && adminAnalytics as stats"><span class="eyebrow">PLATFORM INTELLIGENCE</span><h2>Marketplace health</h2><div class="workspace-grid"><article class="workspace-card"><span class="card-label">TOTAL USERS</span><strong>{{stats.totalUsers}}</strong><small>{{stats.buyerCount}} buyers · {{stats.merchantCount}} merchants</small></article><article class="workspace-card"><span class="card-label">PRODUCT CATALOGUE</span><strong>{{stats.activeProducts}}</strong><small>{{stats.totalProducts}} total listings</small></article><article class="workspace-card"><span class="card-label">TOTAL ORDERS</span><strong>{{stats.totalOrders}}</strong><small>Gross value: {{stats.grossOrderValueEtb | number:'1.2-2'}} ETB</small></article><article class="workspace-card"><span class="card-label">OPEN DISPUTES</span><strong>{{stats.openDisputes}}</strong><small>Require administrator attention</small></article></div><h3>Recently joined users</h3><div class="table-wrap"><table><thead><tr><th>Name</th><th>Phone</th><th>Role</th><th>Joined</th></tr></thead><tbody><tr *ngFor="let member of stats.recentUsers"><td>{{member.fullName}}</td><td>{{member.phoneNumber}}</td><td>{{member.role}}</td><td>{{member.createdAt | date:'mediumDate'}}</td></tr></tbody></table></div></section>
         <section class="workspace-section" *ngIf="user?.role === 'ADMIN'">
@@ -140,6 +147,19 @@ import { ApiService, MerkatoProduct, MerkatoOrder, MerkatoDispute, MerchantAnaly
             <tr *ngFor="let item of sellerVerifications"><td>#{{item.sellerId}}</td><td>{{item.businessName || '—'}}</td><td>{{item.businessType || '—'}}</td><td>{{item.city || '—'}}</td><td>{{item.contactPhone || '—'}}</td><td><span class="status-pill">{{item.status}}</span></td><td class="product-actions"><button type="button" *ngIf="item.status === 'PENDING'" [disabled]="verificationBusyId === item.sellerId" (click)="decideSellerVerification(item,'APPROVED')">Approve</button><button type="button" *ngIf="item.status === 'PENDING'" [disabled]="verificationBusyId === item.sellerId" (click)="decideSellerVerification(item,'REJECTED')">Reject</button></td></tr>
           </tbody></table></div>
           <div class="empty-inline" *ngIf="!sellerVerifications.length">No seller verification requests have been submitted.</div>
+        </section>
+        <section class="workspace-section" *ngIf="user?.role === 'ADMIN'" id="marketplace-fees">
+          <span class="eyebrow">LAUNCH REVENUE MODEL</span><h2>Marketplace fees</h2>
+          <p>Set transparent launch rates. New orders capture a permanent rate snapshot; existing orders are never repriced.</p>
+          <form class="fee-settings-form" (ngSubmit)="saveMarketplaceFees()">
+            <label>Merchant commission (%)<input type="number" name="merchantCommissionRatePercent" min="0" max="10" step="0.05" required [(ngModel)]="feeDraft.merchantCommissionRatePercent"></label>
+            <label>Buyer service fee (%)<input type="number" name="buyerServiceFeeRatePercent" min="0" max="5" step="0.05" required [(ngModel)]="feeDraft.buyerServiceFeeRatePercent"></label>
+            <label class="fee-enabled"><input type="checkbox" name="feesEnabled" [(ngModel)]="feeDraft.isEnabled"> Enable marketplace fees</label>
+            <button type="submit" class="btn btn-primary" [disabled]="feeSaving">{{feeSaving ? 'Saving…' : 'Save fee settings'}}</button>
+          </form>
+          <p class="inline-error" *ngIf="feeError">{{feeError}}</p>
+          <p class="fee-saved" *ngIf="feeMessage">{{feeMessage}}</p>
+          <small>Current launch rates: 1% merchant + 0.5% buyer. The buyer fee is shown before checkout confirmation.</small>
         </section>
         <section class="workspace-section" *ngIf="user?.role === 'ADMIN'" id="admin-note"><span class="eyebrow">PLATFORM OPERATIONS</span><h2>Dispute oversight</h2><p>Open disputes returned by the protected arbitration API.</p><div *ngIf="disputes.length" class="table-wrap"><table><thead><tr><th>Dispute</th><th>Order</th><th>Reason</th><th>Status</th><th>Created</th><th>Admin actions</th></tr></thead><tbody><tr *ngFor="let dispute of disputes"><td>#{{dispute.id}}</td><td>#{{dispute.orderId}}</td><td>{{dispute.reason}}</td><td><span class="status-pill">{{dispute.status}}</span></td><td>{{dispute.createdAt | date:'mediumDate'}}</td><td class="product-actions"><button type="button" *ngIf="dispute.status === 'OPEN'" [disabled]="busyDisputeId === dispute.id" (click)="reviewDispute(dispute)">Review</button><button type="button" *ngIf="dispute.status === 'OPEN' || dispute.status === 'UNDER_REVIEW'" [disabled]="busyDisputeId === dispute.id" (click)="resolveDispute(dispute, 'refund')">Refund</button><button type="button" *ngIf="dispute.status === 'OPEN' || dispute.status === 'UNDER_REVIEW'" [disabled]="busyDisputeId === dispute.id" (click)="resolveDispute(dispute, 'release')">Release</button></td></tr></tbody></table></div><div class="empty-inline" *ngIf="!disputes.length">No disputes are currently returned by the API.</div></section>
         <div class="inline-error" *ngIf="loadError">{{loadError}}</div>
@@ -172,6 +192,10 @@ export class DashboardComponent implements OnInit {
   verificationSaving = false;
   verificationBusyId: number | null = null;
   verificationError = '';
+  feeDraft = { merchantCommissionRatePercent: 1, buyerServiceFeeRatePercent: 0.5, isEnabled: true };
+  feeSaving = false;
+  feeError = '';
+  feeMessage = '';
   readonly supportedCities = ['Addis Ababa','Adama','Hawassa','Bahir Dar','Dire Dawa','Jimma','Mekelle','Gondar','Dessie'];
   readonly businessTypes = ['Retail shop','Wholesale','Manufacturer','Farmer / producer','Service provider','Online store','Other'];
   readonly productCategories = ['Electronics','Fashion','Home & Living','Beauty & Personal Care','Food & Grocery','Agriculture','Automotive','Books & Education','Sports & Outdoors','Baby & Kids','Other'];
@@ -201,6 +225,7 @@ export class DashboardComponent implements OnInit {
   ngOnInit(): void {
     if (this.user?.role === 'MERCHANT') this.api.getMySellerVerification().subscribe({ next: item => this.sellerVerification = item, error: () => this.loadError = 'Could not load seller verification status.' });
     if (this.user?.role === 'ADMIN') this.reloadSellerVerifications();
+    if (this.user?.role === 'ADMIN') this.reloadMarketplaceFees();
     if (this.user?.role === 'BUYER') this.api.getMyOrders().subscribe({ next: items => this.buyerOrders = items || [], error: () => this.loadError = 'Could not load order history.' });
     if (this.user?.role === 'MERCHANT') this.api.getMerchantAnalytics().subscribe({ next: stats => this.merchantAnalytics = stats, error: () => this.loadError = 'Could not load merchant performance analytics.' });
     if (this.user?.role === 'ADMIN') this.api.getAdminAnalytics().subscribe({ next: stats => this.adminAnalytics = stats, error: () => this.loadError = 'Could not load platform analytics.' });
@@ -210,6 +235,40 @@ export class DashboardComponent implements OnInit {
     }
     if (this.user?.role === 'ADMIN') this.api.getDisputes().subscribe({ next: items => this.disputes = items || [], error: () => this.loadError = 'Could not load dispute records.' });
   }
+  reloadMarketplaceFees(): void {
+    this.api.getMarketplaceFees().subscribe({
+      next: fees => {
+        this.feeDraft = {
+          merchantCommissionRatePercent: Number(fees.merchantCommissionRatePercent ?? 1),
+          buyerServiceFeeRatePercent: Number(fees.buyerServiceFeeRatePercent ?? 0.5),
+          isEnabled: fees.isEnabled !== false
+        };
+      },
+      error: () => this.feeError = 'Could not load marketplace fee settings.'
+    });
+  }
+
+  saveMarketplaceFees(): void {
+    this.feeError = '';
+    this.feeMessage = '';
+    if (this.feeDraft.merchantCommissionRatePercent < 0 || this.feeDraft.merchantCommissionRatePercent > 10 ||
+        this.feeDraft.buyerServiceFeeRatePercent < 0 || this.feeDraft.buyerServiceFeeRatePercent > 5) {
+      this.feeError = 'Merchant rate must be 0–10% and buyer fee must be 0–5%.';
+      return;
+    }
+    this.feeSaving = true;
+    this.api.updateMarketplaceFees(this.feeDraft).subscribe({
+      next: () => {
+        this.feeSaving = false;
+        this.feeMessage = 'Marketplace fee settings saved. They apply to new orders only.';
+      },
+      error: err => {
+        this.feeSaving = false;
+        this.feeError = err?.error?.message || 'Could not save marketplace fee settings.';
+      }
+    });
+  }
+
   submitSellerVerification(): void {
     this.verificationError = '';
     const phone = this.verificationDraft.contactPhone.trim().replace(/[\\s-]/g, '');

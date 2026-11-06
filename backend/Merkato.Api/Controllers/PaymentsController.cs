@@ -213,7 +213,7 @@ public class PaymentsController : ControllerBase
 
                         if (attributedPost is not null)
                         {
-                            var eligibleAmount = Math.Max(0m, paidOrder.TotalAmountEtb - paidOrder.DeliveryFeeEtb);
+                            var eligibleAmount = Math.Max(0m, paidOrder.ProductSubtotalEtb - paidOrder.DiscountEtb);
                             var rate = CommissionRate("Commissions:CreatorRatePercent", 5m);
                             _db.CreatorCommissions.Add(new CreatorCommission
                             {
@@ -244,7 +244,7 @@ public class PaymentsController : ControllerBase
                             await _db.AffiliateProfiles.AnyAsync(x => x.UserId == affiliateReferral.AffiliateUserId && x.IsActive, ct))
                         {
                             var affiliateRatePercent = CommissionRate("Commissions:AffiliateRatePercent", 2m);
-                            var eligibleAmount = Math.Max(0m, paidOrder.TotalAmountEtb - paidOrder.DeliveryFeeEtb);
+                            var eligibleAmount = Math.Max(0m, paidOrder.ProductSubtotalEtb - paidOrder.DiscountEtb);
                             _db.AffiliateCommissions.Add(new AffiliateCommission
                             {
                                 AffiliateUserId = affiliateReferral.AffiliateUserId,

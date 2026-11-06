@@ -44,6 +44,20 @@ public class Order
     
     [Column(TypeName = "numeric(18,4)")]
     public decimal DeliveryFeeEtb { get; set; }
+
+    // Immutable fee snapshot captured at checkout; later admin rate changes never rewrite existing orders.
+    [Column(TypeName = "numeric(18,4)")]
+    public decimal ProductSubtotalEtb { get; set; }
+    [Column(TypeName = "numeric(18,4)")]
+    public decimal DiscountEtb { get; set; }
+    [Column(TypeName = "numeric(7,4)")]
+    public decimal MerchantCommissionRatePercent { get; set; }
+    [Column(TypeName = "numeric(18,4)")]
+    public decimal MerchantCommissionEtb { get; set; }
+    [Column(TypeName = "numeric(7,4)")]
+    public decimal BuyerServiceFeeRatePercent { get; set; }
+    [Column(TypeName = "numeric(18,4)")]
+    public decimal BuyerServiceFeeEtb { get; set; }
     
     public PaymentRail PaymentRail { get; set; }
     public string DeliveryCourier { get; set; } = "BEU_DELIVERY";

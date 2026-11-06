@@ -30,6 +30,12 @@ export interface MerkatoOrder {
   productTitle: string;
   totalAmountEtb: number;
   deliveryFeeEtb: number;
+  productSubtotalEtb?: number;
+  discountEtb?: number;
+  merchantCommissionRatePercent?: number;
+  merchantCommissionEtb?: number;
+  buyerServiceFeeRatePercent?: number;
+  buyerServiceFeeEtb?: number;
   paymentRail: number;
   deliveryCourier: string;
   deliveryAddress: string;
@@ -83,6 +89,14 @@ export class ApiService {
         createdAt: ''
       })))
     );
+  }
+
+  getMarketplaceFees(): Observable<{ merchantCommissionRatePercent: number; buyerServiceFeeRatePercent: number; isEnabled: boolean; currency: string; updatedAt: string }> {
+    return this.http.get<{ merchantCommissionRatePercent: number; buyerServiceFeeRatePercent: number; isEnabled: boolean; currency: string; updatedAt: string }>(`${this.baseUrl}/v1/marketplace/fees`);
+  }
+
+  updateMarketplaceFees(payload: { merchantCommissionRatePercent: number; buyerServiceFeeRatePercent: number; isEnabled: boolean }): Observable<unknown> {
+    return this.http.put(`${this.baseUrl}/v1/marketplace/fees`, payload);
   }
 
   getDeliveryFeeQuote(cityArea: string): Observable<{ cityArea: string; feeEtb: number; currency: string; quoteType: string; note: string }> {

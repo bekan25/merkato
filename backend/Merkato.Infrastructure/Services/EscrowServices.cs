@@ -257,14 +257,24 @@ public class EscrowService : IEscrowService
             });
         }
 
-        // Double-entry record
-        await _ledger.RecordTransactionAsync(orderId, "ESCROW_RELEASE", $"REL-{orderId}", new()
+        // Split the verified escrow amount between merchant receivable and platform revenue.
+        // Legacy orders have zero fee snapshots and retain their previous full-release behavior.
+        var platformFee = order.MerchantCommissionEtb + order.BuyerServiceFeeEtb;
+        if (platformFee < 0m || platformFee > releaseAmount)
+            throw new InvalidOperationException("Marketplace fee snapshot exceeds the escrow amount.");
+        var merchantNet = releaseAmount - platformFee;
+        var releaseEntries = new List<(LedgerAccountType account, LedgerEntryType type, decimal amount, long? userId)>
         {
-            (LedgerAccountType.ESCROW_LIABILITY, LedgerEntryType.DEBIT, releaseAmount, null),
-            (LedgerAccountType.MERCHANT_RECEIVABLE, LedgerEntryType.CREDIT, releaseAmount, order.SellerId)
-        }, ct);
+            (LedgerAccountType.ESCROW_LIABILITY, LedgerEntryType.DEBIT, releaseAmount, null)
+        };
+        if (merchantNet > 0m)
+            releaseEntries.Add((LedgerAccountType.MERCHANT_RECEIVABLE, LedgerEntryType.CREDIT, merchantNet, order.SellerId));
+        if (platformFee > 0m)
+            releaseEntries.Add((LedgerAccountType.PLATFORM_FEE, LedgerEntryType.CREDIT, platformFee, null));
+        await _ledger.RecordTransactionAsync(orderId, "ESCROW_RELEASE", $"REL-{orderId}", releaseEntries, ct);
 
-        await _audit.LogAsync(requesterId, "MERCHANT/SYSTEM", "ESCROW_RELEASE", "ESCROW", orderId.ToString(), "SUCCESS", $"Released {releaseAmount} ETB", ct);
+        await _audit.LogAsync(requesterId, "MERCHANT/SYSTEM", "ESCROW_RELEASE", "ESCROW", orderId.ToString(), "SUCCESS",
+            $"Settled {releaseAmount} ETB: merchant receivable {merchantNet} ETB, platform fees {platformFee} ETB", ct);
         await _db.SaveChangesAsync(ct);
         await transaction.CommitAsync(ct);
 
