@@ -659,6 +659,7 @@ b.Property<long>("SellerId")
                     b.Property<string>("TransactionReference").HasMaxLength(150).HasColumnType("character varying(150)");
                     b.HasKey("Id");
                     b.HasIndex("OrderId");
+                    b.HasIndex("Sha256").IsUnique();
                     b.HasIndex("PaymentTransactionId", "CreatedAt");
                     b.HasIndex("Status", "CreatedAt");
                     b.HasIndex("TransactionReference").IsUnique().HasFilter("\\"TransactionReference\\" IS NOT NULL");
