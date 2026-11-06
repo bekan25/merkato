@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Merkato.Api.Controllers;
+using Merkato.Application.Interfaces;
 using Merkato.Domain.Entities;
 using Merkato.Domain.Enums;
 using Merkato.Infrastructure.Persistence;
@@ -10,7 +11,12 @@ using Xunit;
 namespace Merkato.Tests;
 public sealed class SourcingWorkflowTests
 {
- private static SourcingController Controller(MerkatoDbContext db,long user,string role){var identity=new ClaimsIdentity(new[]{new Claim(ClaimTypes.NameIdentifier,user.ToString()),new Claim(ClaimTypes.Role,role)},"test");return new SourcingController(db){ControllerContext=new ControllerContext{HttpContext=new DefaultHttpContext{User=new ClaimsPrincipal(identity)}}};}
+ private sealed class AllowRisk : IRiskAssessmentService
+ {
+  public Task<RiskDecision> EvaluateOrderRiskAsync(long userId, decimal orderAmountEtb, CancellationToken ct = default)
+      => Task.FromResult(RiskDecision.ALLOW);
+ }
+ private static SourcingController Controller(MerkatoDbContext db,long user,string role){var identity=new ClaimsIdentity(new[]{new Claim(ClaimTypes.NameIdentifier,user.ToString()),new Claim(ClaimTypes.Role,role)},"test");return new SourcingController(db,new AllowRisk()){ControllerContext=new ControllerContext{HttpContext=new DefaultHttpContext{User=new ClaimsPrincipal(identity)}}};}
  [Fact]
  public async Task BuyerCanPublishAndMultipleMerchantsCanOffer()
  {
