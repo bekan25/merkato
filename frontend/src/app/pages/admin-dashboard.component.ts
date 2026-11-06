@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../core/auth.service';
-import { ApiService, AdminAnalytics, MerkatoDispute, MerkatoOrder, SellerVerification } from '../core/api.service';
+import { ApiService, AdminAnalytics, MerkatoDispute, MerkatoOrder, PendingPaymentReceipt, SellerVerification } from '../core/api.service';
 
 type FeeSettings = { merchantCommissionRatePercent:number; buyerServiceFeeRatePercent:number; isEnabled:boolean; currency:string; updatedAt:string };
 
@@ -22,7 +22,7 @@ type FeeSettings = { merchantCommissionRatePercent:number; buyerServiceFeeRatePe
     .table-wrap{width:100%;overflow:auto}table{width:100%;border-collapse:collapse;text-align:left;white-space:nowrap}th{padding:9px;border-bottom:1px solid #edf0ec;color:#8b958d;font-size:8px;letter-spacing:.7px}td{padding:11px 9px;border-bottom:1px solid #f0f2ef;color:#39483d;font-size:9px}tbody tr:last-child td{border-bottom:0}.strong{font-weight:850;color:#26382c}.muted{color:#879188}
     .status{display:inline-block;padding:5px 7px;border-radius:20px;background:#f2f4f1;color:#68756b;font-size:8px;font-weight:900}.status.pending,.status.open,.status.under_review{background:#fff5df;color:#a8781e}.status.approved,.status.held,.status.released,.status.completed{background:#e9f6ed;color:#28794a}.status.rejected,.status.failed,.status.refunded{background:#fff0ed;color:#b64f3e}
     .actions{display:flex;gap:5px}.action{padding:6px 7px;border:1px solid #dce5dc;border-radius:7px;background:#fff;color:#36513d;font-size:8px;font-weight:900;cursor:pointer}.action.danger{border-color:#f0d9d4;color:#ad5144}.action:disabled{opacity:.5}
-    .fee-box{padding:13px;border:1px solid #e8ede7;border-radius:11px;background:#fbfcfa}.fee-row{display:grid;grid-template-columns:1fr 105px;align-items:center;gap:10px;margin-bottom:11px}.fee-row label{color:#536156;font-size:9px;font-weight:800}.fee-row input{width:100%;padding:9px;border:1px solid #dfe6df;border-radius:8px;background:#fff;color:#26382c;font-size:11px;font-weight:850}.toggle{display:flex;align-items:center;gap:8px;margin:12px 0;color:#526054;font-size:9px;font-weight:800}.toggle input{accent-color:#28794a}.save{width:100%;padding:11px;border:0;border-radius:8px;background:#263d2d;color:#fff;font-size:9px;font-weight:900;cursor:pointer}.save:disabled{opacity:.5}.note{margin:10px 0 0;color:#89948b;font-size:8px;line-height:1.5}.success,.error{margin-top:9px;padding:9px;border-radius:8px;font-size:9px}.success{background:#edf7ef;color:#28794a}.error,.page-error{background:#fff0ed;color:#ad5144}.quick{display:grid;grid-template-columns:1fr 1fr;gap:8px}.quick a{padding:11px;border:1px solid #e8ede7;border-radius:9px;color:#34463a;text-decoration:none;font-size:9px;font-weight:850}.quick a:hover{border-color:#d6bd82;background:#fcfaf4}.users{display:grid}.user{display:flex;align-items:center;gap:9px;padding:9px 0;border-bottom:1px solid #f0f2ef}.user:last-child{border:0}.initial{width:29px;height:29px;display:grid;place-items:center;border-radius:50%;background:#edf3ed;color:#35533d;font-size:9px;font-weight:900}.user-meta{min-width:0;flex:1}.user-meta strong{display:block;overflow:hidden;color:#35463a;font-size:9px;text-overflow:ellipsis;white-space:nowrap}.user-meta small{display:block;margin-top:3px;color:#8a958c;font-size:8px}.empty{padding:18px 8px;text-align:center;color:#8a958c;font-size:9px}.page-error{margin-bottom:14px;padding:11px;border:1px solid #f1d7d2;border-radius:9px;font-size:10px}
+    .fee-box{padding:13px;border:1px solid #e8ede7;border-radius:11px;background:#fbfcfa}.fee-row{display:grid;grid-template-columns:1fr 105px;align-items:center;gap:10px;margin-bottom:11px}.fee-row label{color:#536156;font-size:9px;font-weight:800}.fee-row input{width:100%;padding:9px;border:1px solid #dfe6df;border-radius:8px;background:#fff;color:#26382c;font-size:11px;font-weight:850}.toggle{display:flex;align-items:center;gap:8px;margin:12px 0;color:#526054;font-size:9px;font-weight:800}.toggle input{accent-color:#28794a}.save{width:100%;padding:11px;border:0;border-radius:8px;background:#263d2d;color:#fff;font-size:9px;font-weight:900;cursor:pointer}.save:disabled{opacity:.5}.receipt-meta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:10px 0}.receipt-meta div{padding:9px;border:1px solid #edf0ec;border-radius:8px;background:#fbfcfa}.receipt-meta small{display:block;color:#8b958d;font-size:8px}.receipt-meta strong{display:block;margin-top:4px;color:#34463a;font-size:10px;overflow-wrap:anywhere}.receipt-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}.note{margin:10px 0 0;color:#89948b;font-size:8px;line-height:1.5}.success,.error{margin-top:9px;padding:9px;border-radius:8px;font-size:9px}.success{background:#edf7ef;color:#28794a}.error,.page-error{background:#fff0ed;color:#ad5144}.quick{display:grid;grid-template-columns:1fr 1fr;gap:8px}.quick a{padding:11px;border:1px solid #e8ede7;border-radius:9px;color:#34463a;text-decoration:none;font-size:9px;font-weight:850}.quick a:hover{border-color:#d6bd82;background:#fcfaf4}.users{display:grid}.user{display:flex;align-items:center;gap:9px;padding:9px 0;border-bottom:1px solid #f0f2ef}.user:last-child{border:0}.initial{width:29px;height:29px;display:grid;place-items:center;border-radius:50%;background:#edf3ed;color:#35533d;font-size:9px;font-weight:900}.user-meta{min-width:0;flex:1}.user-meta strong{display:block;overflow:hidden;color:#35463a;font-size:9px;text-overflow:ellipsis;white-space:nowrap}.user-meta small{display:block;margin-top:3px;color:#8a958c;font-size:8px}.empty{padding:18px 8px;text-align:center;color:#8a958c;font-size:9px}.page-error{margin-bottom:14px;padding:11px;border:1px solid #f1d7d2;border-radius:9px;font-size:10px}
     @media(max-width:1050px){.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.columns{grid-template-columns:1fr}}
     @media(max-width:700px){.shell{grid-template-columns:1fr}.sidebar{position:relative;height:auto;padding:13px;gap:10px}.profile,.nav-label,.bottom{display:none}.nav{display:flex;overflow:auto}.nav a{flex:0 0 auto;padding:9px}.main{padding:17px 13px 30px}.chip{display:none}.hero{padding:18px}.hero-status{display:none}.metric{padding:13px}.metric strong{font-size:21px}}
     @media(max-width:380px){.metrics{gap:8px}.metric-head{font-size:8px}.quick{grid-template-columns:1fr}}
@@ -52,6 +52,25 @@ type FeeSettings = { merchantCommissionRatePercent:number; buyerServiceFeeRatePe
               <div class="table-wrap" *ngIf="recentOrders.length; else noOrders"><table><thead><tr><th>ORDER</th><th>PRODUCT</th><th>SELLER</th><th>VALUE</th><th>ESCROW</th><th>CREATED</th></tr></thead><tbody><tr *ngFor="let order of recentOrders"><td class="strong">{{order.orderNumber || ('#' + order.id)}}</td><td>{{order.productTitle}}</td><td>#{{order.sellerId}}</td><td>{{order.totalAmountEtb | number:'1.2-2'}} ETB</td><td><span class="status" [ngClass]="statusClass(order.escrowState)">{{statusLabel(order.escrowState)}}</span></td><td class="muted">{{order.createdAt | date:'mediumDate'}}</td></tr></tbody></table></div>
               <ng-template #noOrders><div class="empty">No order records are currently available.</div></ng-template>
             </section>
+            <section class="panel" id="payments">
+              <div class="panel-head"><div><h3>Payment receipt verification</h3><p class="sub">Inspect buyer-submitted receipts. Confirm the transfer against your bank/provider account before approving.</p></div><span class="count">{{pendingReceipts.length}} pending</span></div>
+              <div *ngIf="paymentError" class="error">{{paymentError}}</div>
+              <div *ngIf="!pendingReceipts.length" class="empty">No payment receipts are waiting for review.</div>
+              <article *ngFor="let receipt of pendingReceipts" class="fee-box" style="margin-bottom:10px">
+                <div class="panel-head"><div><strong class="strong">{{receipt.orderNumber}} · {{receipt.expectedAmountEtb | number:'1.2-2'}} ETB</strong><p class="sub">Receipt #{{receipt.id}} · Buyer #{{receipt.buyerId}} · {{receipt.createdAt | date:'medium'}}</p></div><span class="status pending">PENDING REVIEW</span></div>
+                <div class="receipt-meta">
+                  <div><small>Transaction reference</small><strong>{{receipt.transactionReference || 'Not supplied'}}</strong></div>
+                  <div><small>Payment transaction</small><strong>#{{receipt.paymentTransactionId}}</strong></div>
+                  <div><small>Receipt file</small><strong>{{receipt.fileName}}</strong></div>
+                  <div><small>SHA-256</small><strong>{{receipt.sha256}}</strong></div>
+                </div>
+                <div class="receipt-actions">
+                  <button class="action" type="button" (click)="openReceipt(receipt)">View receipt</button>
+                  <button class="action" type="button" (click)="reviewReceipt(receipt,'REJECT')" [disabled]="busyReceiptId===receipt.id">Reject</button>
+                  <button class="action danger" type="button" (click)="reviewReceipt(receipt,'APPROVE')" [disabled]="busyReceiptId===receipt.id">Approve after bank confirmation</button>
+                </div>
+              </article>
+            </section>
             <section class="panel" id="merchants"><div class="panel-head"><div><h3>Merchant verification</h3><p class="sub">Review business profiles before granting verified seller status.</p></div><span class="count">{{pendingMerchants}} pending</span></div>
               <div class="table-wrap" *ngIf="sellerVerifications.length; else noMerchants"><table><thead><tr><th>SELLER</th><th>BUSINESS</th><th>CITY</th><th>STATUS</th><th>DECISION</th></tr></thead><tbody><tr *ngFor="let item of sellerVerifications"><td class="strong">#{{item.sellerId}}</td><td>{{item.businessName || '—'}}</td><td>{{item.city || '—'}}</td><td><span class="status" [ngClass]="statusClass(item.status)">{{item.status}}</span></td><td><div class="actions" *ngIf="item.status === 'PENDING'"><button class="action" (click)="decideSeller(item,'APPROVED')" [disabled]="busySellerId === item.sellerId">Approve</button><button class="action danger" (click)="decideSeller(item,'REJECTED')" [disabled]="busySellerId === item.sellerId">Reject</button></div><span class="muted" *ngIf="item.status !== 'PENDING'">—</span></td></tr></tbody></table></div>
               <ng-template #noMerchants><div class="empty">No seller verification requests have been submitted.</div></ng-template>
@@ -78,20 +97,21 @@ export class AdminDashboardComponent implements OnInit {
   private auth=inject(AuthService); private api=inject(ApiService);
   user=this.auth.user; analytics:AdminAnalytics|null=null; orders:MerkatoOrder[]=[]; disputes:MerkatoDispute[]=[]; sellerVerifications:SellerVerification[]=[]; fees:FeeSettings|null=null;
   feeDraft={merchantCommissionRatePercent:1,buyerServiceFeeRatePercent:0.5,isEnabled:true};
-  loading=false; savingFees=false; loadError=''; feeError=''; feeMessage=''; busySellerId:number|null=null; busyDisputeId:number|null=null;
+  loading=false; savingFees=false; loadError=''; feeError=''; feeMessage=''; paymentError=''; pendingReceipts:PendingPaymentReceipt[]=[]; busyReceiptId:number|null=null; busySellerId:number|null=null; busyDisputeId:number|null=null;
   get firstName():string{return this.user?.fullName?.trim().split(/\\s+/)[0]||'Administrator'}
   get recentOrders():MerkatoOrder[]{return [...this.orders].sort((a,b)=>Date.parse(b.createdAt||'')-Date.parse(a.createdAt||'')).slice(0,8)}
   get pendingMerchants():number{return this.sellerVerifications.filter(x=>x.status==='PENDING').length}
   get openDisputes():number{return this.disputes.filter(x=>['OPEN','UNDER_REVIEW'].includes(x.status)).length}
   ngOnInit():void{this.refresh()}
   refresh():void{
-    this.loading=true;this.loadError='';let remaining=5;
+    this.loading=true;this.loadError='';let remaining=6;
     const done=()=>{remaining--;if(remaining<=0)this.loading=false};
     this.api.getAdminAnalytics().subscribe({next:v=>this.analytics=v,error:()=>{this.loadError='Could not load marketplace analytics.';done()},complete:done});
     this.api.getMerchantOrders().subscribe({next:v=>this.orders=v||[],error:()=>{this.loadError='Could not load marketplace orders.';done()},complete:done});
     this.api.getDisputes().subscribe({next:v=>this.disputes=v||[],error:()=>{this.loadError='Could not load dispute records.';done()},complete:done});
     this.api.getSellerVerifications().subscribe({next:v=>this.sellerVerifications=v||[],error:()=>{this.loadError='Could not load seller verification requests.';done()},complete:done});
     this.api.getMarketplaceFees().subscribe({next:v=>{this.fees=v;this.feeDraft={merchantCommissionRatePercent:Number(v.merchantCommissionRatePercent??1),buyerServiceFeeRatePercent:Number(v.buyerServiceFeeRatePercent??0.5),isEnabled:v.isEnabled!==false}},error:()=>{this.feeError='Could not load marketplace fee settings.';done()},complete:done});
+    this.api.getPendingPaymentReceipts().subscribe({next:v=>this.pendingReceipts=v||[],error:()=>{this.paymentError='Could not load pending payment receipts.';done()},complete:done});
   }
   saveFees():void{
     this.feeError='';this.feeMessage='';const merchant=Number(this.feeDraft.merchantCommissionRatePercent),buyer=Number(this.feeDraft.buyerServiceFeeRatePercent);
@@ -99,6 +119,21 @@ export class AdminDashboardComponent implements OnInit {
     this.savingFees=true;this.api.updateMarketplaceFees({merchantCommissionRatePercent:merchant,buyerServiceFeeRatePercent:buyer,isEnabled:this.feeDraft.isEnabled}).subscribe({
       next:()=>{this.savingFees=false;this.feeMessage='Fee settings saved. They apply to new orders only.';this.api.getMarketplaceFees().subscribe({next:v=>this.fees=v})},
       error:e=>{this.savingFees=false;this.feeError=e?.error?.message||'Could not save marketplace fee settings.'}
+    });
+  }
+  openReceipt(item:PendingPaymentReceipt):void{
+    this.api.getPaymentReceiptFile(item.id).subscribe({next:blob=>{const url=URL.createObjectURL(blob);const opened=window.open(url,'_blank','noopener');if(!opened){const link=document.createElement('a');link.href=url;link.download=item.fileName;link.click()}window.setTimeout(()=>URL.revokeObjectURL(url),60000)},error:e=>{this.paymentError=e?.error?.message||'Could not open this receipt.'}});
+  }
+  reviewReceipt(item:PendingPaymentReceipt,decision:'APPROVE'|'REJECT'):void{
+    const note=window.prompt(decision==='APPROVE'?'Enter the bank/provider confirmation details and review note:':'Enter the reason for rejecting this receipt:');
+    if(!note?.trim())return;
+    let reference=item.transactionReference||'';
+    if(decision==='APPROVE'){const entered=window.prompt('Enter the exact transaction reference confirmed in the bank/provider account:',reference);if(!entered?.trim())return;reference=entered.trim()}
+    if(!window.confirm((decision==='APPROVE'?'Approve and lock escrow for':'Reject')+' payment receipt #'+item.id+'?'))return;
+    this.busyReceiptId=item.id;this.paymentError='';
+    this.api.reviewPaymentReceipt(item.id,decision,note.trim(),reference||undefined).subscribe({
+      next:()=>{this.busyReceiptId=null;this.pendingReceipts=this.pendingReceipts.filter(x=>x.id!==item.id);this.refresh()},
+      error:e=>{this.busyReceiptId=null;this.paymentError=e?.error?.error||e?.error?.message||'Could not save the payment review decision.'}
     });
   }
   decideSeller(item:SellerVerification,decision:'APPROVED'|'REJECTED'):void{
