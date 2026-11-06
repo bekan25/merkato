@@ -44,6 +44,22 @@ export interface MerkatoOrder {
   createdAt: string;
 }
 
+export interface PaymentReceiptReview {
+  id: number;
+  orderId: number;
+  orderNumber: string;
+  buyerId: number;
+  paymentTransactionId: number;
+  expectedAmountEtb: number;
+  transactionReference: string | null;
+  fileName: string;
+  contentType: string;
+  sha256: string;
+  status: string;
+  createdAt: string;
+  reviewNote?: string;
+}
+
 export interface SellerVerification {
   sellerId: number;
   status: 'NOT_SUBMITTED' | 'PENDING' | 'APPROVED' | 'REJECTED';
@@ -161,6 +177,30 @@ export class ApiService {
   initiatePayment(orderId: number, amountEtb: number, paymentRail: number): Observable<unknown> {
     const headers = new HttpHeaders({ 'Idempotency-Key': crypto.randomUUID() });
     return this.http.post(`${this.baseUrl}/payments/initiate`, { orderId, amountEtb, paymentRail }, { headers });
+  }
+
+  uploadPaymentReceipt(orderId: number, receipt: File, transactionReference = ''): Observable<unknown> {
+    const form = new FormData();
+    form.append('orderId', String(orderId));
+    form.append('receipt', receipt, receipt.name);
+    if (transactionReference.trim()) form.append('transactionReference', transactionReference.trim());
+    return this.http.post('/api/payment-receipts', form);
+  }
+
+  getMyPaymentReceipts(): Observable<unknown[]> {
+    return this.http.get<unknown[]>('/api/payment-receipts/mine');
+  }
+
+  getPendingPaymentReceipts(): Observable<PaymentReceiptReview[]> {
+    return this.http.get<PaymentReceiptReview[]>('/api/payment-receipts/admin/pending');
+  }
+
+  getAdminPaymentReceiptFile(id: number): Observable<Blob> {
+    return this.http.get('/api/payment-receipts/admin/' + id + '/file', { responseType: 'blob' });
+  }
+
+  reviewPaymentReceipt(id: number, payload: { decision: 'APPROVE' | 'REJECT'; note: string; transactionReference: string | null }): Observable<unknown> {
+    return this.http.post('/api/payment-receipts/admin/' + id + '/review', payload);
   }
 
   getMyOrders(): Observable<MerkatoOrder[]> {
