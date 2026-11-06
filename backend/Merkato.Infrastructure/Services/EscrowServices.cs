@@ -227,6 +227,14 @@ public class EscrowService : IEscrowService
             creatorCommission.ReleasedAt = DateTime.UtcNow;
         }
 
+        // Affiliate earnings become withdrawable only after escrow is released.
+        var affiliateCommission = await _db.AffiliateCommissions
+            .FirstOrDefaultAsync(x => x.OrderId == orderId, ct);
+        if (affiliateCommission is not null && affiliateCommission.Status == "HELD")
+        {
+            affiliateCommission.Status = "AVAILABLE";
+        }
+
         // Award one loyalty point per 100 ETB only after escrow is successfully released.
         var earnedPoints = (int)Math.Floor(releaseAmount / 100m);
         if (earnedPoints > 0 && !await _db.LoyaltyTransactions.AnyAsync(x => x.OrderId == orderId, ct))
@@ -294,6 +302,14 @@ public class EscrowService : IEscrowService
         if (creatorCommission is not null && creatorCommission.Status is "HELD" or "AVAILABLE")
         {
             creatorCommission.Status = "REVERSED";
+        }
+
+        // Refunds reverse affiliate earnings so they can never be paid out.
+        var affiliateCommission = await _db.AffiliateCommissions
+            .FirstOrDefaultAsync(x => x.OrderId == orderId, ct);
+        if (affiliateCommission is not null && affiliateCommission.Status is "HELD" or "AVAILABLE")
+        {
+            affiliateCommission.Status = "REVERSED";
         }
 
         // Double-entry record
