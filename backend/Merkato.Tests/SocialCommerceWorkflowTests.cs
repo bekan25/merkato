@@ -6,11 +6,17 @@ using Merkato.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 namespace Merkato.Tests;
 public sealed class SocialCommerceWorkflowTests
 {
- private static SocialCommerceController Controller(MerkatoDbContext db,long user,string role){var identity=new ClaimsIdentity(new[]{new Claim(ClaimTypes.NameIdentifier,user.ToString()),new Claim(ClaimTypes.Role,role)},"test");return new SocialCommerceController(db){ControllerContext=new ControllerContext{HttpContext=new DefaultHttpContext{User=new ClaimsPrincipal(identity)}}};}
+ private sealed class TestHttpClientFactory : IHttpClientFactory
+ {
+  public HttpClient CreateClient(string name) => new HttpClient();
+ }
+ private static SocialCommerceController Controller(MerkatoDbContext db,long user,string role){var identity=new ClaimsIdentity(new[]{new Claim(ClaimTypes.NameIdentifier,user.ToString()),new Claim(ClaimTypes.Role,role)},"test");return new SocialCommerceController(db,new ConfigurationBuilder().Build(),new TestHttpClientFactory(),NullLogger<SocialCommerceController>.Instance){ControllerContext=new ControllerContext{HttpContext=new DefaultHttpContext{User=new ClaimsPrincipal(identity)}}};}
  [Fact]
  public async Task CreatorPostRequiresModerationBeforePublicFeed()
  {
