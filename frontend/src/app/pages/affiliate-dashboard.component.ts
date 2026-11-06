@@ -1,4 +1,5 @@
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Component, OnInit, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
@@ -7,7 +8,7 @@ import { AuthService } from '../core/auth.service';
 @Component({
  standalone: true,
  selector: 'app-affiliate-dashboard',
- imports: [CommonModule, RouterLink],
+ imports: [CommonModule, FormsModule, RouterLink],
  template: `
  <main class="page">
   <a routerLink="/commerce">← Commerce Hub</a>
