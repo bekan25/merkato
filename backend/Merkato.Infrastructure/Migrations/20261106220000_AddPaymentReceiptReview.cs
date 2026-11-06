@@ -36,6 +36,7 @@ public sealed class AddPaymentReceiptReview : Migration
                 table.ForeignKey("FK_PaymentReceipts_PaymentTransactions_PaymentTransactionId", x => x.PaymentTransactionId, "PaymentTransactions", "Id", onDelete: ReferentialAction.Restrict);
             });
 
+        migrationBuilder.CreateIndex("IX_PaymentTransactions_RailTransactionId", "PaymentTransactions", "RailTransactionId", unique: true, filter: "\\"RailTransactionId\\" IS NOT NULL");
         migrationBuilder.CreateIndex("IX_PaymentReceipts_OrderId", "PaymentReceipts", "OrderId");
         migrationBuilder.CreateIndex("IX_PaymentReceipts_PaymentTransactionId_CreatedAt", "PaymentReceipts", new[] { "PaymentTransactionId", "CreatedAt" });
         migrationBuilder.CreateIndex("IX_PaymentReceipts_Status_CreatedAt", "PaymentReceipts", new[] { "Status", "CreatedAt" });
@@ -45,5 +46,6 @@ public sealed class AddPaymentReceiptReview : Migration
     protected override void Down(MigrationBuilder migrationBuilder)
     {
         migrationBuilder.DropTable(name: "PaymentReceipts");
+        migrationBuilder.DropIndex(name: "IX_PaymentTransactions_RailTransactionId", table: "PaymentTransactions");
     }
 }
