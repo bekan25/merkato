@@ -203,26 +203,6 @@ export class ApiService {
     return this.http.post('/api/payment-receipts/admin/' + id + '/review', payload);
   }
 
-  uploadPaymentReceipt(orderId: number, receipt: File, transactionReference = ''): Observable<{ receiptId: number; orderId: number; expectedAmountEtb: number; status: string; message: string }> {
-    const form = new FormData();
-    form.append('orderId', String(orderId));
-    form.append('receipt', receipt, receipt.name);
-    if (transactionReference.trim()) form.append('transactionReference', transactionReference.trim());
-    return this.http.post<{ receiptId: number; orderId: number; expectedAmountEtb: number; status: string; message: string }>(`${this.baseUrl}/payment-receipts`, form);
-  }
-
-  getPendingPaymentReceipts(): Observable<PendingPaymentReceipt[]> {
-    return this.http.get<PendingPaymentReceipt[]>(`${this.baseUrl}/payment-receipts/admin/pending`);
-  }
-
-  getPaymentReceiptFile(id: number): Observable<Blob> {
-    return this.http.get(`${this.baseUrl}/payment-receipts/admin/${id}/file`, { responseType: 'blob' });
-  }
-
-  reviewPaymentReceipt(id: number, decision: 'APPROVE' | 'REJECT', note: string, transactionReference?: string): Observable<unknown> {
-    return this.http.post(`${this.baseUrl}/payment-receipts/admin/${id}/review`, { decision, note, transactionReference: transactionReference || null });
-  }
-
   getMyOrders(): Observable<MerkatoOrder[]> {
     return this.http.get<MerkatoOrder[]>(`${this.baseUrl}/orders/mine`);
   }
@@ -322,47 +302,3 @@ export class ApiService {
 
 }
 
-export interface PendingPaymentReceipt {
-  id: number; orderId: number; orderNumber: string; buyerId: number;
-  paymentTransactionId: number; expectedAmountEtb: number;
-  transactionReference?: string | null; fileName: string; contentType: string;
-  sha256: string; status: string; createdAt: string;
-}
-
-export interface MerchantAnalytics {
-  productCount: number;
-  activeProductCount: number;
-  orderCount: number;
-  monthlyOrderCount: number;
-  grossOrderValueEtb: number;
-  monthlyGrossOrderValueEtb: number;
-  recentOrders: Array<Pick<MerkatoOrder, 'id' | 'orderNumber' | 'productTitle' | 'totalAmountEtb' | 'deliveryStatus' | 'escrowState' | 'createdAt'>>;
-}
-
-export interface AdminAnalytics {
-  totalUsers: number;
-  buyerCount: number;
-  merchantCount: number;
-  totalProducts: number;
-  activeProducts: number;
-  totalOrders: number;
-  grossOrderValueEtb: number;
-  openDisputes: number;
-  recentUsers: Array<{ id: number; fullName: string; phoneNumber: string; role: string; createdAt: string }>;
-}
-
-
-export interface ShoppingAssistantResponse {
-  message: string;
-  suggestedProducts: Array<Pick<MerkatoProduct, 'id' | 'name' | 'category' | 'location' | 'priceEtb' | 'emoji'>>;
-}
-
-
-export interface WholesalePriceTier { id: number; minimumQuantity: number; unitPriceEtb: number; }
-export interface WholesaleTierInput { minimumQuantity: number; unitPriceEtb: number; }
-export interface CreateWholesaleRequest { productId: number; quantity: number; requestedUnitPriceEtb: number; note?: string; }
-export interface WholesaleRequest {
-  id: number; requestNumber: string; productId: number; buyerId: number; sellerId: number;
-  quantity: number; requestedUnitPriceEtb: number; quotedUnitPriceEtb?: number | null;
-  status: string; buyerNote?: string | null; sellerNote?: string | null; createdAt: string;
-}
