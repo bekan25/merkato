@@ -24,9 +24,9 @@ export class AuthService {
     return this.http.post<AuthResponse>(`${this.api}/login`, { phoneNumber, pin }).pipe(tap(response => this.persistSession(response)));
   }
 
-  register(fullName: string, phoneNumber: string, pin: string, role: 'BUYER' | 'MERCHANT'): Observable<AuthResponse> {
+  register(fullName: string, phoneNumber: string, pin: string, role: 'BUYER' | 'MERCHANT', referralCode?: string): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.api}/register`, {
-      fullName, phoneNumber, pin, role, faydaIdNumber: null
+      fullName, phoneNumber, pin, role, faydaIdNumber: null, referralCode: referralCode || null
     }).pipe(tap(response => this.persistSession(response)));
   }
 
