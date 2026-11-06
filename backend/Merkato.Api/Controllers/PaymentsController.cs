@@ -17,13 +17,24 @@ public class PaymentsController : ControllerBase
 {
     private readonly MerkatoDbContext _db;
     private readonly IPaymentService _paymentService;
+    private readonly IConfiguration _configuration;
 
     public PaymentsController(
         MerkatoDbContext db,
-        IPaymentService paymentService)
+        IPaymentService paymentService,
+        IConfiguration configuration)
     {
         _db = db;
         _paymentService = paymentService;
+        _configuration = configuration;
+    }
+
+    private decimal CommissionRate(string key, decimal fallback)
+    {
+        var configured = _configuration.GetValue<decimal?>(key) ?? fallback;
+        if (configured < 0m || configured > 25m)
+            throw new InvalidOperationException($"{key} must be between 0 and 25 percent.");
+        return configured;
     }
 
     // =====================================================
@@ -203,7 +214,7 @@ public class PaymentsController : ControllerBase
                         if (attributedPost is not null)
                         {
                             var eligibleAmount = paidOrder.UnitPriceEtb * paidOrder.Quantity;
-                            var rate = 5m;
+                            var rate = CommissionRate("Commissions:CreatorRatePercent", 5m);
                             _db.CreatorCommissions.Add(new CreatorCommission
                             {
                                 CreatorId = attributedPost.CreatorId,
@@ -232,7 +243,7 @@ public class PaymentsController : ControllerBase
                         if (affiliateReferral is not null &&
                             await _db.AffiliateProfiles.AnyAsync(x => x.UserId == affiliateReferral.AffiliateUserId && x.IsActive, ct))
                         {
-                            const decimal affiliateRatePercent = 2m;
+                            var affiliateRatePercent = CommissionRate("Commissions:AffiliateRatePercent", 2m);
                             var eligibleAmount = paidOrder.UnitPriceEtb * paidOrder.Quantity;
                             _db.AffiliateCommissions.Add(new AffiliateCommission
                             {
