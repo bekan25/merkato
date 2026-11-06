@@ -69,7 +69,7 @@ public sealed class AffiliateCommissionWorkflowTests
         Assert.IsType<CreatedAtActionResult>(first);
         Assert.IsType<OkObjectResult>(second);
         var profile = await db.AffiliateProfiles.SingleAsync();
-        Assert.Equal(25, profile.UserId);
+        Assert.Equal(25L, profile.UserId);
         Assert.StartsWith("MK", profile.ReferralCode);
         Assert.Equal(12, profile.ReferralCode.Length);
     }
