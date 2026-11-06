@@ -101,3 +101,31 @@ This branch now contains working vertical slices, but is not a complete producti
 - Complete mobile/browser end-to-end tests, then deploy only after explicit approval.
 
 This branch is an integration milestone, not a claim that all four engines are production-complete.
+
+
+## Commission and referral implementation update
+
+The branch now includes a separate commission workflow for creator and affiliate referrals.
+
+### Creator commission
+- 5% of product subtotal (unit price × quantity); delivery fee is excluded.
+- Attribution is based on the buyer's latest authenticated click on an APPROVED creator post for the same product within the 30-day attribution window.
+- One creator commission per order is enforced by a unique OrderId index.
+- Payment provider verification creates a HELD commission; escrow release moves it to AVAILABLE; escrow refund reverses HELD/AVAILABLE earnings.
+- Creator dashboard endpoints expose commission history; admin endpoint records a verified external payout reference and PaidAt timestamp. This is reconciliation only, not an automated transfer.
+
+### Affiliate commission
+- 2% of product subtotal for an eligible referred customer's verified order.
+- Affiliate must have an active profile and the referred customer must be registered against that referral profile.
+- HELD → AVAILABLE occurs with escrow release; refund reverses HELD/AVAILABLE commission.
+- Unique OrderId index and webhook retry handling prevent duplicate commission rows.
+- Affiliate enrollment, referral code profile, referral history, commission summary and admin payout reconciliation APIs are included.
+- Registration can accept a referral code; existing tracked-visit claim flow remains supported.
+- Affiliate dashboard and admin settlement queue are available at `/affiliate`.
+
+### Explicit limitations
+- Rates (creator 5%, affiliate 2%) are initial application defaults and should be approved/configured by MERKATO business operations before launch.
+- Admin payout endpoints only record an administrator-confirmed external transfer reference. They do not connect to bank, Telebirr, CBE Birr or Awash payout rails.
+- Merchant platform fee is not enabled; do not infer or charge a seller fee until a rate, taxable base, exemptions and refund policy are approved.
+- Referral welcome/reward coupons are separate from affiliate commissions and must not be treated as cash payout.
+- Live payment-provider credentials, webhook certification, production database migration, deployment, and browser end-to-end validation remain release gates.
