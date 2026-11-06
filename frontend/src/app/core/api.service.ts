@@ -203,6 +203,14 @@ export class ApiService {
     return this.http.post('/api/payment-receipts/admin/' + id + '/review', payload);
   }
 
+  uploadPaymentReceipt(orderId: number, receipt: File, transactionReference = ''): Observable<{ receiptId: number; orderId: number; expectedAmountEtb: number; status: string; message: string }> {
+    const form = new FormData();
+    form.append('orderId', String(orderId));
+    form.append('receipt', receipt, receipt.name);
+    if (transactionReference.trim()) form.append('transactionReference', transactionReference.trim());
+    return this.http.post<{ receiptId: number; orderId: number; expectedAmountEtb: number; status: string; message: string }>(`${this.baseUrl}/payment-receipts`, form);
+  }
+
   getPendingPaymentReceipts(): Observable<PendingPaymentReceipt[]> {
     return this.http.get<PendingPaymentReceipt[]>(`${this.baseUrl}/payment-receipts/admin/pending`);
   }
