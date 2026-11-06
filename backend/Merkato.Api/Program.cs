@@ -424,8 +424,8 @@ var adminPhone = Environment.GetEnvironmentVariable("MERKATO_ADMIN_PHONE");
 var adminPin = Environment.GetEnvironmentVariable("MERKATO_ADMIN_PIN");
 var adminName = Environment.GetEnvironmentVariable("MERKATO_ADMIN_NAME");
 
-var adminBootstrapRequested = new[] { adminPhone, adminPin, adminName }
-    .Any(value => !string.IsNullOrWhiteSpace(value));
+var adminBootstrapRequested = !string.IsNullOrWhiteSpace(adminPhone) ||
+    !string.IsNullOrWhiteSpace(adminPin);
 
 if (adminBootstrapRequested)
 {
