@@ -401,6 +401,31 @@ b.Property<long>("SellerId")
                     b.ToTable("LedgerTransactions");
                 });
 
+            modelBuilder.Entity("Merkato.Domain.Entities.MarketplaceFeeSettings", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("MerchantCommissionRatePercent")
+                        .HasColumnType("numeric(7,4)");
+
+                    b.Property<decimal>("BuyerServiceFeeRatePercent")
+                        .HasColumnType("numeric(7,4)");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("UpdatedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("MarketplaceFeeSettings");
+                });
+
             modelBuilder.Entity("Merkato.Domain.Entities.Order", b =>
                 {
                     b.Property<long>("Id")
@@ -428,6 +453,24 @@ b.Property<long>("SellerId")
                         .HasColumnType("text");
 
                     b.Property<decimal>("DeliveryFeeEtb")
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<decimal>("ProductSubtotalEtb")
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<decimal>("DiscountEtb")
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<decimal>("MerchantCommissionRatePercent")
+                        .HasColumnType("numeric(7,4)");
+
+                    b.Property<decimal>("MerchantCommissionEtb")
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<decimal>("BuyerServiceFeeRatePercent")
+                        .HasColumnType("numeric(7,4)");
+
+                    b.Property<decimal>("BuyerServiceFeeEtb")
                         .HasColumnType("numeric(18,4)");
 
                     b.Property<int>("DeliveryStatus")
