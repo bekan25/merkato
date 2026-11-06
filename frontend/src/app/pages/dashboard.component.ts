@@ -52,6 +52,13 @@ import { ApiService, MerkatoProduct, MerkatoOrder, MerkatoDispute, MerchantAnaly
     .buyer-insights{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0 0 24px}
     .buyer-insights article{padding:16px 18px;border:1px solid #eee9df;border-radius:12px;background:linear-gradient(135deg,#fff,#fbf8f1)}
     .buyer-insights span{display:block;font-size:8px;font-weight:800;letter-spacing:1.1px;color:#89938c}.buyer-insights strong{display:block;font:800 20px Manrope;color:#26382d;margin-top:7px}
+    .fee-settings-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;max-width:760px;margin:18px 0}
+    .fee-settings-form label{display:grid;gap:7px;color:#354139;font-size:12px;font-weight:750}
+    .fee-settings-form input[type=number]{width:100%;box-sizing:border-box;padding:12px;border:1px solid #e2e8e2;border-radius:10px;background:#f8faf8}
+    .fee-settings-form .fee-enabled{display:flex;align-items:center;gap:9px}
+    .fee-settings-form button{justify-self:start}
+    .fee-saved{color:#187343;font-weight:700}
+    @media(max-width:620px){.fee-settings-form{grid-template-columns:1fr}}
     @media(max-width:760px){.product-editor{padding:16px}.editor-layout{grid-template-columns:1fr}.editor-heading h3{font-size:21px}.buyer-shortcuts,.buyer-insights{grid-template-columns:1fr}}
   `],
   template: `
@@ -141,6 +148,19 @@ import { ApiService, MerkatoProduct, MerkatoOrder, MerkatoDispute, MerchantAnaly
           </tbody></table></div>
           <div class="empty-inline" *ngIf="!sellerVerifications.length">No seller verification requests have been submitted.</div>
         </section>
+        <section class="workspace-section" *ngIf="user?.role === 'ADMIN'" id="marketplace-fees">
+          <span class="eyebrow">LAUNCH REVENUE MODEL</span><h2>Marketplace fees</h2>
+          <p>Set transparent launch rates. New orders capture a permanent rate snapshot; existing orders are never repriced.</p>
+          <form class="fee-settings-form" (ngSubmit)="saveMarketplaceFees()">
+            <label>Merchant commission (%)<input type="number" name="merchantCommissionRatePercent" min="0" max="10" step="0.05" required [(ngModel)]="feeDraft.merchantCommissionRatePercent"></label>
+            <label>Buyer service fee (%)<input type="number" name="buyerServiceFeeRatePercent" min="0" max="5" step="0.05" required [(ngModel)]="feeDraft.buyerServiceFeeRatePercent"></label>
+            <label class="fee-enabled"><input type="checkbox" name="feesEnabled" [(ngModel)]="feeDraft.isEnabled"> Enable marketplace fees</label>
+            <button type="submit" class="btn btn-primary" [disabled]="feeSaving">{{feeSaving ? 'Saving…' : 'Save fee settings'}}</button>
+          </form>
+          <p class="inline-error" *ngIf="feeError">{{feeError}}</p>
+          <p class="fee-saved" *ngIf="feeMessage">{{feeMessage}}</p>
+          <small>Current launch rates: 1% merchant + 0.5% buyer. The buyer fee is shown before checkout confirmation.</small>
+        </section>
         <section class="workspace-section" *ngIf="user?.role === 'ADMIN'" id="admin-note"><span class="eyebrow">PLATFORM OPERATIONS</span><h2>Dispute oversight</h2><p>Open disputes returned by the protected arbitration API.</p><div *ngIf="disputes.length" class="table-wrap"><table><thead><tr><th>Dispute</th><th>Order</th><th>Reason</th><th>Status</th><th>Created</th><th>Admin actions</th></tr></thead><tbody><tr *ngFor="let dispute of disputes"><td>#{{dispute.id}}</td><td>#{{dispute.orderId}}</td><td>{{dispute.reason}}</td><td><span class="status-pill">{{dispute.status}}</span></td><td>{{dispute.createdAt | date:'mediumDate'}}</td><td class="product-actions"><button type="button" *ngIf="dispute.status === 'OPEN'" [disabled]="busyDisputeId === dispute.id" (click)="reviewDispute(dispute)">Review</button><button type="button" *ngIf="dispute.status === 'OPEN' || dispute.status === 'UNDER_REVIEW'" [disabled]="busyDisputeId === dispute.id" (click)="resolveDispute(dispute, 'refund')">Refund</button><button type="button" *ngIf="dispute.status === 'OPEN' || dispute.status === 'UNDER_REVIEW'" [disabled]="busyDisputeId === dispute.id" (click)="resolveDispute(dispute, 'release')">Release</button></td></tr></tbody></table></div><div class="empty-inline" *ngIf="!disputes.length">No disputes are currently returned by the API.</div></section>
         <div class="inline-error" *ngIf="loadError">{{loadError}}</div>
       </div>
@@ -172,6 +192,10 @@ export class DashboardComponent implements OnInit {
   verificationSaving = false;
   verificationBusyId: number | null = null;
   verificationError = '';
+  feeDraft = { merchantCommissionRatePercent: 1, buyerServiceFeeRatePercent: 0.5, isEnabled: true };
+  feeSaving = false;
+  feeError = '';
+  feeMessage = '';
   readonly supportedCities = ['Addis Ababa','Adama','Hawassa','Bahir Dar','Dire Dawa','Jimma','Mekelle','Gondar','Dessie'];
   readonly businessTypes = ['Retail shop','Wholesale','Manufacturer','Farmer / producer','Service provider','Online store','Other'];
   readonly productCategories = ['Electronics','Fashion','Home & Living','Beauty & Personal Care','Food & Grocery','Agriculture','Automotive','Books & Education','Sports & Outdoors','Baby & Kids','Other'];
@@ -201,6 +225,7 @@ export class DashboardComponent implements OnInit {
   ngOnInit(): void {
     if (this.user?.role === 'MERCHANT') this.api.getMySellerVerification().subscribe({ next: item => this.sellerVerification = item, error: () => this.loadError = 'Could not load seller verification status.' });
     if (this.user?.role === 'ADMIN') this.reloadSellerVerifications();
+    if (this.user?.role === 'ADMIN') this.reloadMarketplaceFees();
     if (this.user?.role === 'BUYER') this.api.getMyOrders().subscribe({ next: items => this.buyerOrders = items || [], error: () => this.loadError = 'Could not load order history.' });
     if (this.user?.role === 'MERCHANT') this.api.getMerchantAnalytics().subscribe({ next: stats => this.merchantAnalytics = stats, error: () => this.loadError = 'Could not load merchant performance analytics.' });
     if (this.user?.role === 'ADMIN') this.api.getAdminAnalytics().subscribe({ next: stats => this.adminAnalytics = stats, error: () => this.loadError = 'Could not load platform analytics.' });
@@ -210,6 +235,40 @@ export class DashboardComponent implements OnInit {
     }
     if (this.user?.role === 'ADMIN') this.api.getDisputes().subscribe({ next: items => this.disputes = items || [], error: () => this.loadError = 'Could not load dispute records.' });
   }
+  reloadMarketplaceFees(): void {
+    this.api.getMarketplaceFees().subscribe({
+      next: fees => {
+        this.feeDraft = {
+          merchantCommissionRatePercent: Number(fees.merchantCommissionRatePercent ?? 1),
+          buyerServiceFeeRatePercent: Number(fees.buyerServiceFeeRatePercent ?? 0.5),
+          isEnabled: fees.isEnabled !== false
+        };
+      },
+      error: () => this.feeError = 'Could not load marketplace fee settings.'
+    });
+  }
+
+  saveMarketplaceFees(): void {
+    this.feeError = '';
+    this.feeMessage = '';
+    if (this.feeDraft.merchantCommissionRatePercent < 0 || this.feeDraft.merchantCommissionRatePercent > 10 ||
+        this.feeDraft.buyerServiceFeeRatePercent < 0 || this.feeDraft.buyerServiceFeeRatePercent > 5) {
+      this.feeError = 'Merchant rate must be 0–10% and buyer fee must be 0–5%.';
+      return;
+    }
+    this.feeSaving = true;
+    this.api.updateMarketplaceFees(this.feeDraft).subscribe({
+      next: () => {
+        this.feeSaving = false;
+        this.feeMessage = 'Marketplace fee settings saved. They apply to new orders only.';
+      },
+      error: err => {
+        this.feeSaving = false;
+        this.feeError = err?.error?.message || 'Could not save marketplace fee settings.';
+      }
+    });
+  }
+
   submitSellerVerification(): void {
     this.verificationError = '';
     const phone = this.verificationDraft.contactPhone.trim().replace(/[\\s-]/g, '');
