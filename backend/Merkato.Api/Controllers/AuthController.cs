@@ -50,6 +50,15 @@ public class AuthController : ControllerBase
         if (await _db.Users.AnyAsync(x => x.PhoneNumber == normalizedPhone))
             return Conflict("User with this phone number already exists.");
 
+        AffiliateProfile? referringAffiliate = null;
+        if (!string.IsNullOrWhiteSpace(dto.ReferralCode))
+        {
+            var referralCode = dto.ReferralCode.Trim().ToUpperInvariant();
+            referringAffiliate = await _db.AffiliateProfiles.FirstOrDefaultAsync(x => x.ReferralCode == referralCode && x.IsActive);
+            if (referringAffiliate is null)
+                return BadRequest("The referral code is invalid or inactive.");
+        }
+
         var user = new User
         {
             PhoneNumber = normalizedPhone,
@@ -67,10 +76,24 @@ public class AuthController : ControllerBase
         try
         {
             await _db.SaveChangesAsync();
+            if (referringAffiliate is not null && referringAffiliate.UserId != user.Id)
+            {
+                var visitorHash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes("REGISTER:" + user.Id)));
+                _db.AffiliateReferrals.Add(new AffiliateReferral
+                {
+                    AffiliateUserId = referringAffiliate.UserId,
+                    ReferralCode = referringAffiliate.ReferralCode,
+                    VisitorKeyHash = visitorHash,
+                    ReferredUserId = user.Id,
+                    ClickedAt = DateTime.UtcNow,
+                    RegisteredAt = DateTime.UtcNow
+                });
+                await _db.SaveChangesAsync();
+            }
         }
         catch (DbUpdateException)
         {
-            return Conflict("User with this phone number already exists.");
+            return Conflict("User registration or referral attribution could not be completed.");
         }
 
         return Ok(CreateAuthResponse(user));
