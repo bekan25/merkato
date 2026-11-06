@@ -37,10 +37,12 @@ public partial class AddMarketplaceFees : Migration
             },
             constraints: table => table.PrimaryKey("PK_MarketplaceFeeSettings", x => x.Id));
 
-        migrationBuilder.InsertData(
-            table: "MarketplaceFeeSettings",
-            columns: new[] { "Id", "MerchantCommissionRatePercent", "BuyerServiceFeeRatePercent", "IsEnabled", "UpdatedAt", "UpdatedByUserId" },
-            values: new object[] { 1, 1.0000m, 0.5000m, true, DateTime.UtcNow, null });
+        // Use SQL rather than InsertData because this hand-authored migration has no generated TargetModel.
+        migrationBuilder.Sql("""
+            INSERT INTO "MarketplaceFeeSettings"
+                ("Id", "MerchantCommissionRatePercent", "BuyerServiceFeeRatePercent", "IsEnabled", "UpdatedAt", "UpdatedByUserId")
+            VALUES (1, 1.0000, 0.5000, TRUE, NOW(), NULL);
+            """);
     }
 
     protected override void Down(MigrationBuilder migrationBuilder)
