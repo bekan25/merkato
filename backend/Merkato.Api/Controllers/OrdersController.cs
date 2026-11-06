@@ -170,12 +170,15 @@ public class OrdersController : ControllerBase
 
         var feeSettings = await _db.MarketplaceFeeSettings.AsNoTracking().FirstOrDefaultAsync(x => x.Id == 1, ct)
             ?? new MarketplaceFeeSettings();
-        var eligibleSubtotal = Math.Max(0m, request.AmountEtb - discountEtb);
+        var feeQuote = MarketplaceFeeCalculator.Calculate(
+            request.AmountEtb, discountEtb, expectedDeliveryFee,
+            feeSettings.MerchantCommissionRatePercent, feeSettings.BuyerServiceFeeRatePercent, feeSettings.IsEnabled);
+        var eligibleSubtotal = feeQuote.EligibleSubtotalEtb;
         var merchantRate = feeSettings.IsEnabled ? feeSettings.MerchantCommissionRatePercent : 0m;
         var buyerRate = feeSettings.IsEnabled ? feeSettings.BuyerServiceFeeRatePercent : 0m;
-        var merchantCommission = Math.Round(eligibleSubtotal * merchantRate / 100m, 2, MidpointRounding.AwayFromZero);
-        var buyerServiceFee = Math.Round(eligibleSubtotal * buyerRate / 100m, 2, MidpointRounding.AwayFromZero);
-        var buyerPayable = eligibleSubtotal + buyerServiceFee + expectedDeliveryFee;
+        var merchantCommission = feeQuote.MerchantCommissionEtb;
+        var buyerServiceFee = feeQuote.BuyerServiceFeeEtb;
+        var buyerPayable = feeQuote.BuyerPayableEtb;
 
         var riskDecision = await _risk.EvaluateOrderRiskAsync(buyerId, buyerPayable, ct);
         if (riskDecision != RiskDecision.ALLOW)
