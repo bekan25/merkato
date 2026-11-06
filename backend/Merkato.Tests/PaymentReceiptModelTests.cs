@@ -11,7 +11,7 @@ public sealed class PaymentReceiptModelTests
     public void PaymentReceipt_MapsPrivateBinaryContentAndUniqueReferenceIndexes()
     {
         var options = new DbContextOptionsBuilder<MerkatoDbContext>()
-            .UseInMemoryDatabase(nameof(PaymentReceipt_MapsPrivateBinaryContentAndUniqueReferenceIndexes))
+            .UseNpgsql("Host=localhost;Database=merkato_model_test;Username=merkato_model_test;Password=not-used")
             .Options;
         using var db = new MerkatoDbContext(options);
 
@@ -31,7 +31,7 @@ public sealed class PaymentReceiptModelTests
     public void PaymentTransaction_EnforcesUniqueNonNullProviderReferenceInModel()
     {
         var options = new DbContextOptionsBuilder<MerkatoDbContext>()
-            .UseInMemoryDatabase(nameof(PaymentTransaction_EnforcesUniqueNonNullProviderReferenceInModel))
+            .UseNpgsql("Host=localhost;Database=merkato_model_test;Username=merkato_model_test;Password=not-used")
             .Options;
         using var db = new MerkatoDbContext(options);
 
