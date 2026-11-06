@@ -16,6 +16,11 @@ public record LoginDto(
     string Pin
 );
 
+public record AdminLoginDto(
+    string Email,
+    string Password
+);
+
 public record AuthResponseDto(
     string Token,
     long UserId,

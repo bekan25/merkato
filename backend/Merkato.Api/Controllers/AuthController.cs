@@ -170,6 +170,61 @@ public class AuthController : ControllerBase
         return Ok(CreateAuthResponse(user));
     }
 
+    [AllowAnonymous]
+    [HttpPost("admin-login")]
+    [EnableRateLimiting("auth")]
+    public async Task<ActionResult<AuthResponseDto>> AdminLogin([FromBody] AdminLoginDto dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto.Email) || dto.Email.Length > 320 ||
+            string.IsNullOrWhiteSpace(dto.Password) || dto.Password.Length > 256 ||
+            !System.Net.Mail.MailAddress.TryCreate(dto.Email.Trim(), out var parsedEmail) ||
+            parsedEmail is null ||
+            !string.Equals(parsedEmail.Address, dto.Email.Trim(), StringComparison.OrdinalIgnoreCase))
+            return Unauthorized("Invalid email or password.");
+
+        var normalizedEmail = dto.Email.Trim().ToLowerInvariant();
+        var user = await _db.Users.FirstOrDefaultAsync(x =>
+            x.Email == normalizedEmail && x.Role == UserRole.ADMIN);
+
+        if (user is null)
+            return Unauthorized("Invalid email or password.");
+        if (user.IsSuspended)
+            return StatusCode(StatusCodes.Status403Forbidden, "This account is suspended. Contact MERKATO support.");
+
+        var now = DateTime.UtcNow;
+        if (user.LoginLockedUntil is DateTime lockedUntil && lockedUntil > now)
+        {
+            Response.Headers["Retry-After"] = Math.Max(1, (int)Math.Ceiling((lockedUntil - now).TotalSeconds)).ToString();
+            return StatusCode(StatusCodes.Status423Locked, "Too many failed attempts. Try again after the lockout expires.");
+        }
+        if (user.LoginLockedUntil is not null && user.LoginLockedUntil <= now)
+        {
+            user.LoginLockedUntil = null;
+            user.FailedLoginAttempts = 0;
+        }
+
+        var rehashNeeded = false;
+        var verified = !string.IsNullOrWhiteSpace(user.PasswordHash) &&
+            AdminPasswordHasher.Verify(user, dto.Password, user.PasswordHash, out rehashNeeded);
+        if (!verified)
+        {
+            user.FailedLoginAttempts = Math.Min(user.FailedLoginAttempts + 1, MaxFailedAttempts);
+            if (user.FailedLoginAttempts >= MaxFailedAttempts)
+                user.LoginLockedUntil = now.Add(LoginLockoutDuration);
+            user.UpdatedAt = now;
+            await _db.SaveChangesAsync();
+            return Unauthorized("Invalid email or password.");
+        }
+
+        if (rehashNeeded)
+            user.PasswordHash = AdminPasswordHasher.Hash(user, dto.Password);
+        user.FailedLoginAttempts = 0;
+        user.LoginLockedUntil = null;
+        user.UpdatedAt = now;
+        await _db.SaveChangesAsync();
+        return Ok(CreateAuthResponse(user));
+    }
+
     [Authorize]
     [HttpGet("me")]
     public async Task<IActionResult> Me()
@@ -185,6 +240,7 @@ public class AuthController : ControllerBase
         {
             user.Id,
             user.PhoneNumber,
+            user.Email,
             user.FullName,
             user.Role,
             user.TrustScore,

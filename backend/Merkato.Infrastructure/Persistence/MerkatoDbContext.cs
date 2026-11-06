@@ -97,6 +97,8 @@ public class MerkatoDbContext : DbContext
         modelBuilder.Entity<User>(entity =>
         {
             entity.HasIndex(u => u.PhoneNumber).IsUnique();
+            entity.HasIndex(u => u.Email).IsUnique().HasFilter("\"Email\" IS NOT NULL");
+            entity.Property(u => u.Email).HasMaxLength(320);
             entity.HasIndex(u => u.FaydaIdNumber).IsUnique();
         });
 
