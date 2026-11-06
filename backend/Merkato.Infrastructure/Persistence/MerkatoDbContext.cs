@@ -191,7 +191,7 @@ public class MerkatoDbContext : DbContext
             entity.HasIndex(p => p.IdempotencyKey).IsUnique();
             entity.HasIndex(p => p.OrderId);
             entity.HasIndex(p => p.RailTransactionId).IsUnique()
-                .HasFilter("\\"RailTransactionId\\" IS NOT NULL");
+                .HasFilter("\"RailTransactionId\" IS NOT NULL");
 
             entity.Property(p => p.AmountEtb)
                 .HasColumnType("numeric(18,4)");
@@ -206,7 +206,7 @@ public class MerkatoDbContext : DbContext
             entity.HasIndex(x => new { x.Status, x.CreatedAt });
             entity.HasIndex(x => x.TransactionReference)
                 .IsUnique()
-                .HasFilter("\\"TransactionReference\\" IS NOT NULL");
+                .HasFilter("\"TransactionReference\" IS NOT NULL");
             entity.Property(x => x.FileName).HasMaxLength(255).IsRequired();
             entity.Property(x => x.ContentType).HasMaxLength(100).IsRequired();
             entity.Property(x => x.Sha256).HasMaxLength(64).IsRequired();
