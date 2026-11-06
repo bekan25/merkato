@@ -44,10 +44,6 @@ namespace Merkato.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("Email")
-                        .HasMaxLength(320)
-                        .HasColumnType("character varying(320)");
-
                     b.Property<string>("EntityId")
                         .IsRequired()
                         .HasColumnType("text");
