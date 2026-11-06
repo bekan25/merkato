@@ -105,7 +105,7 @@ public sealed class PaymentReceiptsController : ControllerBase
 
         await _audit.LogAsync(buyerId, "BUYER", "PAYMENT_RECEIPT_UPLOADED",
             "PAYMENT_RECEIPT", record.Id.ToString(), "SUCCESS",
-            $"Order {order.OrderNumber}; SHA256 {record.Sha256}", ct);
+            $"Order {order.OrderNumber}; SHA256 {record.Sha256}", ct: ct);
 
         return Accepted(new
         {
@@ -195,7 +195,7 @@ public sealed class PaymentReceiptsController : ControllerBase
             receipt.ReviewedAt = DateTime.UtcNow;
             await _db.SaveChangesAsync(ct);
             await _audit.LogAsync(adminId, "ADMIN", "PAYMENT_RECEIPT_REJECTED",
-                "PAYMENT_RECEIPT", receipt.Id.ToString(), "SUCCESS", note, ct);
+                "PAYMENT_RECEIPT", receipt.Id.ToString(), "SUCCESS", note, ct: ct);
             return Ok(new { receiptId = receipt.Id, status = receipt.Status, paymentStatus = payment.Status.ToString() });
         }
 
@@ -229,7 +229,7 @@ public sealed class PaymentReceiptsController : ControllerBase
             await _escrow.LockFundsAsync(order.Id, payment.AmountEtb, ct);
             await _audit.LogAsync(adminId, "ADMIN", "PAYMENT_MANUALLY_VERIFIED",
                 "PAYMENT", payment.Id.ToString(), "SUCCESS",
-                $"Receipt {receipt.Id}; reference {reference}; {note}", ct);
+                $"Receipt {receipt.Id}; reference {reference}; {note}", ct: ct);
         }
         catch (InvalidOperationException ex)
         {
