@@ -190,6 +190,8 @@ public class MerkatoDbContext : DbContext
         {
             entity.HasIndex(p => p.IdempotencyKey).IsUnique();
             entity.HasIndex(p => p.OrderId);
+            entity.HasIndex(p => p.RailTransactionId).IsUnique()
+                .HasFilter("\\"RailTransactionId\\" IS NOT NULL");
 
             entity.Property(p => p.AmountEtb)
                 .HasColumnType("numeric(18,4)");
