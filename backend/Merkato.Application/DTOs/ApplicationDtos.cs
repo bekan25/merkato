@@ -7,7 +7,8 @@ public record RegisterUserDto(
     string FullName,
     string? FaydaIdNumber,
     UserRole Role,
-    string Pin
+    string Pin,
+    string? ReferralCode = null
 );
 
 public record LoginDto(
