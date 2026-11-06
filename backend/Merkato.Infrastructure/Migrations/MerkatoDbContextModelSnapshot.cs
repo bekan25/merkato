@@ -44,6 +44,10 @@ namespace Merkato.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("Email")
+                        .HasMaxLength(320)
+                        .HasColumnType("character varying(320)");
+
                     b.Property<string>("EntityId")
                         .IsRequired()
                         .HasColumnType("text");
@@ -725,6 +729,9 @@ b.Property<long>("SellerId")
                     b.Property<int>("TokenVersion")
                         .HasColumnType("integer");
 
+                    b.Property<string>("PasswordHash")
+                        .HasColumnType("text");
+
                     b.Property<string>("PhoneNumber")
                         .IsRequired()
                         .HasColumnType("text");
@@ -743,6 +750,10 @@ b.Property<long>("SellerId")
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Email")
+                        .IsUnique()
+                        .HasFilter("\"Email\" IS NOT NULL");
 
                     b.HasIndex("FaydaIdNumber")
                         .IsUnique();
