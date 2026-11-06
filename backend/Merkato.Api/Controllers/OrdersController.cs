@@ -66,7 +66,9 @@ public class OrdersController : ControllerBase
                 order.Id, order.OrderNumber, order.BuyerId, order.SellerId,
                 order.ProductTitle, order.Quantity, order.UnitPriceEtb, order.TotalAmountEtb, order.DeliveryFeeEtb,
                 order.PaymentRail, order.DeliveryCourier, order.DeliveryAddress,
-                order.EscrowState, order.DeliveryStatus, order.CreatedAt))
+                order.EscrowState, order.DeliveryStatus, order.CreatedAt,
+                order.ProductSubtotalEtb, order.DiscountEtb, order.MerchantCommissionRatePercent,
+                order.MerchantCommissionEtb, order.BuyerServiceFeeRatePercent, order.BuyerServiceFeeEtb))
             .ToListAsync(ct);
 
         return Ok(orders);
