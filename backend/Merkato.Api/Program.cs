@@ -472,6 +472,69 @@ if (adminBootstrapRequested)
     }
 }
 // ============================================================
+// ADMIN EMAIL + PASSWORD BOOTSTRAP
+// ============================================================
+
+var adminEmail = Environment.GetEnvironmentVariable("MERKATO_ADMIN_EMAIL");
+var adminPassword = Environment.GetEnvironmentVariable("MERKATO_ADMIN_PASSWORD");
+var emailBootstrapRequested = !string.IsNullOrWhiteSpace(adminEmail) ||
+    !string.IsNullOrWhiteSpace(adminPassword);
+
+if (emailBootstrapRequested)
+{
+    if (string.IsNullOrWhiteSpace(adminEmail) || string.IsNullOrWhiteSpace(adminPassword))
+        throw new InvalidOperationException("Set MERKATO_ADMIN_EMAIL and MERKATO_ADMIN_PASSWORD together.");
+    if (adminEmail.Length > 320 ||
+        !System.Net.Mail.MailAddress.TryCreate(adminEmail.Trim(), out var parsedAdminEmail) ||
+        parsedAdminEmail is null ||
+        !string.Equals(parsedAdminEmail.Address, adminEmail.Trim(), StringComparison.OrdinalIgnoreCase))
+        throw new InvalidOperationException("MERKATO_ADMIN_EMAIL must be a valid email address.");
+    if (adminPassword.Length < 14 || adminPassword.Length > 256)
+        throw new InvalidOperationException("MERKATO_ADMIN_PASSWORD must contain at least 14 characters.");
+
+    using var adminEmailScope = app.Services.CreateScope();
+    var adminDb = adminEmailScope.ServiceProvider.GetRequiredService<MerkatoDbContext>();
+    var normalizedEmail = adminEmail.Trim().ToLowerInvariant();
+    var emailAdmin = await adminDb.Users.FirstOrDefaultAsync(x => x.Email == normalizedEmail);
+    if (emailAdmin is null && !string.IsNullOrWhiteSpace(adminPhone))
+        emailAdmin = await adminDb.Users.FirstOrDefaultAsync(x => x.PhoneNumber == adminPhone.Trim());
+
+    if (emailAdmin is null)
+    {
+        emailAdmin = new Merkato.Domain.Entities.User
+        {
+            // A non-phone marker preserves the existing required phone column without exposing a fake phone.
+            PhoneNumber = "ADMIN:" + normalizedEmail,
+            FullName = string.IsNullOrWhiteSpace(adminName) ? "Marketplace Administrator" : adminName.Trim(),
+            PinHash = Merkato.Api.Services.PinHasher.Hash(
+                Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32))),
+            Role = Merkato.Domain.Enums.UserRole.ADMIN,
+            TrustScore = 100,
+            IsFaydaVerified = false,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        adminDb.Users.Add(emailAdmin);
+    }
+    else if (emailAdmin.Role != Merkato.Domain.Enums.UserRole.ADMIN)
+    {
+        throw new InvalidOperationException("The configured administrator email/phone belongs to a non-admin account.");
+    }
+
+    emailAdmin.Email = normalizedEmail;
+    if (emailAdmin.PasswordHash is null ||
+        !Merkato.Api.Services.AdminPasswordHasher.Verify(emailAdmin, adminPassword, emailAdmin.PasswordHash, out _))
+    {
+        emailAdmin.PasswordHash = Merkato.Api.Services.AdminPasswordHasher.Hash(emailAdmin, adminPassword);
+        emailAdmin.TokenVersion++;
+    }
+    if (!string.IsNullOrWhiteSpace(adminName))
+        emailAdmin.FullName = adminName.Trim();
+    emailAdmin.UpdatedAt = DateTime.UtcNow;
+    await adminDb.SaveChangesAsync();
+}
+
+// ============================================================
 // PRODUCT DISCOVERY
 // ============================================================
 // A bounded, database-backed discovery endpoint for storefront search.
