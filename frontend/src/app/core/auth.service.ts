@@ -20,6 +20,10 @@ export class AuthService {
   private readonly tokenKey = 'merkato_access_token';
   private readonly userKey = 'merkato_user';
 
+  adminLogin(email: string, password: string): Observable<AuthResponse> {
+    return this.http.post<AuthResponse>(`${this.api}/admin-login`, { email, password }).pipe(tap(response => this.persistSession(response)));
+  }
+
   login(phoneNumber: string, pin: string): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.api}/login`, { phoneNumber, pin }).pipe(tap(response => this.persistSession(response)));
   }
