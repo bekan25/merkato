@@ -9,7 +9,7 @@ type FeeSettings = { merchantCommissionRatePercent:number; buyerServiceFeeRatePe
 
 @Component({
   standalone:true, selector:'app-admin-dashboard', imports:[CommonModule,FormsModule,RouterLink],
-  styles:[\`
+  styles:[`
     :host{display:block;min-height:100vh;background:#f5f6f4;color:#17231c;font-family:Inter,Manrope,Arial,sans-serif}*{box-sizing:border-box}
     .shell{display:grid;grid-template-columns:245px minmax(0,1fr);min-height:100vh}.sidebar{position:sticky;top:0;height:100vh;padding:24px 16px;background:#17251e;color:#fff;display:flex;flex-direction:column;gap:24px}
     .brand{display:flex;align-items:center;gap:10px;padding:3px 8px;color:#fff;text-decoration:none;font-size:18px;font-weight:900}.mark{width:37px;height:37px;display:grid;place-items:center;border-radius:11px;background:#d8b66b;color:#17251e}.brand small{display:block;margin-top:3px;color:#9ba99f;font-size:9px;letter-spacing:2px}
@@ -26,8 +26,8 @@ type FeeSettings = { merchantCommissionRatePercent:number; buyerServiceFeeRatePe
     @media(max-width:1050px){.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.columns{grid-template-columns:1fr}}
     @media(max-width:700px){.shell{grid-template-columns:1fr}.sidebar{position:relative;height:auto;padding:13px;gap:10px}.profile,.nav-label,.bottom{display:none}.nav{display:flex;overflow:auto}.nav a{flex:0 0 auto;padding:9px}.main{padding:17px 13px 30px}.chip{display:none}.hero{padding:18px}.hero-status{display:none}.metric{padding:13px}.metric strong{font-size:21px}}
     @media(max-width:380px){.metrics{gap:8px}.metric-head{font-size:8px}.quick{grid-template-columns:1fr}}
-  \`],
-  template:\`
+  `],
+  template:`
     <div class="shell">
       <aside class="sidebar">
         <a routerLink="/" class="brand"><span class="mark">M</span><span>MERKATO<small>ADMIN CONSOLE</small></span></a>
@@ -72,7 +72,7 @@ type FeeSettings = { merchantCommissionRatePercent:number; buyerServiceFeeRatePe
         </section>
       </main>
     </div>
-  \`
+  `
 })
 export class AdminDashboardComponent implements OnInit {
   private auth=inject(AuthService); private api=inject(ApiService);
