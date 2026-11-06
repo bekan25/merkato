@@ -338,6 +338,21 @@ public class ProductsController : ControllerBase
                 "Only .jpg, .jpeg, .png, and .webp files are allowed.");
         }
 
+        await using (var validationStream = image.OpenReadStream())
+        {
+            var header = new byte[12];
+            var read = await validationStream.ReadAsync(header.AsMemory(0, header.Length), HttpContext.RequestAborted);
+            var validSignature = extension switch
+            {
+                ".jpg" or ".jpeg" => read >= 3 && header[0] == 0xFF && header[1] == 0xD8 && header[2] == 0xFF,
+                ".png" => read >= 8 && header.AsSpan(0, 8).SequenceEqual(new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A }),
+                ".webp" => read >= 12 && Encoding.ASCII.GetString(header, 0, 4) == "RIFF" && Encoding.ASCII.GetString(header, 8, 4) == "WEBP",
+                _ => false
+            };
+            if (!validSignature)
+                return BadRequest("The image content does not match its file type.");
+        }
+
         var cloudName = _configuration["Cloudinary:CloudName"];
         var cloudApiKey = _configuration["Cloudinary:ApiKey"];
         var cloudApiSecret = _configuration["Cloudinary:ApiSecret"];

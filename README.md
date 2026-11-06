@@ -45,7 +45,7 @@ The professional marketplace implementation has been merged into `main`. The `ma
    - `Jwt__Key` (use a unique random secret of at least 32 UTF-8 bytes)
    - `Jwt__Issuer` and `Jwt__Audience`
    - `MERKATO_ALLOWED_ORIGINS`
-   - `Cloudinary__CloudName`, `Cloudinary__ApiKey` and `Cloudinary__ApiSecret` for durable product-image storage (required for production uploads; keep the API secret only in the host's secret/environment settings).
+   - `Cloudinary__CloudName`, `Cloudinary__ApiKey` and `Cloudinary__ApiSecret` for durable product images and creator media (required for production uploads; keep the API secret only in the host's secret/environment settings).
 4. To provision the first administrator, set `MERKATO_ADMIN_PHONE`, `MERKATO_ADMIN_PIN` and `MERKATO_ADMIN_NAME`. No default administrator PIN is created by the application.
 5. Open a terminal in `backend/Merkato.Api`, apply the EF Core migrations using your installed EF tool, then run the API:
 

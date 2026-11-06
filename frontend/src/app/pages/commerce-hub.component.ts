@@ -3,17 +3,46 @@ import { Component, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../core/auth.service';
+import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-commerce-hub',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   template: `
     <section class="hub">
       <header class="hero">
         <div><span class="eyebrow">MERKATO COMMERCE NETWORK</span><h1>{{ tx.title }}</h1><p>{{ tx.subtitle }}</p></div>
         <select aria-label="Language" [(ngModel)]="language" (ngModelChange)="setLanguage()"><option value="en">English</option><option value="om">Afaan Oromoo</option><option value="am">አማርኛ</option></select>
       </header>
+      <div class="affiliate-shortcut"><a routerLink="/affiliate">Affiliate earnings & referral link ↗</a></div>
+      <section class="growth-engines" aria-label="MERKATO growth engines">
+        <article class="engine-card">
+          <span class="engine-kicker">01 · FIND IT</span><h2>One Request</h2>
+          <p>Post one open product request and receive comparable offers from multiple merchants.</p>
+          
+          <a class="engine-action" routerLink="/sourcing">Open One Request <span>↗</span></a>
+          <small>Multi-merchant request, seller offers, buyer comparison and offer selection are available in One Request.</small>
+        </article>
+        <article class="engine-card">
+          <span class="engine-kicker">02 · COMPARE IT</span><h2>Smart Price</h2>
+          <p>Review seller prices, recorded price history, stock and product condition using the existing commerce APIs.</p>
+          <button class="engine-action" type="button" (click)="active='prices'">Compare prices <span>↗</span></button>
+          <small>Only recorded observations and currently available seller offers are shown.</small>
+        </article>
+        <article class="engine-card">
+          <span class="engine-kicker">03 · SHARE IT</span><h2>Social Commerce</h2>
+          <p>Publish moderated product stories, discover creator content and track product clicks.</p>
+          <a class="engine-action" routerLink="/social">Open Social Commerce <span>↗</span></a>
+          <small>Posts require moderation; video upload hosting and transcoding are not configured.</small>
+        </article>
+        <article class="engine-card engine-featured">
+          <span class="engine-kicker">04 · ALL IN ONE</span><h2>Super Marketplace</h2>
+          <p>Return to the full marketplace to discover products, sellers, offers and shopping assistance.</p>
+          <a class="engine-action" routerLink="/">Explore marketplace <span>↗</span></a>
+          <small>Reviews, group buying, loyalty, delivery and returns remain available in this hub.</small>
+        </article>
+      </section>
       <nav class="tabs"><button *ngFor="let tab of tabs" [class.active]="active===tab.key" (click)="active=tab.key">{{ tab.label }}</button></nav>
       <p class="notice" *ngIf="message" [class.error]="isError">{{ message }}</p>
       <section class="panel" *ngIf="active==='reviews'">
@@ -23,9 +52,9 @@ import { AuthService } from '../core/auth.service';
         <h3>{{ tx.writeReview }}</h3><div class="grid two"><label>{{ tx.orderId }}<input type="number" [(ngModel)]="reviewOrderId"></label><label>{{ tx.rating }}<select [(ngModel)]="rating"><option [ngValue]="5">5</option><option [ngValue]="4">4</option><option [ngValue]="3">3</option><option [ngValue]="2">2</option><option [ngValue]="1">1</option></select></label></div><label>{{ tx.comment }}<textarea [(ngModel)]="comment" maxlength="2000"></textarea></label><button class="gold" (click)="addReview()">{{ tx.submit }}</button>
       </section>
       <section class="panel" *ngIf="active==='prices'">
-        <h2>{{ tx.priceCompare }}</h2><label>{{ tx.productId }}<input type="number" [(ngModel)]="productId"></label><div class="actions"><button class="gold" (click)="loadPrices()">{{ tx.priceHistory }}</button><button (click)="loadSellerPrices()">{{ tx.compareSellers }}</button><button (click)="loadCondition()">{{ tx.conditionStock }}</button></div>
+        <h2>{{ tx.priceCompare }}</h2><label>{{ tx.productId }}<input type="number" [(ngModel)]="productId"></label><div class="actions"><button class="gold" (click)="loadPrices()">{{ tx.priceHistory }}</button><button (click)="loadSellerPrices()">{{ tx.compareSellers }}</button><button (click)="loadCondition()">{{ tx.conditionStock }}</button><button (click)="loadPriceIntelligence()">Price insight</button></div>
         <div class="table-wrap"><table><tr><th>{{ tx.seller }}</th><th>{{ tx.price }}</th><th>{{ tx.location }}</th></tr><tr *ngFor="let p of sellerPrices"><td>{{ p.sellerId }}</td><td>{{ p.priceEtb | number:'1.2-2' }} ETB</td><td>{{ p.location }}</td></tr></table></div>
-        <div class="review" *ngFor="let p of priceHistory"><b>{{ p.priceEtb | number:'1.2-2' }} ETB</b><small>{{ p.recordedAt | date:'medium' }}</small></div>
+        <div class="review" *ngFor="let p of priceHistory"><b>{{ p.priceEtb | number:'1.2-2' }} ETB</b><small>{{ p.recordedAt | date:'medium' }}</small></div><article class="review" *ngIf="priceIntelligence"><b>Median: {{ priceIntelligence.medianPriceEtb ?? 'No data' }} ETB</b><p>{{ priceIntelligence.advisory }} · {{ priceIntelligence.freshness }}</p><small>{{ priceIntelligence.observationCount }} observations · {{ priceIntelligence.comparableProductCount }} comparable listings · deviation {{ priceIntelligence.currentPriceDeviationPercentFromMedian ?? '—' }}%</small><p>{{ priceIntelligence.note }}</p></article>
         <p *ngIf="conditionData">{{ tx.condition }}: <b>{{ conditionData.condition }}</b> · {{ tx.stock }}: {{ conditionData.stockQuantity ?? tx.notSet }} · {{ tx.reserved }}: {{ conditionData.reservedQuantity ?? 0 }} · {{ tx.available }}: {{ conditionData.availableQuantity ?? tx.notSet }} · {{ conditionData.lowStock ? tx.lowStock : tx.stockOkay }}</p>
       </section>
       <section class="panel" *ngIf="active==='groups'">
@@ -78,6 +107,8 @@ import { AuthService } from '../core/auth.service';
     .delivery-card{display:grid;gap:9px}.delivery-status{padding:5px 9px;border-radius:20px;background:#f5edda;color:#84621d;font-size:11px}.delivery-timeline{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:14px 0}.delivery-step{display:flex;align-items:center;gap:7px;color:#879187;font-size:10px}.step-dot{display:grid;place-items:center;width:25px;height:25px;flex:0 0 25px;border:1px solid #dfe5dc;border-radius:50%;background:#fff;font-weight:800}.delivery-step.complete .step-dot{border-color:#27834f;background:#e7f5eb;color:#187343}.delivery-step.current{color:#84621d;font-weight:800}.delivery-step.current .step-dot{border-color:#c49a36;background:#fff7e5;color:#84621d}.courier-tools{display:grid;gap:10px;padding:14px;border:1px solid #e8e0ce;border-radius:12px;background:#fffdf8}.courier-tools label{display:grid;gap:6px}.courier-tools input,.courier-tools select{padding:10px;border:1px solid #e3e7e1;border-radius:9px;background:#fff}
     .reward-list{display:grid;gap:8px;margin:14px 0}.reward-list article{display:flex;justify-content:space-between;gap:12px;padding:11px;border:1px solid #e9e0cd;border-radius:10px;background:#fffdf7}.reward-list span{color:#7c715c;font-size:11px}.panel .grid label{display:grid;gap:6px}
     .referral-share{display:grid;gap:10px;margin:14px 0;padding:14px;border:1px solid #eee8da;border-radius:12px;background:#fcfaf5}.referral-share a{overflow-wrap:anywhere;color:#80611d;font-weight:700}.referral-share small{color:#827b6c;font-size:11px}
+    .affiliate-shortcut{display:flex;justify-content:flex-end;margin:0 0 14px}.affiliate-shortcut a{color:#8d6924;font-weight:800;text-decoration:none;border:1px solid #e7d9b8;border-radius:999px;padding:10px 14px;background:#fffaf0}
+    .growth-engines{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:18px 0 22px}.engine-card{display:flex;flex-direction:column;gap:10px;padding:17px;border:1px solid #e8e0ce;border-radius:15px;background:#fff;min-width:0}.engine-card h2{margin:0;font-size:19px;color:#25251f}.engine-card p{margin:0;color:#6e6b60;font-size:12px;line-height:1.55}.engine-kicker{font-size:10px;font-weight:800;letter-spacing:.12em;color:#967329}.engine-card label{display:grid;gap:5px;font-size:11px;color:#716b5d}.engine-card input{width:100%;padding:9px;border:1px solid #e4dfd3;border-radius:8px}.engine-action{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:auto;padding:10px 12px;border:0;border-radius:9px;background:#29291f;color:#fff;text-decoration:none;font:inherit;font-size:12px;font-weight:800;cursor:pointer}.engine-action span{font-size:16px}.engine-card small{font-size:10px;line-height:1.45;color:#8a8375}.engine-featured{background:#fff9e9;border-color:#dfc77f}@media(max-width:900px){.growth-engines{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:520px){.growth-engines{grid-template-columns:1fr}}
     :host{display:block;background:#f7f5ef;min-height:100vh;color:#242424}.hub{max-width:1120px;margin:auto;padding:34px 22px 60px}.hero{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:30px;border-radius:22px;background:linear-gradient(120deg,#28251f,#51452d);color:#fff}.eyebrow{font-size:10px;letter-spacing:.18em;color:#e8d9a6;font-weight:800}.hero h1{font-size:clamp(28px,4vw,42px);margin:9px 0}.hero p{color:#e4ddce;margin:0}.hero select{background:#fff;color:#242424;border:0;border-radius:10px;padding:11px}.tabs{display:flex;gap:8px;overflow:auto;padding:20px 0}.tabs button,.actions button,.row button,button{border:1px solid #e2dccd;background:#fff;color:#38352e;padding:10px 14px;border-radius:10px;font-weight:700;cursor:pointer}.tabs button{white-space:nowrap}.tabs button.active,.gold{background:#c49a32!important;color:#201b10!important;border-color:#c49a32!important}.panel{background:#fff;border:1px solid #eee8da;border-radius:18px;padding:24px;box-shadow:0 12px 32px #342d1a0a}.panel h2{margin:0 0 20px;font-size:24px}.panel h3{margin:24px 0 12px}.grid{display:grid;gap:14px;margin:14px 0}.two{grid-template-columns:repeat(2,minmax(0,1fr))}label{display:grid;gap:7px;font-size:12px;font-weight:750;color:#625b4c}input,select,textarea{width:100%;min-width:0;border:1px solid #e4dfd3;border-radius:9px;padding:11px;background:#fff;color:#242424;font:inherit}textarea{min-height:85px}.actions{display:flex;gap:9px;flex-wrap:wrap;margin:14px 0}.metric{display:flex;align-items:baseline;gap:12px;padding:18px;background:#faf7ee;border-radius:12px;margin:16px 0}.metric strong{font-size:32px;color:#9c751e}.review,.group{padding:15px 0;border-bottom:1px solid #eee9df}.review p,.group p{margin:8px 0}.review small,.muted{color:#827b6c;font-size:12px}.group{padding:18px 0}.row{display:flex;justify-content:space-between;align-items:center;gap:12px}.progress{height:8px;background:#eee9df;border-radius:20px;overflow:hidden;margin:12px 0}.progress i{display:block;height:100%;background:#c49a32}.table-wrap{overflow:auto;margin-top:18px}table{border-collapse:collapse;width:100%;font-size:13px}td,th{text-align:left;padding:12px;border-bottom:1px solid #eee9df;white-space:nowrap}.notice{padding:12px 16px;background:#edf6ec;border-radius:10px;color:#285b35}.notice.error{background:#fff0ed;color:#a13d2d}footer{text-align:center;padding:30px;color:#8a806d;font-size:12px}@media(max-width:640px){.hub{padding:18px 12px}.hero{padding:22px;align-items:flex-start;flex-direction:column}.two{grid-template-columns:1fr}.panel{padding:17px}.tabs{padding:14px 0}.row{align-items:flex-start}}
   `]
 })
@@ -95,7 +126,7 @@ export class CommerceHubComponent implements OnInit {
     return Math.max(0,stages.indexOf(status));
   }
   language:'en'|'om'|'am'='en'; active='reviews'; message=''; isError=false;
-  productId=0; reviewOrderId=0; rating=5; comment=''; reviewData:any=null; priceHistory:any[]=[]; sellerPrices:any[]=[]; conditionData:any=null;
+  productId=0; reviewOrderId=0; rating=5; comment=''; reviewData:any=null; priceHistory:any[]=[]; sellerPrices:any[]=[]; conditionData:any=null; priceIntelligence:any=null;
   groups:any[]=[]; joinQuantities:Record<number,number>={}; group:any={productId:0,targetQuantity:10,regularUnitPriceEtb:100,discountUnitPriceEtb:90,expiresAt:''};
   returnOrderId=0; returnReason=''; returns:any[]=[]; stock:any={quantity:0,lowStockThreshold:5,condition:'NEW'}; inventory:any[]=[]; loyalty:any=null; orders:any[]=[]; trackOrderId=0; deliveryInfo:any=null; courierDeliveryId=""; courierStatus="IN_TRANSIT"; referral:any=null; referralCode="";
   promotions:any[]=[];
@@ -116,6 +147,7 @@ export class CommerceHubComponent implements OnInit {
   addReview(){this.call('post',`/api/commerce/products/${this.productId}/reviews`,{orderId:this.reviewOrderId,rating:this.rating,comment:this.comment},()=>{this.comment='';this.loadReviews();});}
   loadPrices(){this.call('get',`/api/commerce/products/${this.productId}/price-history`,null,x=>this.priceHistory=x);}
   loadSellerPrices(){this.call('get',`/api/commerce/products/${this.productId}/seller-prices`,null,x=>this.sellerPrices=x);}
+  loadPriceIntelligence(){if(!this.productId){this.message='Enter a product ID first.';this.isError=true;return;}this.http.get('/api/commerce/products/'+this.productId+'/price-intelligence').subscribe({next:x=>{this.priceIntelligence=x;this.message='Price insight loaded from recorded snapshots.';this.isError=false;},error:()=>{this.message='Could not load price insight.';this.isError=true;}});}
   loadCondition(){this.call('get',`/api/commerce/products/${this.productId}/condition-stock`,null,x=>this.conditionData=x);}
   loadGroups(){this.call('get','/api/commerce/group-buys',null,x=>this.groups=x);}
   createGroup(){const payload={...this.group,expiresAt:new Date(this.group.expiresAt).toISOString()};this.call('post','/api/commerce/group-buys',payload,()=>this.loadGroups());}

@@ -62,6 +62,41 @@ public sealed class CommerceGrowthController(MerkatoDbContext db, IEscrowService
         return Ok(rows);
     }
 
+    [AllowAnonymous]
+    [HttpGet("products/{productId:long}/price-intelligence")]
+    public async Task<IActionResult> PriceIntelligence(long productId, CancellationToken ct)
+    {
+        var product = await db.Products.AsNoTracking().FirstOrDefaultAsync(x => x.Id == productId && x.IsActive, ct);
+        if (product is null) return NotFound();
+        var comparableIds = await db.Products.AsNoTracking()
+            .Where(x => x.IsActive && x.Name.ToLower() == product.Name.ToLower() && x.Category == product.Category)
+            .Select(x => x.Id).ToListAsync(ct);
+        var cutoff = DateTime.UtcNow.AddDays(-30);
+        var observations = await db.ProductPriceSnapshots.AsNoTracking()
+            .Where(x => comparableIds.Contains(x.ProductId) && x.RecordedAt >= cutoff)
+            .OrderByDescending(x => x.RecordedAt)
+            .Select(x => new { x.PriceEtb, x.RecordedAt, x.ProductId, x.SellerId })
+            .Take(500).ToListAsync(ct);
+        var prices = observations.Select(x => x.PriceEtb).OrderBy(x => x).ToArray();
+        decimal? median = prices.Length == 0 ? null :
+            prices.Length % 2 == 1 ? prices[prices.Length / 2] :
+            (prices[prices.Length / 2 - 1] + prices[prices.Length / 2]) / 2m;
+        var ageHours = observations.Count == 0 ? (double?)null : (DateTime.UtcNow - observations.Max(x => x.RecordedAt)).TotalHours;
+        var deviation = median is > 0 ? Math.Round((product.PriceEtb - median.Value) / median.Value * 100m, 2) : (decimal?)null;
+        return Ok(new {
+            product.Id, product.Name, product.Category, currentPriceEtb = product.PriceEtb,
+            comparableProductCount = comparableIds.Count, observationCount = prices.Length,
+            medianPriceEtb = median, minimumObservedPriceEtb = prices.Length == 0 ? (decimal?)null : prices[0],
+            maximumObservedPriceEtb = prices.Length == 0 ? (decimal?)null : prices[^1],
+            latestObservationAt = observations.Count == 0 ? (DateTime?)null : observations.Max(x => x.RecordedAt),
+            observationFreshnessHours = ageHours,
+            freshness = ageHours is null ? "NO_DATA" : ageHours <= 72 ? "FRESH" : "STALE",
+            currentPriceDeviationPercentFromMedian = deviation,
+            advisory = deviation is null ? "INSUFFICIENT_DATA" : deviation > 30 ? "ABOVE_RECENT_MEDIAN" : deviation < -30 ? "BELOW_RECENT_MEDIAN" : "WITHIN_RECENT_RANGE",
+            note = "Comparables use exact product name and category. This is an advisory from recorded snapshots, not a guaranteed market-wide price."
+        });
+    }
+
     [Authorize(Roles = "MERCHANT,ADMIN")]
     [HttpPut("products/{productId:long}/stock")]
     public async Task<IActionResult> UpdateStock(long productId, StockInput input, CancellationToken ct)

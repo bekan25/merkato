@@ -17,13 +17,24 @@ public class PaymentsController : ControllerBase
 {
     private readonly MerkatoDbContext _db;
     private readonly IPaymentService _paymentService;
+    private readonly IConfiguration _configuration;
 
     public PaymentsController(
         MerkatoDbContext db,
-        IPaymentService paymentService)
+        IPaymentService paymentService,
+        IConfiguration configuration)
     {
         _db = db;
         _paymentService = paymentService;
+        _configuration = configuration;
+    }
+
+    private decimal CommissionRate(string key, decimal fallback)
+    {
+        var configured = _configuration.GetValue<decimal?>(key) ?? fallback;
+        if (configured < 0m || configured > 25m)
+            throw new InvalidOperationException($"{key} must be between 0 and 25 percent.");
+        return configured;
     }
 
     // =====================================================
@@ -183,6 +194,76 @@ public class PaymentsController : ControllerBase
                 var paidOrder = await _db.Orders.AsNoTracking().FirstOrDefaultAsync(x => x.Id == transaction.OrderId, ct);
                 if (paidOrder is not null)
                 {
+                    // Attribute a verified purchase to the buyer's most recent approved creator post click
+                    // for the same product within 30 days. A unique OrderId index makes webhook retries safe.
+                    if (paidOrder.ProductId.HasValue && !await _db.CreatorCommissions.AnyAsync(x => x.OrderId == paidOrder.Id, ct))
+                    {
+                        var attributionSince = DateTime.UtcNow.AddDays(-30);
+                        var attributedPost = await (
+                            from click in _db.SocialCommerceClicks.AsNoTracking()
+                            join post in _db.SocialCommercePosts.AsNoTracking() on click.PostId equals post.Id
+                            where click.ViewerId == paidOrder.BuyerId
+                                && click.CreatedAt >= attributionSince
+                                && post.ProductId == paidOrder.ProductId.Value
+                                && post.Status == "APPROVED"
+                                && post.CreatorId != paidOrder.BuyerId
+                            orderby click.CreatedAt descending
+                            select post
+                        ).FirstOrDefaultAsync(ct);
+
+                        if (attributedPost is not null)
+                        {
+                            var eligibleAmount = Math.Max(0m, paidOrder.TotalAmountEtb - paidOrder.DeliveryFeeEtb);
+                            var rate = CommissionRate("Commissions:CreatorRatePercent", 5m);
+                            _db.CreatorCommissions.Add(new CreatorCommission
+                            {
+                                CreatorId = attributedPost.CreatorId,
+                                OrderId = paidOrder.Id,
+                                PostId = attributedPost.Id,
+                                EligibleAmountEtb = eligibleAmount,
+                                RatePercent = rate,
+                                CommissionEtb = Math.Round(eligibleAmount * rate / 100m, 2, MidpointRounding.AwayFromZero),
+                                Status = "HELD",
+                                CreatedAt = DateTime.UtcNow
+                            });
+                            try { await _db.SaveChangesAsync(ct); }
+                            catch (DbUpdateException ex) when (ex.InnerException is Npgsql.PostgresException { SqlState: Npgsql.PostgresErrorCodes.UniqueViolation }) { _db.Entry(_db.CreatorCommissions.Local.First(x => x.OrderId == paidOrder.Id)).State = EntityState.Detached; }
+                        }
+                    }
+
+                    // Affiliate commission is attributed only to a registered referral with an active affiliate profile.
+                    // It is held until escrow release; a unique OrderId index protects webhook retries.
+                    if (paidOrder.ProductId.HasValue && paidOrder.UnitPriceEtb > 0m && paidOrder.Quantity > 0 &&
+                        !await _db.AffiliateCommissions.AnyAsync(x => x.OrderId == paidOrder.Id, ct))
+                    {
+                        var affiliateReferral = await _db.AffiliateReferrals
+                            .AsNoTracking()
+                            .FirstOrDefaultAsync(x => x.ReferredUserId == paidOrder.BuyerId &&
+                                x.RegisteredAt != null && x.AffiliateUserId != paidOrder.BuyerId, ct);
+                        if (affiliateReferral is not null &&
+                            await _db.AffiliateProfiles.AnyAsync(x => x.UserId == affiliateReferral.AffiliateUserId && x.IsActive, ct))
+                        {
+                            var affiliateRatePercent = CommissionRate("Commissions:AffiliateRatePercent", 2m);
+                            var eligibleAmount = Math.Max(0m, paidOrder.TotalAmountEtb - paidOrder.DeliveryFeeEtb);
+                            _db.AffiliateCommissions.Add(new AffiliateCommission
+                            {
+                                AffiliateUserId = affiliateReferral.AffiliateUserId,
+                                OrderId = paidOrder.Id,
+                                EligibleAmountEtb = eligibleAmount,
+                                RatePercent = affiliateRatePercent,
+                                CommissionEtb = Math.Round(eligibleAmount * affiliateRatePercent / 100m, 2, MidpointRounding.AwayFromZero),
+                                Status = "HELD",
+                                CreatedAt = DateTime.UtcNow
+                            });
+                            try { await _db.SaveChangesAsync(ct); }
+                            catch (DbUpdateException ex) when (ex.InnerException is Npgsql.PostgresException { SqlState: Npgsql.PostgresErrorCodes.UniqueViolation })
+                            {
+                                var pending = _db.AffiliateCommissions.Local.FirstOrDefault(x => x.OrderId == paidOrder.Id);
+                                if (pending is not null) _db.Entry(pending).State = EntityState.Detached;
+                            }
+                        }
+                    }
+
                     var referral = await _db.AffiliateReferrals.FirstOrDefaultAsync(x => x.ReferredUserId == paidOrder.BuyerId, ct);
                     if (referral is not null && !await _db.PromotionCoupons.AnyAsync(x => x.SourceReferralId == referral.Id, ct))
                     {

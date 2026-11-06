@@ -248,6 +248,7 @@ export class StorefrontComponent implements OnInit, OnDestroy {
   compareProducts: MerkatoProduct[] = [];
   toast = '';
   selectedProduct: MerkatoProduct | null = null;
+  private pendingProductId: number | null = null;
   private toastTimer?: ReturnType<typeof setTimeout>;
   private searchTimer?: ReturnType<typeof setTimeout>;
   private savedIds = new Set<number>();
@@ -299,6 +300,8 @@ export class StorefrontComponent implements OnInit, OnDestroy {
     this.route.queryParamMap.subscribe(params => {
       const nextSearch = params.get('q') || '';
       const nextCategory = params.get('category') || 'All';
+      const requestedProductId = Number(params.get('productId'));
+      this.pendingProductId = Number.isSafeInteger(requestedProductId) && requestedProductId > 0 ? requestedProductId : null;
       const changed = nextSearch !== this.search || nextCategory !== this.category;
       this.search = nextSearch;
       this.category = this.categoryOptions.includes(nextCategory) ? nextCategory : 'All';
@@ -322,7 +325,7 @@ export class StorefrontComponent implements OnInit, OnDestroy {
     this.loading = true;
     this.error = '';
     this.api.getProducts(this.search, this.category, this.city === 'All' ? '' : this.city).subscribe({
-      next: items => { this.products = items || []; this.loading = false; },
+      next: items => { this.products = items || []; this.loading = false; if (this.pendingProductId !== null) { const match = this.products.find(item => item.id === this.pendingProductId); if (match) this.openQuickView(match); this.pendingProductId = null; } },
       error: () => { this.products = []; this.loading = false; this.error = 'We could not load the marketplace right now. Please check your connection and try again.'; }
     });
   }

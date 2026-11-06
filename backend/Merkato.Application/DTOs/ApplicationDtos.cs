@@ -7,7 +7,8 @@ public record RegisterUserDto(
     string FullName,
     string? FaydaIdNumber,
     UserRole Role,
-    string Pin
+    string Pin,
+    string? ReferralCode = null
 );
 
 public record LoginDto(
@@ -35,7 +36,8 @@ public record CreateOrderDto(
     string DeliveryAddress,
     string CityArea,
     string? CouponCode = null,
-    long? ProductId = null
+    long? ProductId = null,
+    int Quantity = 1
 );
 
 public record OrderResponseDto(
@@ -44,6 +46,8 @@ public record OrderResponseDto(
     long BuyerId,
     long SellerId,
     string ProductTitle,
+    int Quantity,
+    decimal UnitPriceEtb,
     decimal TotalAmountEtb,
     decimal DeliveryFeeEtb,
     PaymentRail PaymentRail,

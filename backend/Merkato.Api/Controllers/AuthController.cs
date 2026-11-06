@@ -50,6 +50,15 @@ public class AuthController : ControllerBase
         if (await _db.Users.AnyAsync(x => x.PhoneNumber == normalizedPhone))
             return Conflict("User with this phone number already exists.");
 
+        AffiliateProfile? referringAffiliate = null;
+        if (!string.IsNullOrWhiteSpace(dto.ReferralCode))
+        {
+            var referralCode = dto.ReferralCode.Trim().ToUpperInvariant();
+            referringAffiliate = await _db.AffiliateProfiles.FirstOrDefaultAsync(x => x.ReferralCode == referralCode && x.IsActive);
+            if (referringAffiliate is null)
+                return BadRequest("The referral code is invalid or inactive.");
+        }
+
         var user = new User
         {
             PhoneNumber = normalizedPhone,
@@ -64,13 +73,49 @@ public class AuthController : ControllerBase
         };
 
         _db.Users.Add(user);
+        await using var registrationTransaction = referringAffiliate is null
+            ? null
+            : await _db.Database.BeginTransactionAsync();
         try
         {
             await _db.SaveChangesAsync();
+            if (referringAffiliate is not null && referringAffiliate.UserId != user.Id)
+            {
+                var now = DateTime.UtcNow;
+                var visitorHash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes("REGISTER:" + user.Id)));
+                _db.AffiliateReferrals.Add(new AffiliateReferral
+                {
+                    AffiliateUserId = referringAffiliate.UserId,
+                    ReferralCode = referringAffiliate.ReferralCode,
+                    VisitorKeyHash = visitorHash,
+                    ReferredUserId = user.Id,
+                    ClickedAt = now,
+                    RegisteredAt = now
+                });
+                _db.PromotionCoupons.Add(new PromotionCoupon
+                {
+                    Code = "WELCOME" + Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(4)),
+                    Title = "MERKATO referral welcome reward",
+                    DiscountType = "FIXED",
+                    DiscountValue = 50m,
+                    MinimumOrderEtb = 200m,
+                    UsageLimit = 1,
+                    PerUserLimit = 1,
+                    AssignedUserId = user.Id,
+                    StartsAt = now,
+                    ExpiresAt = now.AddDays(30),
+                    CreatedBy = referringAffiliate.UserId
+                });
+                await _db.SaveChangesAsync();
+            }
+            if (registrationTransaction is not null)
+                await registrationTransaction.CommitAsync();
         }
         catch (DbUpdateException)
         {
-            return Conflict("User with this phone number already exists.");
+            if (registrationTransaction is not null)
+                await registrationTransaction.RollbackAsync();
+            return Conflict("User registration or referral attribution could not be completed.");
         }
 
         return Ok(CreateAuthResponse(user));
