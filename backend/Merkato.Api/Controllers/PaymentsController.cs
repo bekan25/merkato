@@ -220,6 +220,39 @@ public class PaymentsController : ControllerBase
                         }
                     }
 
+                    // Affiliate commission is attributed only to a registered referral with an active affiliate profile.
+                    // It is held until escrow release; a unique OrderId index protects webhook retries.
+                    if (paidOrder.ProductId.HasValue && paidOrder.UnitPriceEtb > 0m && paidOrder.Quantity > 0 &&
+                        !await _db.AffiliateCommissions.AnyAsync(x => x.OrderId == paidOrder.Id, ct))
+                    {
+                        var affiliateReferral = await _db.AffiliateReferrals
+                            .AsNoTracking()
+                            .FirstOrDefaultAsync(x => x.ReferredUserId == paidOrder.BuyerId &&
+                                x.RegisteredAt != null && x.AffiliateUserId != paidOrder.BuyerId, ct);
+                        if (affiliateReferral is not null &&
+                            await _db.AffiliateProfiles.AnyAsync(x => x.UserId == affiliateReferral.AffiliateUserId && x.IsActive, ct))
+                        {
+                            const decimal affiliateRatePercent = 2m;
+                            var eligibleAmount = paidOrder.UnitPriceEtb * paidOrder.Quantity;
+                            _db.AffiliateCommissions.Add(new AffiliateCommission
+                            {
+                                AffiliateUserId = affiliateReferral.AffiliateUserId,
+                                OrderId = paidOrder.Id,
+                                EligibleAmountEtb = eligibleAmount,
+                                RatePercent = affiliateRatePercent,
+                                CommissionEtb = Math.Round(eligibleAmount * affiliateRatePercent / 100m, 2, MidpointRounding.AwayFromZero),
+                                Status = "HELD",
+                                CreatedAt = DateTime.UtcNow
+                            });
+                            try { await _db.SaveChangesAsync(ct); }
+                            catch (DbUpdateException ex) when (ex.InnerException is Npgsql.PostgresException { SqlState: Npgsql.PostgresErrorCodes.UniqueViolation })
+                            {
+                                var pending = _db.AffiliateCommissions.Local.FirstOrDefault(x => x.OrderId == paidOrder.Id);
+                                if (pending is not null) _db.Entry(pending).State = EntityState.Detached;
+                            }
+                        }
+                    }
+
                     var referral = await _db.AffiliateReferrals.FirstOrDefaultAsync(x => x.ReferredUserId == paidOrder.BuyerId, ct);
                     if (referral is not null && !await _db.PromotionCoupons.AnyAsync(x => x.SourceReferralId == referral.Id, ct))
                     {
