@@ -201,6 +201,7 @@ public class MerkatoDbContext : DbContext
         modelBuilder.Entity<PaymentReceipt>(entity =>
         {
             entity.HasIndex(x => x.OrderId);
+            entity.HasIndex(x => x.Sha256).IsUnique();
             entity.HasIndex(x => new { x.PaymentTransactionId, x.CreatedAt });
             entity.HasIndex(x => new { x.Status, x.CreatedAt });
             entity.HasIndex(x => x.TransactionReference)
