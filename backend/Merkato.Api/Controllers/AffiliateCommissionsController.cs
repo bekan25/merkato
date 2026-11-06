@@ -88,19 +88,29 @@ public sealed class AffiliateCommissionsController(MerkatoDbContext db) : Contro
         if (string.IsNullOrWhiteSpace(reference) || reference.Length > 120)
             return BadRequest(new { error = "A payout reference (1-120 characters) is required." });
 
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
-        var commission = await db.AffiliateCommissions.FirstOrDefaultAsync(x => x.Id == commissionId, ct);
-        if (commission is null) return NotFound();
-        if (commission.Status != "AVAILABLE")
-            return Conflict(new { error = "Only AVAILABLE commissions can be marked as paid.", currentStatus = commission.Status });
+        var paidAt = DateTime.UtcNow;
+        // Compare-and-set prevents two admins from paying the same commission concurrently.
+        var updated = await db.AffiliateCommissions
+            .Where(x => x.Id == commissionId && x.Status == "AVAILABLE")
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(x => x.Status, "PAID")
+                .SetProperty(x => x.PayoutReference, reference)
+                .SetProperty(x => x.PaidAt, paidAt), ct);
+        if (updated == 0)
+        {
+            var current = await db.AffiliateCommissions.AsNoTracking()
+                .Where(x => x.Id == commissionId)
+                .Select(x => new { x.Id, x.Status })
+                .FirstOrDefaultAsync(ct);
+            if (current is null) return NotFound();
+            return Conflict(new { error = "Only AVAILABLE commissions can be marked as paid.", currentStatus = current.Status });
+        }
 
-        commission.Status = "PAID";
-        commission.PayoutReference = reference;
-        commission.PaidAt = DateTime.UtcNow;
-        await db.SaveChangesAsync(ct);
-        await tx.CommitAsync(ct);
-
-        return Ok(new { commission.Id, commission.Status, commission.PayoutReference, commission.PaidAt });
+        var commission = await db.AffiliateCommissions.AsNoTracking()
+            .Where(x => x.Id == commissionId)
+            .Select(x => new { x.Id, x.Status, x.PayoutReference, x.PaidAt })
+            .SingleAsync(ct);
+        return Ok(commission);
     }
 }
 
