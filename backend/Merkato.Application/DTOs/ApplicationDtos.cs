@@ -55,7 +55,13 @@ public record OrderResponseDto(
     string DeliveryAddress,
     EscrowState EscrowState,
     DeliveryStatus DeliveryStatus,
-    DateTime CreatedAt
+    DateTime CreatedAt,
+    decimal ProductSubtotalEtb = 0m,
+    decimal DiscountEtb = 0m,
+    decimal MerchantCommissionRatePercent = 0m,
+    decimal MerchantCommissionEtb = 0m,
+    decimal BuyerServiceFeeRatePercent = 0m,
+    decimal BuyerServiceFeeEtb = 0m
 );
 
 public record PaymentWebhookDto(
