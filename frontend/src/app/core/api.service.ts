@@ -302,3 +302,40 @@ export class ApiService {
 
 }
 
+export interface MerchantAnalytics {
+  productCount: number;
+  activeProductCount: number;
+  orderCount: number;
+  monthlyOrderCount: number;
+  grossOrderValueEtb: number;
+  monthlyGrossOrderValueEtb: number;
+  recentOrders: Array<Pick<MerkatoOrder, 'id' | 'orderNumber' | 'productTitle' | 'totalAmountEtb' | 'deliveryStatus' | 'escrowState' | 'createdAt'>>;
+}
+
+export interface AdminAnalytics {
+  totalUsers: number;
+  buyerCount: number;
+  merchantCount: number;
+  totalProducts: number;
+  activeProducts: number;
+  totalOrders: number;
+  grossOrderValueEtb: number;
+  openDisputes: number;
+  recentUsers: Array<{ id: number; fullName: string; phoneNumber: string; role: string; createdAt: string }>;
+}
+
+
+export interface ShoppingAssistantResponse {
+  message: string;
+  suggestedProducts: Array<Pick<MerkatoProduct, 'id' | 'name' | 'category' | 'location' | 'priceEtb' | 'emoji'>>;
+}
+
+
+export interface WholesalePriceTier { id: number; minimumQuantity: number; unitPriceEtb: number; }
+export interface WholesaleTierInput { minimumQuantity: number; unitPriceEtb: number; }
+export interface CreateWholesaleRequest { productId: number; quantity: number; requestedUnitPriceEtb: number; note?: string; }
+export interface WholesaleRequest {
+  id: number; requestNumber: string; productId: number; buyerId: number; sellerId: number;
+  quantity: number; requestedUnitPriceEtb: number; quotedUnitPriceEtb?: number | null;
+  status: string; buyerNote?: string | null; sellerNote?: string | null; createdAt: string;
+}
