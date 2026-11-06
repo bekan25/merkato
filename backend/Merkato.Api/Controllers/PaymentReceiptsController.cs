@@ -7,6 +7,7 @@ using Merkato.Domain.Enums;
 using Merkato.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 
@@ -31,6 +32,7 @@ public sealed class PaymentReceiptsController : ControllerBase
     [HttpPost]
     [Authorize(Roles = "BUYER,ADMIN")]
     [Consumes("multipart/form-data")]
+    [EnableRateLimiting("payment-receipts")]
     [RequestSizeLimit(MaxReceiptBytes + 64 * 1024)]
     public async Task<IActionResult> Upload(
         [FromForm] long orderId,
@@ -64,7 +66,7 @@ public sealed class PaymentReceiptsController : ControllerBase
         if (payment.AmountEtb != order.TotalAmountEtb)
             return Conflict(new { error = "Payment transaction amount does not match the order total." });
 
-        var reference = string.IsNullOrWhiteSpace(transactionReference) ? null : transactionReference.Trim();
+        var reference = string.IsNullOrWhiteSpace(transactionReference) ? null : transactionReference.Trim().ToUpperInvariant();
         if (reference?.Length > 150)
             return BadRequest(new { error = "Transaction reference must be 150 characters or fewer." });
         if (reference is not null && await _db.PaymentReceipts.AnyAsync(x => x.TransactionReference == reference, ct))
@@ -199,7 +201,7 @@ public sealed class PaymentReceiptsController : ControllerBase
 
         var reference = string.IsNullOrWhiteSpace(request.TransactionReference)
             ? receipt.TransactionReference
-            : request.TransactionReference.Trim();
+            : request.TransactionReference.Trim().ToUpperInvariant();
         if (string.IsNullOrWhiteSpace(reference) || reference.Length > 150)
             return BadRequest(new { error = "A verified bank/provider transaction reference is required for approval." });
         if (order.EscrowState != EscrowState.AWAITING_PAYMENT ||
