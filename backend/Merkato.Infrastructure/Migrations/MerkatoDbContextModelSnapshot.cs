@@ -635,7 +635,7 @@ b.Property<long>("SellerId")
 
                     b.HasIndex("OrderId");
 
-                    b.HasIndex("RailTransactionId").IsUnique().HasFilter("\\"RailTransactionId\\" IS NOT NULL");
+                    b.HasIndex("RailTransactionId").IsUnique().HasFilter("\"RailTransactionId\" IS NOT NULL");
 
                     b.ToTable("PaymentTransactions");
                 });
@@ -662,7 +662,7 @@ b.Property<long>("SellerId")
                     b.HasIndex("Sha256").IsUnique();
                     b.HasIndex("PaymentTransactionId", "CreatedAt");
                     b.HasIndex("Status", "CreatedAt");
-                    b.HasIndex("TransactionReference").IsUnique().HasFilter("\\"TransactionReference\\" IS NOT NULL");
+                    b.HasIndex("TransactionReference").IsUnique().HasFilter("\"TransactionReference\" IS NOT NULL");
                     b.ToTable("PaymentReceipts");
                 });
 
