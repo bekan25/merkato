@@ -1,0 +1,95 @@
+/* MERKATO FUTURE UI — presentation-only design layer. Keeps all existing Angular behavior intact. */
+:root{--forest:#17372d;--forest-2:#245541;--mint:#edf3ed;--cream:#f7f5ef;--paper:#fffefa;--ink:#1c2823;--muted:#77847c;--line:#e8e5dc;--gold:#c99b52;--shadow:0 20px 55px rgba(26,43,34,.09)}
+body{background:#fbfaf6;color:#1c2823;font-family:'DM Sans',Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+::selection{background:#e7d2aa;color:#17231f}
+:focus-visible{outline:3px solid #c99b5280!important;outline-offset:3px}
+.announcement{height:30px;background:linear-gradient(90deg,#14251f,#234638 48%,#14251f);color:#e9e4d8;font-size:9px;letter-spacing:.16em;text-transform:uppercase}
+.announcement span{color:#e0b96f}
+.site-header{background:rgba(255,254,250,.94)!important;border-bottom:1px solid #c99b5230!important;box-shadow:0 8px 30px #192a210b!important;backdrop-filter:blur(24px) saturate(155%)!important}
+.brand{color:#172f26!important}.brand small{color:#9a8a6f!important;letter-spacing:.19em}
+.brand-mark{background:linear-gradient(145deg,#d8b36f,#a97836)!important;color:#17251e!important;box-shadow:0 8px 20px #ad803b33!important}
+.global-search{border-color:#e6dfd0!important;background:#fffefa!important;box-shadow:0 8px 24px #1d2c230b!important}
+.global-search:focus-within{border-color:#c99b52!important;box-shadow:0 0 0 4px #c99b5222!important}
+.global-search select{background:#f7f3e9!important;color:#5e5545!important}
+.global-search button{background:linear-gradient(135deg,#bd8c45,#dfbd7c)!important;color:#1c2a22!important}
+.delivery-link strong,.account-link strong{color:#20382c!important}.delivery-link small,.account-link small{color:#918674!important}
+.cart-link{background:#f5efe3!important;color:#283c31!important;border:1px solid #eee4d2}.cart-count{background:#dfc18a!important;color:#1c2b22!important}
+.language-picker{border-color:#e8dfcd!important;background:#fffefa!important;color:#87642f!important}
+.department-nav{background:#f3f0e8!important;border-bottom:1px solid #e8e1d3!important;color:#6e685a!important}
+.department-nav a.active,.department-nav a:hover{background:#eae1d0!important;color:#4e3b1f!important}
+.btn{border-radius:12px;font-weight:750}.btn-primary{background:linear-gradient(135deg,#183b2e,#285b43)!important;box-shadow:0 9px 22px #1a443026}
+.btn-primary:hover{background:linear-gradient(135deg,#285b43,#367452)!important;box-shadow:0 13px 26px #1a443033}
+.btn-outline{border-color:#d9c9a9!important;color:#624b2b!important;background:#fffefa!important}.btn-outline:hover{background:#f5eddf!important;border-color:#c99b52!important}
+.hero{background:radial-gradient(ellipse at 76% 38%,#dbbe8947,transparent 34%),linear-gradient(120deg,#f7f5ef,#f1eee5 52%,#f8f6f0)!important}
+.hero h1,.section-heading h2,.workspace-section h2{color:#1a382c!important}.hero h1 em{color:#b38443!important}
+.hero-copy>p,.market-heading p{color:#77796e!important}.eyebrow{color:#a17c45!important;letter-spacing:.17em!important}
+.eyebrow-dot{background:#c99b52!important;box-shadow:0 0 0 5px #c99b521f}
+.art-orbit{border-color:#b791523d!important}.art-card-main{border:1px solid #c99b522e;box-shadow:0 28px 70px #1c302424!important}
+.art-image{background:linear-gradient(145deg,#e9e1d0,#f7f3e9)!important}
+.floating-tag{border:1px solid #c99b5233;box-shadow:0 14px 38px #1c30241a!important}
+.trust-strip{background:#fffefa;border-bottom-color:#e9e2d5!important}.trust-strip strong{color:#b38649!important}
+.category-list button{background:#fffefa!important;border-color:#ece5d8!important;border-radius:14px!important;box-shadow:0 5px 16px #1c2b2206}
+.category-list button span{color:#b2874c!important}
+.category-list button:hover,.category-list button.selected{background:#f5efe3!important;border-color:#d7bd8d!important;box-shadow:0 10px 24px #1c2b2212}
+.market-section{background:#fbfaf6!important}.search-box,.market-controls select,.market-controls input{border-color:#e7e0d3!important;border-radius:11px!important;background:#fffefa!important}
+.product-card{border:1px solid #eae4d8!important;border-radius:16px!important;box-shadow:0 6px 20px #1f2c2309}
+.product-card:hover{transform:translateY(-5px);box-shadow:0 20px 42px #1f2c231c!important;border-color:#d9c59e!important}
+.product-visual{background:linear-gradient(145deg,#f3f0e8,#ebe6da)!important}.product-category{background:#fffefaeb!important;border:1px solid #c99b522e}
+.product-info h3{color:#26382f!important}.product-bottom>strong{color:#315b43!important}
+.add-button{background:#f3ead9!important;color:#80602f!important;border:1px solid #ead9b9}.add-button:hover{background:#e8d4ad!important}
+.seller-cta{background:radial-gradient(circle at 85% 15%,#d5b16f33,transparent 28%),linear-gradient(125deg,#172b23,#244b38)!important;border:1px solid #d5b16f38;box-shadow:0 24px 60px #18312324}
+.seller-cta .eyebrow{color:#e2c58e!important}.site-footer{background:#f4f1e9;border-top-color:#e5dece!important;color:#817866!important}
+.state-panel{background:#fffefa!important;border-color:#e4dac8!important;border-radius:16px!important}.state-panel strong{color:#294634!important}
+.toast{background:#1b382b!important;border:1px solid #dbb97766;box-shadow:0 16px 38px #12271b38!important}
+/* Auth */
+app-auth .auth-page{background:radial-gradient(ellipse at 20% 10%,#d9b97e2e,transparent 38%),#f5f2e9!important}
+app-auth .auth-aside{background:radial-gradient(circle at 88% 18%,#d5b16f2e,transparent 28%),linear-gradient(145deg,#14251f,#234a37)!important;border:1px solid #c99b5240!important;box-shadow:0 28px 70px #172a1f2e!important}
+app-auth .auth-brand .brand-mark{background:linear-gradient(145deg,#e5c88f,#bd8c45)!important}
+app-auth .auth-message h1{color:#fffaf0!important}app-auth .auth-message h1 em{color:#e0bd7e!important}
+app-auth .auth-form{background:#fffefaef!important;border:1px solid #e9dfcc!important;border-radius:24px!important;box-shadow:0 28px 75px #2430241a!important}
+app-auth .auth-form h2{color:#1e392c!important}
+app-auth .auth-form input,app-auth .auth-form select{background:#fbfaf6!important;border-color:#e8e0d1!important;border-radius:12px!important}
+app-auth .auth-form input:focus,app-auth .auth-form select:focus{border-color:#c99b52!important;box-shadow:0 0 0 4px #c99b5222!important}
+app-auth .auth-note{background:#f5f0e6!important;border-color:#ece1cc!important}app-auth .auth-note>span{color:#a67a3d!important}
+app-auth .auth-register-note .link-button{color:#956d35!important}
+/* Buyer, merchant, admin dashboards */
+app-dashboard .workspace{background:#f4f2eb!important;grid-template-columns:258px minmax(0,1fr)!important}
+app-dashboard .workspace-sidebar{background:linear-gradient(180deg,#172b23,#1d3b2d)!important;border:0!important;padding:28px 18px!important;box-shadow:10px 0 32px #192b200f}
+app-dashboard .workspace-sidebar .brand{color:#fffaf0!important}app-dashboard .workspace-sidebar .brand small{color:#d4c39f!important}
+app-dashboard .workspace-sidebar .brand-mark{background:linear-gradient(145deg,#e4c487,#b98943)!important;color:#1b2c22!important}
+app-dashboard .workspace-user{border-bottom-color:#ffffff1f!important}app-dashboard .workspace-user strong{color:#fffaf0}app-dashboard .workspace-user small{color:#c5c7b8}
+app-dashboard .user-avatar{background:#e8d8b8!important;color:#3e513e!important}app-dashboard .side-label{color:#c4b18b!important}
+app-dashboard .side-link{color:#d1d8ce!important;border-radius:10px!important}
+app-dashboard .side-link.active,app-dashboard .side-link:hover{background:#e0be7e26!important;color:#f0d49c!important}
+app-dashboard .workspace-main{max-width:1500px!important;padding:38px clamp(20px,4vw,64px)!important}
+app-dashboard .workspace-topbar h1{color:#1e392c!important;letter-spacing:-.04em}
+app-dashboard .welcome-panel{background:radial-gradient(circle at 88% 18%,#e2be7e33,transparent 24%),linear-gradient(115deg,#1a382b,#28563e)!important;border:1px solid #c99b5240;border-radius:20px!important;box-shadow:0 18px 42px #1737261f}
+app-dashboard .welcome-panel .eyebrow{color:#e2c58e!important}app-dashboard .welcome-panel h2{color:#fffaf0!important}app-dashboard .welcome-panel p{color:#d6dfd4!important}app-dashboard .welcome-symbol{color:#e1bd7d!important}
+app-dashboard .workspace-grid{gap:15px!important}
+app-dashboard .workspace-card,app-dashboard .buyer-shortcut,app-dashboard .buyer-insights article{background:#fffefa!important;border:1px solid #e9e2d5!important;border-radius:16px!important;box-shadow:0 6px 20px #1f2c2309}
+app-dashboard .workspace-card{padding:22px!important}app-dashboard .workspace-card>strong{color:#244a36!important}app-dashboard .card-icon{color:#b38649!important}
+app-dashboard .buyer-shortcut:hover{border-color:#d5bd91!important;box-shadow:0 15px 32px #1f2c2314!important}
+app-dashboard .buyer-shortcut>span{background:#f3ead9!important;color:#9a7138!important}
+app-dashboard .workspace-section{background:#fffefa!important;border:1px solid #e9e2d5!important;border-radius:17px!important;box-shadow:0 7px 24px #1f2c2309}
+app-dashboard .workspace-section h2{color:#244a36!important}
+app-dashboard .product-editor,app-dashboard .editor-card{background:#fffefa!important;border-color:#e9e2d5!important}
+app-dashboard .editor-icon{background:#f3ead9!important;color:#9b7138!important}
+app-dashboard .editor-step{background:#f4ecdc!important;color:#946b34!important}
+app-dashboard .upload-drop{background:#faf7ef!important;border-color:#d6bd8e!important}
+app-dashboard .publish-card,app-dashboard .editor-note{background:#f5f0e5!important}
+app-dashboard .product-form input,app-dashboard .product-form select,app-dashboard .product-form textarea,app-dashboard .product-editor input{border-color:#e7decd!important;border-radius:11px!important;background:#fbfaf6!important}
+app-dashboard .product-form input:focus,app-dashboard .product-form select:focus,app-dashboard .product-form textarea:focus{border-color:#c99b52!important;box-shadow:0 0 0 3px #c99b5220!important}
+app-dashboard th{background:#f5f1e8;color:#8c7857!important}app-dashboard td,app-dashboard th{border-bottom:1px solid #eee8dc!important}
+app-dashboard .status-pill{background:#e9f3e9!important;color:#276544!important;border:1px solid #d8e8d8}
+app-dashboard .buyer-insights article{background:linear-gradient(135deg,#fffefa,#f8f3e8)!important}
+/* Other application surfaces */
+app-commerce-hub .engine-card,app-social-commerce .panel,app-sourcing .panel,app-affiliate-dashboard .panel{background:#fffefa!important;border:1px solid #e9e2d5!important;border-radius:17px!important;box-shadow:0 8px 25px #1f2c230a}
+app-commerce-hub .engine-card:hover,app-social-commerce .panel:hover,app-sourcing .panel:hover,app-affiliate-dashboard .panel:hover{border-color:#d9c59e!important;box-shadow:0 16px 34px #1f2c2314}
+app-commerce-hub input,app-commerce-hub select,app-commerce-hub textarea,app-social-commerce input,app-social-commerce select,app-social-commerce textarea,app-sourcing input,app-sourcing select,app-sourcing textarea,app-affiliate-dashboard input,app-affiliate-dashboard select,app-affiliate-dashboard textarea{border-color:#e7decd;border-radius:10px;background:#fffefa}
+app-commerce-hub input:focus,app-commerce-hub select:focus,app-commerce-hub textarea:focus,app-social-commerce input:focus,app-social-commerce select:focus,app-social-commerce textarea:focus,app-sourcing input:focus,app-sourcing select:focus,app-sourcing textarea:focus,app-affiliate-dashboard input:focus,app-affiliate-dashboard select:focus,app-affiliate-dashboard textarea:focus{border-color:#c99b52;box-shadow:0 0 0 3px #c99b5220;outline:0}
+app-cart .cart-page,app-cart .checkout-page{background:#f7f5ef}
+app-cart .cart-card,app-cart .checkout-card,app-cart .summary-card{background:#fffefa;border:1px solid #e9e2d5;border-radius:16px;box-shadow:0 8px 25px #1f2c230a}
+input,select,textarea{accent-color:#b78946}
+@media(max-width:900px){app-dashboard .workspace{grid-template-columns:215px minmax(0,1fr)!important}app-dashboard .workspace-main{padding:28px 18px!important}}
+@media(max-width:680px){.seller-cta{border-radius:18px!important}app-auth .auth-page{padding:12px!important}app-auth .auth-aside{border-radius:18px!important}app-auth .auth-form{padding:22px!important}app-dashboard .workspace{grid-template-columns:minmax(0,1fr)!important}app-dashboard .workspace-sidebar{display:none!important}app-dashboard .workspace-main{padding:22px 14px!important}app-dashboard .welcome-panel{border-radius:16px!important;padding:21px!important}app-dashboard .workspace-grid,app-dashboard .buyer-shortcuts,app-dashboard .buyer-insights{grid-template-columns:1fr!important}app-dashboard .workspace-section{padding:17px!important}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
