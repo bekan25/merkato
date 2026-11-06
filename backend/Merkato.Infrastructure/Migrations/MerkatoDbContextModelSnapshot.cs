@@ -1105,6 +1105,8 @@ b.Property<long>("SellerId")
                 b.Property<string>("Status").IsRequired().HasMaxLength(32).HasColumnType("character varying(32)");
                 b.Property<DateTime>("CreatedAt").HasColumnType("timestamp with time zone");
                 b.Property<DateTime?>("ReleasedAt").HasColumnType("timestamp with time zone");
+                b.Property<string>("PayoutReference").HasMaxLength(120).HasColumnType("character varying(120)");
+                b.Property<DateTime?>("PaidAt").HasColumnType("timestamp with time zone");
                 b.HasKey("Id");
                 b.HasIndex("OrderId").IsUnique();
                 b.HasIndex("CreatorId", "CreatedAt");
