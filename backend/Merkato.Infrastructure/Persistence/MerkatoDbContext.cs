@@ -34,6 +34,7 @@ public class MerkatoDbContext : DbContext
     public DbSet<AffiliateProfile> AffiliateProfiles => Set<AffiliateProfile>();
     public DbSet<AffiliateReferral> AffiliateReferrals => Set<AffiliateReferral>();
     public DbSet<AffiliateCommission> AffiliateCommissions => Set<AffiliateCommission>();
+    public DbSet<MarketplaceFeeSettings> MarketplaceFeeSettings => Set<MarketplaceFeeSettings>();
     public DbSet<Order> Orders => Set<Order>();
     public DbSet<PaymentTransaction> PaymentTransactions => Set<PaymentTransaction>();
     public DbSet<EscrowAccount> EscrowAccounts => Set<EscrowAccount>();
@@ -84,6 +85,13 @@ public class MerkatoDbContext : DbContext
         modelBuilder.Entity<ReturnRequest>(e => { e.HasIndex(x => x.OrderId).IsUnique(); });
         modelBuilder.Entity<LoyaltyAccount>(e => { e.HasKey(x => x.UserId); e.Property(x => x.UserId).ValueGeneratedNever(); });
         modelBuilder.Entity<LoyaltyTransaction>(e => { e.HasIndex(x => new { x.UserId, x.CreatedAt }); });
+
+        modelBuilder.Entity<MarketplaceFeeSettings>(e => {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Id).ValueGeneratedNever();
+            e.Property(x => x.MerchantCommissionRatePercent).HasColumnType("numeric(7,4)");
+            e.Property(x => x.BuyerServiceFeeRatePercent).HasColumnType("numeric(7,4)");
+        });
 
         // User
         modelBuilder.Entity<User>(entity =>
@@ -162,8 +170,13 @@ public class MerkatoDbContext : DbContext
             entity.Property(o => o.TotalAmountEtb)
                 .HasColumnType("numeric(18,4)");
 
-            entity.Property(o => o.DeliveryFeeEtb)
-                .HasColumnType("numeric(18,4)");
+            entity.Property(o => o.DeliveryFeeEtb).HasColumnType("numeric(18,4)");
+            entity.Property(o => o.ProductSubtotalEtb).HasColumnType("numeric(18,4)");
+            entity.Property(o => o.DiscountEtb).HasColumnType("numeric(18,4)");
+            entity.Property(o => o.MerchantCommissionRatePercent).HasColumnType("numeric(7,4)");
+            entity.Property(o => o.MerchantCommissionEtb).HasColumnType("numeric(18,4)");
+            entity.Property(o => o.BuyerServiceFeeRatePercent).HasColumnType("numeric(7,4)");
+            entity.Property(o => o.BuyerServiceFeeEtb).HasColumnType("numeric(18,4)");
 
             entity.Property(o => o.RowVersion)
                 .IsConcurrencyToken();
