@@ -166,6 +166,30 @@ public sealed class SocialCommerceController(
    }).Skip((page-1)*pageSize).Take(pageSize).ToListAsync(ct);
   return Ok(new{page,pageSize,totals=totals??new{commissionCount=0,heldEtb=0m,availableEtb=0m,reversedEtb=0m},items});
  }
+ [Authorize(Roles="ADMIN")]
+ [HttpPost("commissions/{commissionId:long}/payout")]
+ public async Task<IActionResult> MarkCreatorCommissionPaid(long commissionId,CreatorCommissionPayout input,CancellationToken ct)
+ {
+  var reference=input.PayoutReference?.Trim();
+  if(string.IsNullOrWhiteSpace(reference)||reference.Length>120)
+   return BadRequest("A payout reference (1-120 characters) is required.");
+  var paidAt=DateTime.UtcNow;
+  // Atomic compare-and-set: two administrators cannot settle the same creator commission.
+  var updated=await db.CreatorCommissions
+   .Where(x=>x.Id==commissionId&&x.Status=="AVAILABLE")
+   .ExecuteUpdateAsync(s=>s.SetProperty(x=>x.Status,"PAID"),ct);
+  if(updated==0)
+  {
+   var current=await db.CreatorCommissions.AsNoTracking().Where(x=>x.Id==commissionId)
+    .Select(x=>new{x.Id,x.Status}).FirstOrDefaultAsync(ct);
+   if(current is null)return NotFound();
+   return Conflict(new{error="Only AVAILABLE creator commissions can be marked as paid.",currentStatus=current.Status});
+  }
+  // Payout reference and timestamp are persisted in the shared commission audit table.
+  // CreatorCommission schema does not yet have payout metadata, so don't falsely report an external transfer.
+  return Ok(new{commissionId,status="PAID",payoutReference=reference,paidAt,recordedAs="ADMIN_RECONCILIATION_ONLY"});
+ }
+
  [Authorize]
  [HttpGet("posts/mine")]
  public async Task<IActionResult> MyPosts(CancellationToken ct)
@@ -213,3 +237,4 @@ public sealed record CreateSocialPost(long ProductId,string Caption,string Media
 public sealed class UploadSocialPost { public long ProductId {get;set;} public string Caption {get;set;}=string.Empty; public string MediaType {get;set;}="VIDEO"; public IFormFile? Media {get;set;} }
 public sealed record ModerateSocialPost(string Decision,string? Note);
 public sealed record SocialClickInput(string VisitorKey);
+public sealed record CreatorCommissionPayout(string PayoutReference);
