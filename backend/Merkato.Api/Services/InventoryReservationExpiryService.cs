@@ -19,7 +19,9 @@ public sealed class InventoryReservationExpiryService(
                 var now = DateTime.UtcNow;
                 var expiredOrderIds = await db.Orders.AsNoTracking()
                     .Where(x => x.InventoryReservationState == InventoryReservationState.RESERVED &&
-                                x.InventoryReservationExpiresAt <= now)
+                                x.InventoryReservationExpiresAt <= now &&
+                                !db.PaymentTransactions.Any(p => p.OrderId == x.Id && p.Status == PaymentStatus.VERIFIED) &&
+                                !db.PaymentReceipts.Any(r => r.OrderId == x.Id && r.Status == "PENDING_REVIEW"))
                     .OrderBy(x => x.InventoryReservationExpiresAt)
                     .Select(x => x.Id)
                     .Take(100)
