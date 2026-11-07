@@ -23,7 +23,8 @@ public record ProductResponse(
     string? ImageUrl,
     bool IsActive,
     DateTime CreatedAt,
-    bool SellerVerified = false
+    bool SellerVerified = false,
+    int StockQuantity = 0
 );
 
 
