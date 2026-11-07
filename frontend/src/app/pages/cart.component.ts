@@ -67,7 +67,7 @@ interface CartLine { product: MerkatoProduct; quantity: number; }
             <label *ngIf="savedAddresses.length">Use a saved address
               <select name="savedAddress" [(ngModel)]="selectedSavedAddressId" (ngModelChange)="onSavedAddressChange()">
                 <option [ngValue]="0">Enter a new address manually</option>
-                <option *ngFor="let saved of savedAddresses" [ngValue]="saved.id">{{saved.label}} · {{saved.subCity}}, {{saved.city}}<span *ngIf="saved.isDefault"> · Default</span></option>
+                <option *ngFor="let saved of savedAddresses" [ngValue]="saved.id">{{saved.label}} · {{saved.subCity}}, {{saved.city}}{{saved.isDefault ? ' · Default' : ''}}</option>
               </select>
             </label>
             <small class="address-load-error" *ngIf="savedAddressError">{{savedAddressError}} You can still enter the address manually.</small>
