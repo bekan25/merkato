@@ -19,7 +19,8 @@ import { ShoppingAssistantComponent } from '../components/shopping-assistant.com
           <a class="btn btn-light" href="#marketplace">{{ t('explore') }} <span>↘</span></a>
           <a class="hero-secondary" routerLink="/login">{{ t('startSelling') }} <span>↗</span></a>
         </div>
-        <div class="hero-proof"><div class="proof-avatars"><i>ሀ</i><i>አ</i><i>ደ</i></div><span><strong>{{ t('proofTitle') }}</strong><small>{{ t('proofCopy') }}</small></span></div>
+        <div class="hero-assurance-chips" aria-label="Marketplace support features"><span><b aria-hidden="true">✓</b> Local Ethiopian merchants</span><span><b aria-hidden="true">✓</b> Dispute support</span></div>
+        <div class="hero-proof"><span class="hero-proof-mark" aria-hidden="true">✓</span><span><strong>{{ t('proofTitle') }}</strong><small>{{ t('proofCopy') }}</small></span></div>
       </div>
       <div class="hero-art" aria-label="Marketplace product collage">
         <div class="art-orbit orbit-one"></div><div class="art-orbit orbit-two"></div>
@@ -284,6 +285,18 @@ import { ShoppingAssistantComponent } from '../components/shopping-assistant.com
     @media(max-width:760px){.home-value-row{grid-template-columns:1fr;gap:8px;padding:15px 20px}.home-value-item{padding:10px 12px}.category-list.category-image-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.category-list.category-image-grid>button{height:126px}.category-list .category-all-card{min-height:126px}.market-filter-panel{grid-template-columns:repeat(2,minmax(0,1fr));padding:10px}.market-filter-panel .search-box{grid-column:span 2}.market-filter-panel select{height:43px}.price-filter-wrap .price-filter{height:43px}.product-visual{height:165px}.product-info{padding:12px}.product-title-button{font-size:12px}.compare-trigger{font-size:9px;padding:7px 9px}.product-image-hint{font-size:7px}}
     @media(max-width:390px){.market-filter-panel{grid-template-columns:1fr}.market-filter-panel .search-box{grid-column:auto}.product-grid{gap:8px}.product-visual{height:135px}.product-info{padding:10px}.product-bottom>strong{font-size:13px}}
     @media(prefers-reduced-motion:reduce){.category-list.category-image-grid>button,.category-list.category-image-grid>button .category-photo,.product-card{transition:none}.category-list.category-image-grid>button:hover,.product-card:hover{transform:none}}
+    /* Mobile home-page accessibility and trust polish */
+    .hero h1{letter-spacing:-.02em}
+    .hero h1 em{color:#79551c!important}
+    .hero-copy>p{color:#4d5a51!important}
+    .hero .hero-actions .btn-light{color:#fffdf6!important}
+    .hero-assurance-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:15px}
+    .hero-assurance-chips span{display:inline-flex;align-items:center;gap:7px;padding:7px 11px;border:1px solid #d9e5d8;border-radius:999px;background:#f7faf5;color:#254b37;font-size:10px;font-weight:750;line-height:1.3}
+    .hero-assurance-chips b{display:inline-grid;place-items:center;width:15px;height:15px;border-radius:50%;background:#dcecdf;color:#17623e;font-size:10px}
+    .hero-proof-mark{display:grid;place-items:center;flex:0 0 34px;width:34px;height:34px;border:1px solid #cddfcf;border-radius:50%;background:#eaf3e9;color:#17623e;font-weight:900}
+    .hero-proof{gap:10px}
+    @media(max-width:760px){.hero{padding-top:22px!important}.hero h1{letter-spacing:-.02em}.hero-copy>p{color:#4d5a51!important}.hero-assurance-chips{margin-top:12px;gap:7px}.hero-assurance-chips span{font-size:9px;padding:7px 9px}.hero-proof{margin-top:14px}}
+    @media(max-width:390px){.hero-assurance-chips span{font-size:8px;padding:6px 8px}}
   `]
 })
 export class StorefrontComponent implements OnInit, OnDestroy {
