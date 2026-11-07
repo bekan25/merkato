@@ -267,6 +267,11 @@ public class OrdersController : ControllerBase
         if (order.EscrowState != EscrowState.AWAITING_PAYMENT)
             return Conflict(new { message = "Only an unpaid order can be cancelled." });
 
+        var paymentAlreadyVerified = await _db.PaymentTransactions.AnyAsync(
+            x => x.OrderId == orderId && x.Status == PaymentStatus.VERIFIED, ct);
+        if (paymentAlreadyVerified)
+            return Conflict(new { message = "A verified payment cannot be cancelled through the unpaid-order cancellation flow. Contact the seller for the next steps." });
+
         var paymentPending = await _db.PaymentTransactions.AnyAsync(
             x => x.OrderId == orderId && (x.Status == PaymentStatus.INITIATED || x.Status == PaymentStatus.PENDING), ct);
         if (paymentPending)
