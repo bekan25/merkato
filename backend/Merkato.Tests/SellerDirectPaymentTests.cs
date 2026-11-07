@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Merkato.Api.Controllers;
+using Merkato.Api.Services;
 using Merkato.Application.Interfaces;
 using Merkato.Domain.Entities;
 using Merkato.Domain.Enums;
@@ -8,6 +9,7 @@ using Merkato.Infrastructure.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Xunit;
 
 namespace Merkato.Tests;
@@ -166,5 +168,124 @@ public sealed class SellerDirectPaymentTests
         var result = await controller.DeactivateMine(8, CancellationToken.None);
         Assert.IsType<NotFoundResult>(result);
         Assert.True((await db.SellerPaymentAccounts.SingleAsync()).IsActive);
+    }
+
+    private sealed class NoopEscrowService : IEscrowService
+    {
+        public Task<EscrowAccount> LockFundsAsync(long orderId, decimal amountEtb, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<EscrowAccount> ReleaseFundsToMerchantAsync(long orderId, long requesterId, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<EscrowAccount> RefundFundsToBuyerAsync(long orderId, long requesterId, string reason, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<EscrowAccount> FileDisputeAsync(long orderId, long requesterId, string reason, CancellationToken ct = default) => throw new NotSupportedException();
+    }
+
+    private sealed class NoopReceiptOcrService : IReceiptOcrService
+    {
+        public Task<ReceiptOcrResult> ReadAsync(byte[] image, string extension, decimal expectedAmountEtb, CancellationToken ct) =>
+            Task.FromResult(new ReceiptOcrResult("NOT_RUN", null, null, null, null, null));
+    }
+
+    [Fact]
+    public async Task SellerDirectReceiptConfirmationRequiresActiveSellerAccountAndVerifiedReference()
+    {
+        var options = new DbContextOptionsBuilder<MerkatoDbContext>()
+            .UseInMemoryDatabase(nameof(SellerDirectReceiptConfirmationRequiresActiveSellerAccountAndVerifiedReference))
+            .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning)).Options;
+        await using var db = new MerkatoDbContext(options);
+        db.Orders.Add(new Order
+        {
+            Id = 801, SellerId = 22, BuyerId = 33, PaymentMode = "SELLER_DIRECT",
+            PaymentRail = PaymentRail.TELEBIRR, TotalAmountEtb = 250m,
+            EscrowState = EscrowState.AWAITING_PAYMENT
+        });
+        db.PaymentTransactions.Add(new PaymentTransaction
+        {
+            Id = 802, OrderId = 801, AmountEtb = 250m, PaymentRail = PaymentRail.TELEBIRR,
+            Status = PaymentStatus.PENDING
+        });
+        db.PaymentReceipts.Add(new PaymentReceipt
+        {
+            Id = 803, OrderId = 801, BuyerId = 33, PaymentTransactionId = 802,
+            FileName = "receipt.jpg", ContentType = "image/jpeg", Content = new byte[] { 1, 2, 3 },
+            Sha256 = new string('A', 64), TransactionReference = "TXN123456", Status = "PENDING_REVIEW"
+        });
+        db.SellerPaymentAccounts.Add(new SellerPaymentAccount
+        {
+            Id = 804, SellerId = 22, PaymentRail = PaymentRail.TELEBIRR,
+            AccountHolderName = "Test Seller", AccountIdentifier = "0911223344", IsActive = true
+        });
+        await db.SaveChangesAsync();
+
+        var identity = new ClaimsIdentity(new[]
+        {
+            new Claim(ClaimTypes.NameIdentifier, "22"),
+            new Claim(ClaimTypes.Role, "MERCHANT")
+        }, "test");
+        var controller = new PaymentReceiptsController(
+            db, new NoopEscrowService(), new NoopAuditLogService(), new NoopReceiptOcrService())
+        {
+            ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(identity) }
+            }
+        };
+
+        var result = await controller.SellerReview(
+            803, new ReviewPaymentReceiptRequest("APPROVE", "Verified credit in official account", "TXN123456"),
+            CancellationToken.None);
+
+        Assert.IsType<OkObjectResult>(result);
+        Assert.Equal("SELLER_CONFIRMED", (await db.PaymentReceipts.SingleAsync()).Status);
+        Assert.Equal(PaymentStatus.VERIFIED, (await db.PaymentTransactions.SingleAsync()).Status);
+        Assert.Equal("TXN123456", (await db.PaymentTransactions.SingleAsync()).RailTransactionId);
+        Assert.False((await db.PaymentTransactions.SingleAsync()).WebhookVerified);
+    }
+
+    [Fact]
+    public async Task SellerDirectReceiptCannotBeConfirmedWithoutActiveMatchingPaymentAccount()
+    {
+        var options = new DbContextOptionsBuilder<MerkatoDbContext>()
+            .UseInMemoryDatabase(nameof(SellerDirectReceiptCannotBeConfirmedWithoutActiveMatchingPaymentAccount))
+            .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning)).Options;
+        await using var db = new MerkatoDbContext(options);
+        db.Orders.Add(new Order
+        {
+            Id = 811, SellerId = 22, BuyerId = 33, PaymentMode = "SELLER_DIRECT",
+            PaymentRail = PaymentRail.CBE_BIRR, TotalAmountEtb = 250m,
+            EscrowState = EscrowState.AWAITING_PAYMENT
+        });
+        db.PaymentTransactions.Add(new PaymentTransaction
+        {
+            Id = 812, OrderId = 811, AmountEtb = 250m, PaymentRail = PaymentRail.CBE_BIRR,
+            Status = PaymentStatus.PENDING
+        });
+        db.PaymentReceipts.Add(new PaymentReceipt
+        {
+            Id = 813, OrderId = 811, BuyerId = 33, PaymentTransactionId = 812,
+            FileName = "receipt.jpg", ContentType = "image/jpeg", Content = new byte[] { 1, 2, 3 },
+            Sha256 = new string('B', 64), TransactionReference = "CBE123456", Status = "PENDING_REVIEW"
+        });
+        await db.SaveChangesAsync();
+
+        var identity = new ClaimsIdentity(new[]
+        {
+            new Claim(ClaimTypes.NameIdentifier, "22"),
+            new Claim(ClaimTypes.Role, "MERCHANT")
+        }, "test");
+        var controller = new PaymentReceiptsController(
+            db, new NoopEscrowService(), new NoopAuditLogService(), new NoopReceiptOcrService())
+        {
+            ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(identity) }
+            }
+        };
+
+        var result = await controller.SellerReview(
+            813, new ReviewPaymentReceiptRequest("APPROVE", "Attempt without account", "CBE123456"),
+            CancellationToken.None);
+
+        Assert.IsType<ConflictObjectResult>(result);
+        Assert.Equal("PENDING_REVIEW", (await db.PaymentReceipts.SingleAsync()).Status);
+        Assert.Equal(PaymentStatus.PENDING, (await db.PaymentTransactions.SingleAsync()).Status);
     }
 }
