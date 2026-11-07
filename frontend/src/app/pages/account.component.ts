@@ -75,6 +75,52 @@ interface ReturnRequestItem { id:number; orderId:number; reason:string; status:s
  `,
  styles:[`
  :host{display:block;background:#f5f7f4;min-height:100vh;color:#17271d;font-family:Inter,system-ui,sans-serif}.account-shell{max-width:1000px;margin:auto;padding:28px 20px 70px}.back{color:#27764a;text-decoration:none;font-weight:700;font-size:13px}.hero{display:flex;justify-content:space-between;align-items:center;padding:30px 0}.eyebrow{font-size:10px;letter-spacing:2px;font-weight:800;color:#9a7b38}.hero h1{font-size:36px;letter-spacing:-1.4px;margin:8px 0}.hero p,.section-head p,.security p{color:#748078;margin:0;font-size:13px}.avatar{width:64px;height:64px;border-radius:22px;display:grid;place-items:center;overflow:hidden;background:linear-gradient(135deg,#0b6840,#c5a45a);color:white;font-size:28px;font-weight:800}.avatar img{width:100%;height:100%;object-fit:cover}.form-grid textarea{width:100%;box-sizing:border-box;border:1px solid #dfe7df;border-radius:11px;padding:12px;background:#fbfcfb;color:#203128;resize:vertical}.panel{background:rgba(255,255,255,.88);border:1px solid #e3eae3;border-radius:22px;padding:24px;margin:18px 0;box-shadow:0 14px 40px #163c2310}.section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}.section-head h2,.security h2{margin:0 0 5px;font-size:19px}.status,.default{font-size:10px;font-weight:800;letter-spacing:.8px;background:#e8f6ec;color:#227447;padding:8px 11px;border-radius:99px}.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.form-grid label{display:grid;gap:7px;font-size:12px;font-weight:700;color:#526157}.form-grid input{width:100%;box-sizing:border-box;border:1px solid #dfe7df;border-radius:11px;padding:12px;background:#fbfcfb;color:#203128}.form-grid input[readonly]{color:#718078;background:#f1f4f1}.actions{grid-column:1/-1;display:flex;align-items:center;gap:14px;flex-wrap:wrap}button{border:0;border-radius:11px;padding:11px 16px;background:#126b43;color:#fff;font-weight:750;cursor:pointer}button:disabled{opacity:.55;cursor:wait}.secondary{background:#edf4ef;color:#226642}.danger{background:#fff0ed;color:#a33b2c}.muted{font-size:12px;color:#829087}.photo-row{border-top:1px solid #edf0ed;margin-top:22px;padding-top:18px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}.photo-row p{margin:5px 0}.address{display:flex;justify-content:space-between;gap:16px;border:1px solid #e8eee8;border-radius:14px;padding:16px;margin:10px 0}.address-title{font-weight:800;margin-bottom:8px}.address p{font-size:12px;color:#718078;margin:5px 0}.address small{color:#87938b}.address-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.address-form{margin-top:22px;padding-top:20px;border-top:1px solid #edf0ed}.address-form h3{margin:0 0 16px;font-size:16px}.check{display:flex;gap:8px;align-items:center;margin:15px 0;font-size:12px}.empty{padding:24px;border:1px dashed #cbd8cd;border-radius:13px;text-align:center;color:#849087;font-size:13px}.security{display:flex;justify-content:space-between;align-items:center;gap:18px}.record{display:flex;justify-content:space-between;align-items:center;gap:14px;border:1px solid #e8eee8;border-radius:13px;padding:14px;margin:9px 0}.record p{margin:5px 0;color:#718078;font-size:12px}.record small,.record-right span{font-size:11px;color:#829087}.record-right{display:grid;justify-items:end;gap:7px}.record-right a{font-size:12px;color:#176a43;font-weight:750}.form-grid select{width:100%;box-sizing:border-box;border:1px solid #dfe7df;border-radius:11px;padding:12px;background:#fbfcfb;color:#203128}.record{display:flex;justify-content:space-between;align-items:center;gap:14px;border:1px solid #e8eee8;border-radius:13px;padding:14px;margin:9px 0}.record p{margin:5px 0;color:#718078;font-size:12px}.record small,.record-right span{font-size:11px;color:#829087}.record-right{display:grid;justify-items:end;gap:7px}.record-right a{font-size:12px;color:#176a43;font-weight:750}.form-grid select{width:100%;box-sizing:border-box;border:1px solid #dfe7df;border-radius:11px;padding:12px;background:#fbfcfb;color:#203128}.notice{padding:12px 15px;border-radius:12px;margin:12px 0;font-size:13px}.error{background:#fff0ed;color:#a33b2c}.success{background:#e9f7ed;color:#236b43}@media(max-width:650px){.account-shell{padding:20px 14px 50px}.hero h1{font-size:29px}.panel{padding:17px}.form-grid{grid-template-columns:1fr}.address,.security{align-items:flex-start;flex-direction:column}.address-actions{width:100%}}
+ /* Mobile account editor: keep every profile control visible and usable */
+ @media(max-width:768px){
+  :host{width:100%;overflow-x:hidden}
+  .account-shell{width:100%;max-width:100%;box-sizing:border-box;padding:18px 12px 44px}
+  .hero{gap:12px;padding:22px 2px;align-items:center}
+  .hero>div:first-child{min-width:0;flex:1}
+  .hero h1{font-size:clamp(25px,7vw,32px);line-height:1.12;overflow-wrap:anywhere}
+  .hero p{line-height:1.55;max-width:34ch}
+  .avatar{width:54px;height:54px;flex:0 0 54px;border-radius:17px}
+  .panel{width:100%;box-sizing:border-box;margin:12px 0;padding:16px;border-radius:17px;min-width:0}
+  .section-head{align-items:flex-start;gap:10px;flex-wrap:wrap}
+  .section-head>div{min-width:0;flex:1}
+  .section-head h2,.security h2{font-size:17px;line-height:1.3}
+  .section-head p{line-height:1.5}
+  .status{white-space:nowrap;flex:0 0 auto}
+  .form-grid{grid-template-columns:minmax(0,1fr);width:100%;min-width:0;gap:12px}
+  .form-grid label{min-width:0;width:100%;box-sizing:border-box}
+  .form-grid input,.form-grid select,.form-grid textarea{width:100%;min-width:0;max-width:100%;min-height:44px;font-size:16px;box-sizing:border-box}
+  .form-grid input[type=file]{font-size:13px;padding:9px}
+  .actions{width:100%;min-width:0;align-items:stretch;flex-direction:column;gap:9px}
+  .actions button,.panel>button{width:100%;min-height:44px}
+  .actions .muted{line-height:1.45}
+  .photo-row{display:grid;grid-template-columns:minmax(0,1fr);align-items:stretch;gap:10px}
+  .photo-row input[type=file]{width:100%;max-width:100%;min-width:0;font-size:13px}
+  .photo-row button{width:100%;min-height:44px}
+  .address,.record{width:100%;min-width:0;box-sizing:border-box;flex-direction:column;align-items:stretch;gap:12px}
+  .address>div:first-child,.record>div:first-child{min-width:0;overflow-wrap:anywhere}
+  .address-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%;gap:8px}
+  .address-actions button{min-width:0;min-height:42px;padding:10px 8px;font-size:12px}
+  .record-right{width:100%;justify-items:stretch;grid-template-columns:repeat(2,minmax(0,1fr));align-items:center;gap:8px}
+  .record-right>*{min-width:0;overflow-wrap:anywhere}
+  .record-right button{min-height:40px;padding:9px}
+  .record-right .status{justify-self:start}
+  .empty{padding:18px 12px;line-height:1.5}
+  .notice{line-height:1.5;overflow-wrap:anywhere}
+  .check{align-items:flex-start;line-height:1.45}
+  .check input{flex:0 0 auto;width:18px;height:18px;margin-top:1px}
+  .security{display:flex;flex-direction:column;align-items:stretch}
+ }
+ @media(max-width:380px){
+  .account-shell{padding-left:9px;padding-right:9px}
+  .panel{padding:13px}
+  .address-actions,.record-right{grid-template-columns:minmax(0,1fr)}
+  .hero h1{font-size:25px}
+ }
+
  `]
 })
 export class AccountComponent implements OnInit {
