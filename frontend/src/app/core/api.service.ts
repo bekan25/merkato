@@ -23,6 +23,19 @@ interface DiscoveryProductsResponse {
   limit: number;
 }
 
+export interface MerkatoSavedAddress {
+  id: number;
+  label: string;
+  recipientName: string;
+  phoneNumber: string;
+  city: string;
+  subCity: string;
+  woreda?: string | null;
+  streetAddress?: string | null;
+  deliveryInstructions?: string | null;
+  isDefault: boolean;
+}
+
 export interface MerkatoOrder {
   id: number;
   orderNumber: string;
@@ -160,6 +173,10 @@ export class ApiService {
         createdAt: ''
       })))
     );
+  }
+
+  getSavedAddresses(): Observable<MerkatoSavedAddress[]> {
+    return this.http.get<MerkatoSavedAddress[]>(`${this.baseUrl}/account/addresses`);
   }
 
   getMarketplaceFees(): Observable<{ merchantCommissionRatePercent: number; buyerServiceFeeRatePercent: number; isEnabled: boolean; currency: string; updatedAt: string }> {
