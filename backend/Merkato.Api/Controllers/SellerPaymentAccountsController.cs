@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Merkato.Application.Interfaces;
 using Merkato.Domain.Entities;
 using Merkato.Domain.Enums;
 using Merkato.Infrastructure.Persistence;
@@ -13,8 +14,13 @@ namespace Merkato.Api.Controllers;
 public sealed class SellerPaymentAccountsController : ControllerBase
 {
     private readonly MerkatoDbContext _db;
+    private readonly IAuditLogService _audit;
 
-    public SellerPaymentAccountsController(MerkatoDbContext db) => _db = db;
+    public SellerPaymentAccountsController(MerkatoDbContext db, IAuditLogService audit)
+    {
+        _db = db;
+        _audit = audit;
+    }
 
     [HttpGet("mine")]
     [Authorize(Roles = "MERCHANT,ADMIN")]
@@ -71,6 +77,10 @@ public sealed class SellerPaymentAccountsController : ControllerBase
         account.IsActive = request.IsActive;
         account.UpdatedAt = now;
         await _db.SaveChangesAsync(ct);
+        var lastFour = identifier.Length <= 4 ? identifier : identifier[^4..];
+        await _audit.LogAsync(sellerId, "MERCHANT", "SELLER_PAYMENT_ACCOUNT_SAVED",
+            "SELLER_PAYMENT_ACCOUNT", account.Id.ToString(), "SUCCESS",
+            $"Payment rail {account.PaymentRail}; account ending {lastFour}; active={account.IsActive}", ct: ct);
 
         return Ok(new
         {
@@ -91,6 +101,9 @@ public sealed class SellerPaymentAccountsController : ControllerBase
         account.IsActive = false;
         account.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync(ct);
+        await _audit.LogAsync(sellerId, "MERCHANT", "SELLER_PAYMENT_ACCOUNT_DEACTIVATED",
+            "SELLER_PAYMENT_ACCOUNT", account.Id.ToString(), "SUCCESS",
+            $"Payment rail {account.PaymentRail}", ct: ct);
         return NoContent();
     }
 
