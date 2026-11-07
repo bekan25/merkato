@@ -498,6 +498,7 @@ b.Property<long>("SellerId")
 
                     b.Property<int>("PaymentRail")
                         .HasColumnType("integer");
+                b.Property<string>("PaymentMode").IsRequired().HasMaxLength(24).HasColumnType("character varying(24)");
 
                     b.Property<long?>("ProductId")
                         .HasColumnType("bigint");
