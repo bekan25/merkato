@@ -42,24 +42,24 @@ interface UserAddress { id:number; label:string; recipientName:string; phoneNumb
    </form>
   </section>
 
-  <section class="panel"><div class="section-head"><div><h2>My orders</h2><p>Your order history and delivery progress.</p></div><span class="status">{{orders.length}} orders</span></div>
+  <section class="panel" *ngIf="isBuyer"><div class="section-head"><div><h2>My orders</h2><p>Your order history and delivery progress.</p></div><span class="status">{{orders.length}} orders</span></div>
    <div *ngIf="!orders.length" class="empty">No orders found for this account.</div>
    <article class="record" *ngFor="let o of orders"><div><strong>{{o.orderNumber}}</strong><p>{{o.productTitle}} · Qty {{o.quantity}}</p><small>{{o.createdAt | date:'mediumDate'}}</small></div><div class="record-right"><strong>{{o.totalAmountEtb | number:'1.2-2'}} ETB</strong><span>{{o.deliveryStatus}} · {{o.escrowState}}</span><a [routerLink]="'/payment/' + o.id">Payment details</a></div></article>
   </section>
-  <section class="panel"><div class="section-head"><div><h2>Wallet &amp; payments</h2><p>Receipt submissions and their independent review status.</p></div><span class="status">{{receipts.length}} receipts</span></div>
+  <section class="panel" *ngIf="isBuyer"><div class="section-head"><div><h2>Wallet &amp; payments</h2><p>Receipt submissions and their independent review status.</p></div><span class="status">{{receipts.length}} receipts</span></div>
    <div class="notice">A wallet balance is not displayed unless a funded wallet ledger exists. OCR does not confirm payment; receipts remain pending until independently verified.</div>
    <div *ngIf="!receipts.length" class="empty">No payment receipts submitted yet.</div>
    <article class="record" *ngFor="let r of receipts"><div><strong>Order #{{r.orderId}}</strong><p>Reference: {{r.transactionReference || 'Not supplied'}}</p><small>{{r.createdAt | date:'medium'}}</small></div><div class="record-right"><span class="status">{{r.status}}</span><small *ngIf="r.reviewNote">{{r.reviewNote}}</small></div></article>
   </section>
-  <section class="panel"><div class="section-head"><div><h2>Wishlist &amp; saved items</h2><p>Products saved to your account.</p></div><span class="status">{{wishlist.length}} saved</span></div>
+  <section class="panel" *ngIf="isBuyer"><div class="section-head"><div><h2>Wishlist &amp; saved items</h2><p>Products saved to your account.</p></div><span class="status">{{wishlist.length}} saved</span></div>
    <div *ngIf="!wishlist.length" class="empty">Your wishlist is empty.</div>
    <article class="record" *ngFor="let item of wishlist"><div><strong>{{item.productName}}</strong><p>{{item.category}} · {{item.location}}</p><small>Saved {{item.createdAt | date:'mediumDate'}}</small></div><div class="record-right"><strong>{{item.priceEtb | number:'1.2-2'}} ETB</strong><button class="danger" (click)="removeSaved(item)">Remove</button></div></article>
   </section>
-  <section class="panel"><div class="section-head"><div><h2>Notifications</h2><p>{{unreadCount}} unread notifications</p></div><button class="secondary" (click)="markAllRead()" *ngIf="unreadCount">Mark all read</button></div>
+  <section class="panel" *ngIf="isBuyer"><div class="section-head"><div><h2>Notifications</h2><p>{{unreadCount}} unread notifications</p></div><button class="secondary" (click)="markAllRead()" *ngIf="unreadCount">Mark all read</button></div>
    <div *ngIf="!notifications.length" class="empty">No notifications yet.</div>
    <article class="record" *ngFor="let n of notifications"><div><strong>{{n.title}}</strong><p>{{n.message}}</p><small>{{n.createdAt | date:'medium'}}</small></div><div class="record-right"><span class="status">{{n.isRead ? 'READ' : 'UNREAD'}}</span><button class="secondary" *ngIf="!n.isRead" (click)="markRead(n)">Mark read</button><button class="danger" (click)="deleteNotification(n)">Delete</button></div></article>
   </section>
-  <section class="panel"><div class="section-head"><div><h2>Language &amp; preferences</h2><p>Save your preferred language and notification channels.</p></div></div>
+  <section class="panel" *ngIf="isBuyer"><div class="section-head"><div><h2>Language &amp; preferences</h2><p>Save your preferred language and notification channels.</p></div></div>
    <div class="form-grid"><label>Language<select name="languageCode" [(ngModel)]="prefs.languageCode"><option value="om">Afaan Oromoo</option><option value="en">English</option><option value="am">Amharic</option></select></label>
    <label class="check"><input type="checkbox" name="inAppEnabled" [(ngModel)]="prefs.inAppEnabled"> In-app notifications</label><label class="check"><input type="checkbox" name="emailEnabled" [(ngModel)]="prefs.emailEnabled"> Email preference</label><label class="check"><input type="checkbox" name="smsEnabled" [(ngModel)]="prefs.smsEnabled"> SMS preference</label><label class="check"><input type="checkbox" name="marketingEnabled" [(ngModel)]="prefs.marketingEnabled"> Promotions and offers</label></div><button (click)="savePrefs()">Save preferences</button>
   </section>
@@ -75,7 +75,8 @@ export class AccountComponent implements OnInit {
  private http=inject(HttpClient); private auth=inject(AuthService);
  profile:AccountProfile|null=null; addresses:UserAddress[]=[]; orders:AccountOrder[]=[]; receipts:PaymentReceipt[]=[]; wishlist:SavedProduct[]=[]; notifications:AccountNotification[]=[]; unreadCount=0; prefs:NotificationPrefs={languageCode:'en',inAppEnabled:true,emailEnabled:false,smsEnabled:false,marketingEnabled:false}; loading=true; saving=false; savingAddress=false; error=''; message='';
  draft={fullName:''}; pinDraft={currentPin:'',newPin:''}; addressDraft={label:'Home',recipientName:'',phoneNumber:'',city:'Addis Ababa',subCity:'',woreda:'',streetAddress:'',deliveryInstructions:'',isDefault:false};
- ngOnInit(){this.load();this.loadCommerce();this.loadNotifications();}
+ get isBuyer(){return this.auth.user?.role==='BUYER';}
+ ngOnInit(){this.load();if(this.isBuyer){this.loadCommerce();this.loadNotifications();}}
  load(){this.loading=true;this.error='';this.http.get<AccountProfile>('/api/account/profile').subscribe({next:p=>{this.profile=p;this.draft.fullName=p.fullName;this.loading=false;},error:()=>{this.error='Could not load your profile.';this.loading=false;}});this.loadAddresses();}
   loadCommerce(){
   this.http.get<AccountOrder[]>('/api/orders/mine').subscribe({next:x=>this.orders=x||[],error:()=>this.error='Could not load your order history.'});
