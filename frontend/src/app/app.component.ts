@@ -95,13 +95,13 @@ import { MkBadgeComponent } from './shared/ui-primitives.component';
     .cart-count{min-width:20px;height:20px;display:grid;place-items:center;border-radius:50%;background:#fff;color:#087b4d}
     @media(max-width:760px){.global-search{border-radius:12px}.global-search button{border-radius:0}.cart-link{background:transparent;padding:5px}}
     @media(max-width:760px){
-      .site-header{padding:9px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:58px}
+      .site-header{padding:9px 14px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;min-height:58px}
       .brand{font-size:19px}.brand-mark{height:33px;width:33px}
       .brand small{display:none!important}
-      .global-search{display:none!important}
-      .header-actions{display:flex;align-items:center;gap:0}
-      .header-actions>:not(.language-picker){display:none!important}
-      .language-picker{height:34px;padding:0 9px}
+      .global-search{display:flex!important;order:3;flex:0 0 100%;width:100%;max-width:none;height:42px;margin-top:2px}
+      .header-actions{display:flex;align-items:center;justify-content:flex-end;flex:1;gap:8px}
+      .header-actions>:not(.language-picker):not(.account-link):not(.cart-link):not(.account-menu){display:none!important}
+      .language-picker{height:32px;padding:0 8px}.account-link{display:flex!important;padding:6px 8px;border-radius:10px;background:#f1f6ef}.account-link small{font-size:9px}.account-link strong{font-size:10px}.account-menu{display:flex!important;padding:0 4px}.cart-link{display:flex!important;align-items:center;gap:3px;padding:6px 8px!important;border-radius:10px;background:#f1f6ef!important}.cart-link strong{font-size:10px}.cart-icon{font-size:18px}.cart-count{min-width:18px;height:18px;font-size:10px}
       .mobile-menu-toggle{display:none!important}
       .mobile-category-nav{display:flex;gap:8px;overflow-x:auto;overscroll-behavior-inline:contain;scrollbar-width:none;padding:9px 14px 11px;background:#fffefa;border-bottom:1px solid #e9e4d8;white-space:nowrap}
       .mobile-category-nav::-webkit-scrollbar{display:none}
