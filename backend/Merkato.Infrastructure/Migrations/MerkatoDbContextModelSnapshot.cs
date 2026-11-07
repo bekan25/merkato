@@ -855,6 +855,8 @@ b.Property<long>("SellerId")
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<byte[]>("ProfilePhotoContent").HasColumnType("bytea");
+                    b.Property<string>("ProfilePhotoContentType").HasMaxLength(80).HasColumnType("character varying(80)");
                     b.HasKey("Id");
 
                     b.HasIndex("Email")
@@ -1266,6 +1268,27 @@ b.Property<long>("SellerId")
                 b.ToTable("CreatorCommissions");
             });
 
+modelBuilder.Entity("Merkato.Domain.Entities.UserAddress", b =>
+            {
+                b.Property<long>("Id").ValueGeneratedOnAdd().HasColumnType("bigint");
+                NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+                b.Property<string>("City").IsRequired().HasMaxLength(100).HasColumnType("character varying(100)");
+                b.Property<DateTime>("CreatedAt").HasColumnType("timestamp with time zone");
+                b.Property<string>("DeliveryInstructions").HasMaxLength(500).HasColumnType("character varying(500)");
+                b.Property<bool>("IsDefault").HasColumnType("boolean");
+                b.Property<string>("Label").IsRequired().HasMaxLength(40).HasColumnType("character varying(40)");
+                b.Property<string>("PhoneNumber").IsRequired().HasMaxLength(20).HasColumnType("character varying(20)");
+                b.Property<string>("RecipientName").IsRequired().HasMaxLength(120).HasColumnType("character varying(120)");
+                b.Property<string>("StreetAddress").HasMaxLength(300).HasColumnType("character varying(300)");
+                b.Property<string>("SubCity").IsRequired().HasMaxLength(100).HasColumnType("character varying(100)");
+                b.Property<DateTime>("UpdatedAt").HasColumnType("timestamp with time zone");
+                b.Property<long>("UserId").HasColumnType("bigint");
+                b.Property<string>("Woreda").HasMaxLength(100).HasColumnType("character varying(100)");
+                b.HasKey("Id");
+                b.HasIndex("UserId", "IsDefault");
+                b.ToTable("UserAddresses");
+            });
+            
 #pragma warning restore 612, 618
         }
     }
