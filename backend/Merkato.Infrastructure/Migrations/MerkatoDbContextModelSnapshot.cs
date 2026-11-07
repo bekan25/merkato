@@ -1285,7 +1285,7 @@ modelBuilder.Entity("Merkato.Domain.Entities.UserAddress", b =>
                 b.Property<long>("UserId").HasColumnType("bigint");
                 b.Property<string>("Woreda").HasMaxLength(100).HasColumnType("character varying(100)");
                 b.HasKey("Id");
-                b.HasIndex("UserId", "IsDefault");
+                b.HasIndex("UserId").IsUnique().HasFilter("\"IsDefault\" = TRUE");
                 b.ToTable("UserAddresses");
             });
             
