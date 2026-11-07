@@ -151,7 +151,7 @@ public sealed class PaymentReceiptsController : ControllerBase
             from receipt in _db.PaymentReceipts.AsNoTracking()
             join order in _db.Orders.AsNoTracking() on receipt.OrderId equals order.Id
             join payment in _db.PaymentTransactions.AsNoTracking() on receipt.PaymentTransactionId equals payment.Id
-            where receipt.Status == "PENDING_REVIEW"
+            where receipt.Status == "PENDING_REVIEW" && order.PaymentMode != "SELLER_DIRECT"
             orderby receipt.CreatedAt
             select new
             {
@@ -288,7 +288,7 @@ public sealed class PaymentReceiptsController : ControllerBase
             from receipt in _db.PaymentReceipts.AsNoTracking()
             join order in _db.Orders.AsNoTracking() on receipt.OrderId equals order.Id
             join payment in _db.PaymentTransactions.AsNoTracking() on receipt.PaymentTransactionId equals payment.Id
-            where order.SellerId == sellerId && receipt.Status == "PENDING_REVIEW"
+            where order.SellerId == sellerId && order.PaymentMode == "SELLER_DIRECT" && receipt.Status == "PENDING_REVIEW"
             orderby receipt.CreatedAt
             select new
             {
