@@ -59,6 +59,10 @@ public sealed class PaymentReceiptsController : ControllerBase
         if (order.BuyerId != buyerId && !User.IsInRole("ADMIN")) return Forbid();
         if (order.EscrowState != EscrowState.AWAITING_PAYMENT)
             return Conflict(new { error = "This order is not awaiting payment." });
+        if (order.InventoryReservationState is InventoryReservationState.RELEASED or InventoryReservationState.EXPIRED ||
+            (order.InventoryReservationState == InventoryReservationState.RESERVED &&
+             order.InventoryReservationExpiresAt <= DateTime.UtcNow))
+            return Conflict(new { error = "The order inventory reservation has expired. Do not transfer; contact the seller if you already sent money." });
 
         var payment = await _db.PaymentTransactions
             .Where(x => x.OrderId == orderId)
@@ -125,7 +129,7 @@ public sealed class PaymentReceiptsController : ControllerBase
             ocrAmountEtb = ocr.AmountEtb,
             ocrTransactionDate = ocr.TransactionDate,
             ocrError = ocr.Error,
-            message = "Receipt received. OCR extracted visible details; payment remains pending until an administrator independently confirms the transfer."
+            message = order.PaymentMode == "SELLER_DIRECT" ? "Receipt received. OCR only extracts visible details; payment remains pending until the seller independently confirms funds in their own account." : "Receipt received. OCR extracted visible details; payment remains pending until an administrator independently confirms the transfer."
         });
     }
 
