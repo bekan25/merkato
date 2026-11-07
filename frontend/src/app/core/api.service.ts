@@ -14,6 +14,7 @@ export interface MerkatoProduct {
   imageUrl?: string | null;
   isActive: boolean;
   createdAt: string;
+  stockQuantity?: number;
 }
 
 interface DiscoveryProductsResponse {
@@ -205,7 +206,7 @@ export class ApiService {
     return this.http.post<ShoppingAssistantResponse>(`${this.baseUrl}/assistant/chat`, { message });
   }
 
-  createProduct(payload: { name: string; priceEtb: number; location: string; category: string; emoji: string }): Observable<MerkatoProduct> {
+  createProduct(payload: { name: string; priceEtb: number; stockQuantity: number; location: string; category: string; emoji: string }): Observable<MerkatoProduct> {
     return this.http.post<MerkatoProduct>(`${this.baseUrl}/products`, payload);
   }
 
@@ -215,7 +216,7 @@ export class ApiService {
     return this.http.post<MerkatoProduct>(`${this.baseUrl}/products/${id}/image`, form);
   }
 
-  updateProduct(id: number, payload: { name: string; priceEtb: number; location: string; category: string; emoji: string }): Observable<MerkatoProduct> {
+  updateProduct(id: number, payload: { name: string; priceEtb: number; stockQuantity: number; location: string; category: string; emoji: string }): Observable<MerkatoProduct> {
     return this.http.put<MerkatoProduct>(`${this.baseUrl}/products/${id}`, payload);
   }
 
