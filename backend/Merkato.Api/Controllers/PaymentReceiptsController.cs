@@ -86,6 +86,14 @@ public sealed class PaymentReceiptsController : ControllerBase
         if (reference is not null && await _db.PaymentReceipts.AnyAsync(x => x.TransactionReference == reference, ct))
             return Conflict(new { error = "This transaction reference has already been submitted." });
 
+        var crossCheck = ReceiptCrossCheck.Evaluate(new ReceiptCrossCheckInput(
+            ocr,
+            string.IsNullOrWhiteSpace(transactionReference) ? null : reference,
+            order.CreatedAt,
+            order.PaymentRail,
+            await ExpectedReceiverAsync(order.SellerId, order.PaymentRail, order.PaymentMode, ct),
+            DateTime.UtcNow));
+
         var contentType = extension == ".png" ? "image/png" : "image/jpeg";
         var safeName = Path.GetFileName(receipt.FileName);
         var record = new PaymentReceipt
@@ -113,7 +121,7 @@ public sealed class PaymentReceiptsController : ControllerBase
 
         await _audit.LogAsync(buyerId, "BUYER", "PAYMENT_RECEIPT_UPLOADED",
             "PAYMENT_RECEIPT", record.Id.ToString(), "SUCCESS",
-            $"Order {order.OrderNumber}; SHA256 {record.Sha256}", ct: ct);
+            $"Order {order.OrderNumber}; SHA256 {record.Sha256}; checks {(crossCheck.IsClean ? "none" : string.Join(",", crossCheck.Flags))}", ct: ct);
 
         return Accepted(new
         {
@@ -129,6 +137,8 @@ public sealed class PaymentReceiptsController : ControllerBase
             ocrAmountEtb = ocr.AmountEtb,
             ocrTransactionDate = ocr.TransactionDate,
             ocrError = ocr.Error,
+            verificationFlags = crossCheck.Flags,
+            verificationNotes = crossCheck.Flags.Select(ReceiptCrossCheck.Describe),
             message = order.PaymentMode == "SELLER_DIRECT" ? "Receipt received. OCR only extracts visible details; payment remains pending until the seller independently confirms funds in their own account." : "Receipt received. OCR extracted visible details; payment remains pending until an administrator independently confirms the transfer."
         });
     }
@@ -162,7 +172,8 @@ public sealed class PaymentReceiptsController : ControllerBase
                 receipt.Id, receipt.OrderId, order.OrderNumber, receipt.BuyerId,
                 receipt.PaymentTransactionId, expectedAmountEtb = payment.AmountEtb,
                 receipt.TransactionReference, receipt.FileName, receipt.ContentType,
-                receipt.Sha256, receipt.Status, receipt.CreatedAt, receipt.Content
+                receipt.Sha256, receipt.Status, receipt.CreatedAt, receipt.Content,
+                OrderCreatedAt = order.CreatedAt, OrderRail = order.PaymentRail
             }).Take(100).ToListAsync(ct);
         var result = new List<object>(records.Count);
         foreach (var item in records)
@@ -175,7 +186,12 @@ public sealed class PaymentReceiptsController : ControllerBase
                 item.expectedAmountEtb, item.TransactionReference, item.FileName, item.ContentType,
                 item.Sha256, item.Status, item.CreatedAt, ocrStatus = ocr.Status,
                 ocrProvider = ocr.Provider, ocrTransactionReference = ocr.TransactionReference,
-                ocrAmountEtb = ocr.AmountEtb, ocrTransactionDate = ocr.TransactionDate, ocrError = ocr.Error
+                ocrAmountEtb = ocr.AmountEtb, ocrTransactionDate = ocr.TransactionDate, ocrError = ocr.Error,
+                verificationFlags = ReceiptCrossCheck.Evaluate(new ReceiptCrossCheckInput(
+                    ocr, item.TransactionReference, item.OrderCreatedAt, item.OrderRail, null, DateTime.UtcNow)).Flags,
+                verificationNotes = ReceiptCrossCheck.Evaluate(new ReceiptCrossCheckInput(
+                    ocr, item.TransactionReference, item.OrderCreatedAt, item.OrderRail, null, DateTime.UtcNow)).Flags
+                    .Select(ReceiptCrossCheck.Describe)
             });
         }
         return Ok(result);
@@ -299,9 +315,34 @@ public sealed class PaymentReceiptsController : ControllerBase
                 receipt.Id, receipt.OrderId, order.OrderNumber, receipt.BuyerId,
                 receipt.PaymentTransactionId, expectedAmountEtb = payment.AmountEtb,
                 receipt.TransactionReference, receipt.FileName, receipt.ContentType,
-                receipt.Sha256, receipt.Status, receipt.CreatedAt
+                receipt.Sha256, receipt.Status, receipt.CreatedAt, receipt.Content,
+                OrderCreatedAt = order.CreatedAt, OrderRail = order.PaymentRail
             }).Take(100).ToListAsync(ct);
-        return Ok(records);
+
+        var accounts = await _db.SellerPaymentAccounts.AsNoTracking()
+            .Where(x => x.SellerId == sellerId && x.IsActive)
+            .OrderByDescending(x => x.UpdatedAt)
+            .ToListAsync(ct);
+        var result = new List<object>(records.Count);
+        foreach (var item in records)
+        {
+            var extension = item.ContentType == "image/png" ? ".png" : ".jpg";
+            var ocr = await _ocr.ReadAsync(item.Content, extension, item.expectedAmountEtb, ct);
+            var receiver = accounts.FirstOrDefault(a => a.PaymentRail == item.OrderRail)?.AccountIdentifier;
+            var check = ReceiptCrossCheck.Evaluate(new ReceiptCrossCheckInput(
+                ocr, item.TransactionReference, item.OrderCreatedAt, item.OrderRail, receiver, DateTime.UtcNow));
+            result.Add(new
+            {
+                item.Id, item.OrderId, item.OrderNumber, item.BuyerId, item.PaymentTransactionId,
+                item.expectedAmountEtb, item.TransactionReference, item.FileName, item.ContentType,
+                item.Sha256, item.Status, item.CreatedAt, ocrStatus = ocr.Status,
+                ocrProvider = ocr.Provider, ocrTransactionReference = ocr.TransactionReference,
+                ocrAmountEtb = ocr.AmountEtb, ocrTransactionDate = ocr.TransactionDate, ocrError = ocr.Error,
+                verificationFlags = check.Flags,
+                verificationNotes = check.Flags.Select(ReceiptCrossCheck.Describe)
+            });
+        }
+        return Ok(result);
     }
 
     [HttpGet("seller/{id:long}/file")]
@@ -406,6 +447,16 @@ public sealed class PaymentReceiptsController : ControllerBase
             message = "Seller confirmation recorded. MERKATO did not receive or hold the funds."
         });
     }
+
+    // Only seller-direct orders pay into an account MERKATO knows about (the seller's own destination).
+    private Task<string?> ExpectedReceiverAsync(long sellerId, PaymentRail rail, string paymentMode, CancellationToken ct) =>
+        paymentMode == "SELLER_DIRECT"
+            ? _db.SellerPaymentAccounts.AsNoTracking()
+                .Where(x => x.SellerId == sellerId && x.PaymentRail == rail && x.IsActive)
+                .OrderByDescending(x => x.UpdatedAt)
+                .Select(x => x.AccountIdentifier)
+                .FirstOrDefaultAsync(ct)
+            : Task.FromResult<string?>(null);
 
     private static bool HasValidImageSignature(byte[] bytes, string extension)
     {
