@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
-import { ApiService, MerkatoProduct } from '../core/api.service';
+import { ApiService, MerkatoProduct, MerkatoSavedAddress } from '../core/api.service';
 import { AuthService } from '../core/auth.service';
 
 interface CartLine { product: MerkatoProduct; quantity: number; }
@@ -64,6 +64,13 @@ interface CartLine { product: MerkatoProduct; quantity: number; }
           <div class="summary-row" *ngIf="couponDiscountEtb > 0"><span>Coupon discount</span><strong>−{{couponDiscountEtb | number:'1.2-2'}} ETB</strong></div>
           <div class="summary-total"><span>{{ t('estimatedTotal') }}</span><strong>{{(subtotal - couponDiscountEtb + (deliveryFeeEtb || 0) * lines.length) | number:'1.2-2'}} ETB</strong></div>
           <form (ngSubmit)="checkout()">
+            <label *ngIf="savedAddresses.length">Use a saved address
+              <select name="savedAddress" [(ngModel)]="selectedSavedAddressId" (ngModelChange)="onSavedAddressChange()">
+                <option [ngValue]="0">Enter a new address manually</option>
+                <option *ngFor="let saved of savedAddresses" [ngValue]="saved.id">{{saved.label}} · {{saved.subCity}}, {{saved.city}}<span *ngIf="saved.isDefault"> · Default</span></option>
+              </select>
+            </label>
+            <small class="address-load-error" *ngIf="savedAddressError">{{savedAddressError}} You can still enter the address manually.</small>
             <label>{{ t('deliveryAddress') }}<textarea name="address" [(ngModel)]="address" required rows="3" placeholder="{{ t('addressPlaceholder') }}"></textarea></label>
             <label>{{ t('cityArea') }}<select name="city" [(ngModel)]="cityArea" (ngModelChange)="onCityChange()" required>
               <option *ngFor="let city of supportedCities" [value]="city">{{city}}</option>
@@ -220,6 +227,9 @@ export class CartComponent implements OnInit, OnDestroy {
   success = '';
   paymentReadyOrderIds: number[] = [];
   address = '';
+  savedAddresses: MerkatoSavedAddress[] = [];
+  selectedSavedAddressId = 0;
+  savedAddressError = '';
   cityArea = 'Addis Ababa';
   readonly supportedCities = ['Addis Ababa','Adama','Hawassa','Bahir Dar','Dire Dawa','Jimma','Mekelle','Gondar','Dessie'];
   deliveryFeeEtb: number | null = null;
@@ -255,6 +265,8 @@ export class CartComponent implements OnInit, OnDestroy {
       return;
     }
 
+    if (this.auth.user?.role === 'BUYER') this.loadSavedAddresses();
+
     let stored: Array<{ productId: number; quantity: number }> = [];
     try {
       const parsed: unknown = JSON.parse(sessionStorage.getItem('merkato_cart') || '[]');
@@ -283,7 +295,53 @@ export class CartComponent implements OnInit, OnDestroy {
     });
   }
 
-  onCityChange(): void { this.loadDeliveryQuote(); }
+  private loadSavedAddresses(): void {
+    this.api.getSavedAddresses().subscribe({
+      next: addresses => {
+        this.savedAddresses = (addresses || []).slice().sort((a, b) =>
+          Number(b.isDefault) - Number(a.isDefault) || a.id - b.id
+        );
+        const preferred = this.savedAddresses.find(x => x.isDefault) || this.savedAddresses[0];
+        if (preferred) {
+          this.selectedSavedAddressId = preferred.id;
+          this.onSavedAddressChange();
+        }
+      },
+      error: () => {
+        this.savedAddressError = 'Saved addresses could not be loaded.';
+      }
+    });
+  }
+
+  onSavedAddressChange(): void {
+    const saved = this.savedAddresses.find(x => x.id === Number(this.selectedSavedAddressId));
+    if (!saved) {
+      this.address = '';
+      return;
+    }
+    const parts = [
+      saved.recipientName,
+      saved.phoneNumber,
+      saved.streetAddress,
+      saved.woreda,
+      saved.subCity,
+      saved.deliveryInstructions
+    ].filter(value => !!value && String(value).trim());
+    this.address = parts.join(', ');
+    const matchedCity = this.supportedCities.find(city => city.toLowerCase() === saved.city.trim().toLowerCase());
+    if (matchedCity) {
+      this.cityArea = matchedCity;
+      this.loadDeliveryQuote();
+    } else {
+      this.cityArea = saved.city.trim();
+      this.deliveryFeeEtb = null;
+      this.deliveryQuoteError = `Delivery fee is not configured for ${saved.city}. Choose a supported delivery city to continue.`;
+    }
+  }
+
+  onCityChange(): void {
+    this.loadDeliveryQuote();
+  }
 
   private loadDeliveryQuote(): void {
     this.deliveryQuoteLoading = true;
@@ -365,6 +423,10 @@ export class CartComponent implements OnInit, OnDestroy {
     this.paymentReadyOrderIds = [];
     if (!this.lines.length) { this.error = 'Your cart is empty.'; return; }
     if (!this.address.trim() || !this.cityArea.trim()) { this.error = 'Enter your delivery address and city / area.'; return; }
+    if (!this.supportedCities.some(city => city.toLowerCase() === this.cityArea.trim().toLowerCase())) {
+      this.error = 'Choose a city with an available delivery quote, or contact MERKATO support for this delivery area.';
+      return;
+    }
     if (this.deliveryFeeEtb === null || this.deliveryQuoteLoading) { this.error = this.deliveryQuoteError || 'Wait for a valid delivery fee quote before placing the order.'; return; }
     if (!this.auth.isAuthenticated || this.auth.user?.role !== 'BUYER') {
       this.error = 'Please sign in with a buyer account to place orders.';
