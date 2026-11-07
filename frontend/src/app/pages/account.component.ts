@@ -51,7 +51,7 @@ interface UserAddress { id:number; label:string; recipientName:string; phoneNumb
 export class AccountComponent implements OnInit {
  private http=inject(HttpClient); private auth=inject(AuthService);
  profile:AccountProfile|null=null; addresses:UserAddress[]=[]; orders:AccountOrder[]=[]; receipts:PaymentReceipt[]=[]; wishlist:SavedProduct[]=[]; notifications:AccountNotification[]=[]; unreadCount=0; prefs:NotificationPrefs={languageCode:'en',inAppEnabled:true,emailEnabled:false,smsEnabled:false,marketingEnabled:false}; loading=true; saving=false; savingAddress=false; error=''; message='';
- draft={fullName:''}; addressDraft={label:'Home',recipientName:'',phoneNumber:'',city:'Addis Ababa',subCity:'',woreda:'',streetAddress:'',deliveryInstructions:'',isDefault:false};
+ draft={fullName:''}; pinDraft={currentPin:'',newPin:''}; addressDraft={label:'Home',recipientName:'',phoneNumber:'',city:'Addis Ababa',subCity:'',woreda:'',streetAddress:'',deliveryInstructions:'',isDefault:false};
  ngOnInit(){this.load();this.loadCommerce();this.loadNotifications();}
  load(){this.loading=true;this.error='';this.http.get<AccountProfile>('/api/account/profile').subscribe({next:p=>{this.profile=p;this.draft.fullName=p.fullName;this.loading=false;},error:()=>{this.error='Could not load your profile.';this.loading=false;}});this.loadAddresses();}
   loadCommerce(){
@@ -76,5 +76,9 @@ export class AccountComponent implements OnInit {
  saveAddress(){this.savingAddress=true;this.http.post('/api/account/addresses',this.addressDraft).subscribe({next:()=>{this.savingAddress=false;this.message='Delivery address saved.';this.addressDraft={label:'Home',recipientName:'',phoneNumber:'',city:'Addis Ababa',subCity:'',woreda:'',streetAddress:'',deliveryInstructions:'',isDefault:false};this.loadAddresses();},error:e=>{this.savingAddress=false;this.error=e?.error?.message||'Address could not be saved.';}});}
  setDefault(a:UserAddress){this.http.post('/api/account/addresses/'+a.id+'/default',{}).subscribe({next:()=>{this.message='Default address updated.';this.loadAddresses();},error:()=>this.error='Could not update the default address.'});}
  deleteAddress(a:UserAddress){if(!confirm('Delete this delivery address?'))return;this.http.delete('/api/account/addresses/'+a.id).subscribe({next:()=>{this.message='Address deleted.';this.loadAddresses();},error:()=>this.error='Could not delete this address.'});}
+ changePin(){
+  if(!/^\\d{6,8}$/.test(this.pinDraft.newPin)){this.error='New PIN must contain 6 to 8 digits.';return;}
+  this.http.post('/api/auth/change-pin',this.pinDraft).subscribe({next:()=>{this.message='PIN updated. Please sign in again.';this.auth.logout();window.location.href='/login';},error:e=>this.error=e?.error||'Could not change your PIN.'});
+ }
  logout(){this.auth.logout();window.location.href='/';}
 }
