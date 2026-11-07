@@ -13,6 +13,7 @@ import { SocialCommerceComponent } from './pages/social-commerce.component';
 import { AffiliateDashboardComponent } from './pages/affiliate-dashboard.component';
 import { PaymentReceiptComponent } from './pages/payment-receipt.component';
 import { AdminPaymentReviewsComponent } from './pages/admin-payment-reviews.component';
+import { SellerPaymentSettingsComponent } from './pages/seller-payment-settings.component';
 import { authGuard, roleGuard } from './core/route.guards';
 
 export const routes: Routes = [
@@ -28,6 +29,7 @@ export const routes: Routes = [
   { path: 'dashboard', component: DashboardComponent, canActivate: [authGuard], title: 'Dashboard | MERKATO' },
   { path: 'account', component: AccountComponent, canActivate: [authGuard], title: 'My Account | MERKATO' },
   { path: 'merchant', component: DashboardComponent, canActivate: [roleGuard], data: { roles: ['MERCHANT', 'ADMIN'] } },
+  { path: 'merchant/payment-settings', component: SellerPaymentSettingsComponent, canActivate: [roleGuard], data: { roles: ['MERCHANT', 'ADMIN'] }, title: 'Seller payment accounts | MERKATO' },
   { path: 'admin', component: AdminDashboardComponent, canActivate: [roleGuard], data: { roles: ['ADMIN'] }, title: 'Admin Console | MERKATO' },
   { path: 'admin/operations', component: AdminOperationsComponent, canActivate: [roleGuard], data: { roles: ['ADMIN'] }, title: 'Admin Operations | MERKATO' },
   { path: 'admin/payments', component: AdminPaymentReviewsComponent, canActivate: [roleGuard], data: { roles: ['ADMIN'] }, title: 'Payment review | MERKATO' },
