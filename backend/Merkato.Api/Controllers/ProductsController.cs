@@ -83,16 +83,9 @@ public class ProductsController : ControllerBase
         var products = await query
             .OrderByDescending(p => p.CreatedAt)
             .Select(p => new ProductResponse(
-                p.Id,
-                p.SellerId,
-                p.Name,
-                p.PriceEtb,
-                p.Location,
-                p.Category,
-                p.Emoji,
-                p.ImageUrl,
-                p.IsActive,
-                p.CreatedAt))
+                p.Id, p.SellerId, p.Name, p.PriceEtb, p.Location, p.Category, p.Emoji,
+                p.ImageUrl, p.IsActive, p.CreatedAt,
+                _db.ProductListingDetails.Where(x => x.ProductId == p.Id).Select(x => (int?)x.StockQuantity).FirstOrDefault() ?? 0))
             .ToListAsync();
 
         return Ok(products);
@@ -118,7 +111,8 @@ public class ProductsController : ControllerBase
                 p.Emoji,
                 p.ImageUrl,
                 p.IsActive,
-                p.CreatedAt))
+                p.CreatedAt,
+                _db.ProductListingDetails.Where(x => x.ProductId == p.Id).Select(x => (int?)x.StockQuantity).FirstOrDefault() ?? 0))
             .FirstOrDefaultAsync();
 
         if (product == null)
@@ -141,6 +135,8 @@ public class ProductsController : ControllerBase
 
         if (request.PriceEtb <= 0 || request.PriceEtb > 1000000000m)
             return BadRequest("Price must be greater than zero and within the supported ETB range.");
+        if (request.StockQuantity < 0 || request.StockQuantity > 1000000)
+            return BadRequest("Stock quantity must be between 0 and 1,000,000.");
 
         if (string.IsNullOrWhiteSpace(request.Category) ||
             request.Category.Trim().Length > 100)
@@ -188,6 +184,14 @@ public class ProductsController : ControllerBase
 
         _db.Products.Add(product);
         await _db.SaveChangesAsync();
+        _db.ProductListingDetails.Add(new ProductListingDetail
+        {
+            ProductId = product.Id,
+            StockQuantity = request.StockQuantity,
+            ReservedQuantity = 0,
+            UpdatedAt = DateTime.UtcNow
+        });
+        await _db.SaveChangesAsync();
 
         return Ok(new ProductResponse(
             product.Id,
@@ -199,7 +203,8 @@ public class ProductsController : ControllerBase
             product.Emoji,
             product.ImageUrl,
             product.IsActive,
-            product.CreatedAt));
+            product.CreatedAt,
+            request.StockQuantity));
     }
 
     // ==========================================
@@ -239,6 +244,13 @@ public class ProductsController : ControllerBase
             request.Location.Trim().Length > 160)
             return BadRequest("A city or store location is required (max 160 characters).");
 
+        if (request.StockQuantity < 0 || request.StockQuantity > 1000000)
+            return BadRequest("Stock quantity must be between 0 and 1,000,000.");
+
+        var inventory = await _db.ProductListingDetails.FirstOrDefaultAsync(x => x.ProductId == product.Id);
+        if (inventory != null && request.StockQuantity < inventory.ReservedQuantity)
+            return Conflict(new { message = "Stock cannot be lower than units already reserved.", reservedQuantity = inventory.ReservedQuantity });
+
         var previousPriceEtb = product.PriceEtb;
         product.Name = request.Name.Trim();
         product.PriceEtb = request.PriceEtb;
@@ -252,6 +264,16 @@ public class ProductsController : ControllerBase
             ? "??"
             : request.Emoji.Trim();
         product.UpdatedAt = DateTime.UtcNow;
+        if (inventory == null)
+        {
+            inventory = new ProductListingDetail { ProductId = product.Id, StockQuantity = request.StockQuantity, ReservedQuantity = 0, UpdatedAt = DateTime.UtcNow };
+            _db.ProductListingDetails.Add(inventory);
+        }
+        else
+        {
+            inventory.StockQuantity = request.StockQuantity;
+            inventory.UpdatedAt = DateTime.UtcNow;
+        }
 
         // Trigger each matching buyer alert exactly once in the same database save.
         if (request.PriceEtb < previousPriceEtb)
@@ -288,7 +310,8 @@ public class ProductsController : ControllerBase
             product.Emoji,
             product.ImageUrl,
             product.IsActive,
-            product.CreatedAt));
+            product.CreatedAt,
+            inventory.StockQuantity));
     }
 
     // ==========================================
@@ -448,7 +471,8 @@ public class ProductsController : ControllerBase
             product.Emoji,
             product.ImageUrl,
             product.IsActive,
-            product.CreatedAt));
+            product.CreatedAt,
+            await _db.ProductListingDetails.Where(x => x.ProductId == product.Id).Select(x => (int?)x.StockQuantity).FirstOrDefaultAsync() ?? 0));
     }
 
     // ==========================================
