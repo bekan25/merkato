@@ -14,6 +14,7 @@ export interface MerkatoProduct {
   imageUrl?: string | null;
   isActive: boolean;
   createdAt: string;
+  stockQuantity?: number;
 }
 
 interface DiscoveryProductsResponse {
@@ -158,7 +159,7 @@ export class ApiService {
     return this.http.post<ShoppingAssistantResponse>(`${this.baseUrl}/assistant/chat`, { message });
   }
 
-  createProduct(payload: { name: string; priceEtb: number; location: string; category: string; emoji: string }): Observable<MerkatoProduct> {
+  createProduct(payload: { name: string; priceEtb: number; location: string; category: string; emoji: string; stockQuantity: number }): Observable<MerkatoProduct> {
     return this.http.post<MerkatoProduct>(`${this.baseUrl}/products`, payload);
   }
 
