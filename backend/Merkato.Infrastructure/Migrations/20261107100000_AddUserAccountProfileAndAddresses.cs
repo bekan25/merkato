@@ -1,8 +1,12 @@
 using System;
 using Microsoft.EntityFrameworkCore.Migrations;
+using Merkato.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 
 #nullable disable
 namespace Merkato.Infrastructure.Migrations;
+[DbContext(typeof(MerkatoDbContext))]
+[Migration("20261107100000_AddUserAccountProfileAndAddresses")]
 public partial class AddUserAccountProfileAndAddresses : Migration
 {
  protected override void Up(MigrationBuilder migrationBuilder)
