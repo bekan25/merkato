@@ -5,6 +5,7 @@ using Merkato.Application.Interfaces;
 using Merkato.Domain.Entities;
 using Merkato.Domain.Enums;
 using Merkato.Infrastructure.Persistence;
+using Merkato.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -21,12 +22,14 @@ public sealed class PaymentReceiptsController : ControllerBase
     private readonly MerkatoDbContext _db;
     private readonly IEscrowService _escrow;
     private readonly IAuditLogService _audit;
+    private readonly IReceiptOcrService _ocr;
 
-    public PaymentReceiptsController(MerkatoDbContext db, IEscrowService escrow, IAuditLogService audit)
+    public PaymentReceiptsController(MerkatoDbContext db, IEscrowService escrow, IAuditLogService audit, IReceiptOcrService ocr)
     {
         _db = db;
         _escrow = escrow;
         _audit = audit;
+        _ocr = ocr;
     }
 
     [HttpPost]
@@ -66,17 +69,18 @@ public sealed class PaymentReceiptsController : ControllerBase
         if (payment.AmountEtb != order.TotalAmountEtb)
             return Conflict(new { error = "Payment transaction amount does not match the order total." });
 
-        var reference = string.IsNullOrWhiteSpace(transactionReference) ? null : transactionReference.Trim().ToUpperInvariant();
-        if (reference?.Length > 150)
-            return BadRequest(new { error = "Transaction reference must be 150 characters or fewer." });
-        if (reference is not null && await _db.PaymentReceipts.AnyAsync(x => x.TransactionReference == reference, ct))
-            return Conflict(new { error = "This transaction reference has already been submitted." });
-
         await using var stream = new MemoryStream((int)receipt.Length);
         await receipt.CopyToAsync(stream, ct);
         var bytes = stream.ToArray();
         if (!HasValidImageSignature(bytes, extension))
             return BadRequest(new { error = "The uploaded file does not contain a valid JPEG or PNG signature." });
+
+        var ocr = await _ocr.ReadAsync(bytes, extension, order.TotalAmountEtb, ct);
+        var reference = string.IsNullOrWhiteSpace(transactionReference) ? ocr.TransactionReference : transactionReference.Trim().ToUpperInvariant();
+        if (reference?.Length > 150)
+            return BadRequest(new { error = "Transaction reference must be 150 characters or fewer." });
+        if (reference is not null && await _db.PaymentReceipts.AnyAsync(x => x.TransactionReference == reference, ct))
+            return Conflict(new { error = "This transaction reference has already been submitted." });
 
         var contentType = extension == ".png" ? "image/png" : "image/jpeg";
         var safeName = Path.GetFileName(receipt.FileName);
@@ -115,8 +119,13 @@ public sealed class PaymentReceiptsController : ControllerBase
             expectedAmountEtb = payment.AmountEtb,
             transactionReference = record.TransactionReference,
             status = record.Status,
-            ocrStatus = "NOT_CONFIGURED",
-            message = "Receipt received. Payment remains pending until an administrator checks the receipt and confirms the transfer."
+            ocrStatus = ocr.Status,
+            ocrProvider = ocr.Provider,
+            ocrTransactionReference = ocr.TransactionReference,
+            ocrAmountEtb = ocr.AmountEtb,
+            ocrTransactionDate = ocr.TransactionDate,
+            ocrError = ocr.Error,
+            message = "Receipt received. OCR extracted visible details; payment remains pending until an administrator independently confirms the transfer."
         });
     }
 
@@ -149,9 +158,23 @@ public sealed class PaymentReceiptsController : ControllerBase
                 receipt.Id, receipt.OrderId, order.OrderNumber, receipt.BuyerId,
                 receipt.PaymentTransactionId, expectedAmountEtb = payment.AmountEtb,
                 receipt.TransactionReference, receipt.FileName, receipt.ContentType,
-                receipt.Sha256, receipt.Status, receipt.CreatedAt
+                receipt.Sha256, receipt.Status, receipt.CreatedAt, receipt.Content
             }).Take(100).ToListAsync(ct);
-        return Ok(records);
+        var result = new List<object>(records.Count);
+        foreach (var item in records)
+        {
+            var extension = item.ContentType == "image/png" ? ".png" : ".jpg";
+            var ocr = await _ocr.ReadAsync(item.Content, extension, item.expectedAmountEtb, ct);
+            result.Add(new
+            {
+                item.Id, item.OrderId, item.OrderNumber, item.BuyerId, item.PaymentTransactionId,
+                item.expectedAmountEtb, item.TransactionReference, item.FileName, item.ContentType,
+                item.Sha256, item.Status, item.CreatedAt, ocrStatus = ocr.Status,
+                ocrProvider = ocr.Provider, ocrTransactionReference = ocr.TransactionReference,
+                ocrAmountEtb = ocr.AmountEtb, ocrTransactionDate = ocr.TransactionDate, ocrError = ocr.Error
+            });
+        }
+        return Ok(result);
     }
 
     [HttpGet("admin/{id:long}/file")]

@@ -159,6 +159,7 @@ builder.Services.AddHostedService<InventoryReservationExpiryService>();
 // ============================================================
 
 builder.Services.AddHttpClient();
+builder.Services.AddSingleton<IReceiptOcrService, TesseractReceiptOcrService>();
 
 builder.Services.AddControllers().AddJsonOptions(options =>
 {

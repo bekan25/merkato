@@ -27,7 +27,7 @@ WORKDIR /app
 # Npgsql/GSSAPI may load the Kerberos GSSAPI shared library while connecting
 # to managed PostgreSQL. Install it in the runtime image (not just the SDK stage).
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends libgssapi-krb5-2 \
+    && apt-get install -y --no-install-recommends libgssapi-krb5-2 tesseract-ocr tesseract-ocr-eng \
     && rm -rf /var/lib/apt/lists/*
 ENV ASPNETCORE_URLS=http://+:8080
 ENV ASPNETCORE_HTTP_PORTS=8080
