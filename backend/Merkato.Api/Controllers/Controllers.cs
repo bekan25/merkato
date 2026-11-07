@@ -1,6 +1,7 @@
 using Merkato.Application.DTOs;
 using Merkato.Application.Interfaces;
 using Merkato.Domain.Enums;
+using Merkato.Domain.StateMachines;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -76,8 +77,37 @@ public class DeliveriesController : ControllerBase
         });
     }
 
-    // Courier/admin lookup by delivery reference. Buyer and merchant access
-    // remains restricted to the participants on the linked order.
+    // Admin assigns a registered courier before courier-only actions are enabled.
+    [HttpPost("{id}/assign-courier")]
+    [Authorize(Roles = "ADMIN")]
+    public async Task<IActionResult> AssignCourier(string id, [FromBody] AssignCourierRequest request, CancellationToken ct)
+    {
+        if (request.CourierUserId <= 0)
+            return BadRequest(new { message = "A valid courier user ID is required." });
+
+        var delivery = await _db.Deliveries.FirstOrDefaultAsync(x => x.DeliveryId == id, ct);
+        if (delivery is null) return NotFound(new { message = "Delivery not found." });
+
+        var courier = await _db.Users.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == request.CourierUserId && x.Role == UserRole.COURIER && !x.IsSuspended, ct);
+        if (courier is null)
+            return BadRequest(new { message = "The selected account is not an active courier." });
+
+        if (delivery.Status != DeliveryStatus.CREATED)
+            return Conflict(new { message = "Courier can only be assigned before pickup begins." });
+
+        DeliveryStateMachine.ValidateTransition(delivery.Status, DeliveryStatus.ASSIGNED_COURIER);
+        delivery.RiderName = courier.FullName;
+        delivery.RiderPhone = courier.PhoneNumber;
+        delivery.Status = DeliveryStatus.ASSIGNED_COURIER;
+        delivery.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync(ct);
+
+        return Ok(new { deliveryId = delivery.DeliveryId, courierUserId = courier.Id,
+            riderName = delivery.RiderName, riderPhone = delivery.RiderPhone, status = delivery.Status.ToString() });
+    }
+
+    // Buyer/merchant can see only their own delivery. A courier must be the assigned rider.
     [HttpGet("{id}")]
     [Authorize(Roles = "BUYER,MERCHANT,COURIER,ADMIN")]
     public async Task<IActionResult> GetDelivery(string id, CancellationToken ct)
@@ -97,7 +127,15 @@ public class DeliveriesController : ControllerBase
 
         var claim = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (!long.TryParse(claim, out var userId)) return Unauthorized();
-        if (!User.IsInRole("ADMIN") && !User.IsInRole("COURIER") &&
+        if (User.IsInRole("COURIER"))
+        {
+            var courierPhone = await _db.Users.AsNoTracking()
+                .Where(x => x.Id == userId && x.Role == UserRole.COURIER && !x.IsSuspended)
+                .Select(x => x.PhoneNumber).SingleOrDefaultAsync(ct);
+            if (courierPhone is null || !string.Equals(courierPhone, result.RiderPhone, StringComparison.Ordinal))
+                return Forbid();
+        }
+        else if (!User.IsInRole("ADMIN") &&
             !((User.IsInRole("BUYER") && result.BuyerId == userId) ||
               (User.IsInRole("MERCHANT") && result.SellerId == userId)))
             return Forbid();
@@ -119,12 +157,31 @@ public class DeliveriesController : ControllerBase
     [Authorize(Roles = "COURIER,ADMIN")]
     public async Task<IActionResult> UpdateStatus(
         string id,
-        [FromBody] DeliveryStatus nextStatus)
+        [FromBody] DeliveryStatus nextStatus,
+        CancellationToken ct)
     {
+        if (!long.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+            return Unauthorized();
+
+        var assignedPhone = await _db.Deliveries.AsNoTracking()
+            .Where(x => x.DeliveryId == id)
+            .Select(x => x.RiderPhone).SingleOrDefaultAsync(ct);
+        if (assignedPhone is null) return NotFound(new { message = "Delivery not found or no courier assigned." });
+
+        if (!User.IsInRole("ADMIN"))
+        {
+            var courierPhone = await _db.Users.AsNoTracking()
+                .Where(x => x.Id == userId && x.Role == UserRole.COURIER && !x.IsSuspended)
+                .Select(x => x.PhoneNumber).SingleOrDefaultAsync(ct);
+            if (courierPhone is null || !string.Equals(courierPhone, assignedPhone, StringComparison.Ordinal))
+                return Forbid();
+        }
+
         var delivery =
             await _deliveryService.UpdateDeliveryStatusAsync(
                 id,
-                nextStatus);
+                nextStatus,
+                ct);
 
         return Ok(new
         {
@@ -144,7 +201,7 @@ public class DeliveriesController : ControllerBase
     // ============================================================
 
     [HttpPost("{id}/verify-otp")]
-    [Authorize(Roles = "BUYER,MERCHANT,COURIER,ADMIN")]
+    [Authorize(Roles = "COURIER,ADMIN")]
     public async Task<IActionResult> VerifyOtp(
         string id,
         [FromBody] VerifyOtpDto dto,
@@ -179,14 +236,18 @@ public class DeliveriesController : ControllerBase
         var deliveryOrder = await _db.Deliveries
             .Where(x => x.DeliveryId == id)
             .Join(_db.Orders, delivery => delivery.OrderId, order => order.Id,
-                (delivery, order) => new { order.BuyerId, order.SellerId })
+                (delivery, order) => new { order.BuyerId, order.SellerId, delivery.RiderPhone })
             .FirstOrDefaultAsync(ct);
         if (deliveryOrder == null) return NotFound(new { message = "Delivery not found." });
 
-        if (!User.IsInRole("ADMIN") && !User.IsInRole("COURIER") &&
-            !((User.IsInRole("BUYER") && deliveryOrder.BuyerId == requesterId) ||
-              (User.IsInRole("MERCHANT") && deliveryOrder.SellerId == requesterId)))
-            return Forbid();
+        if (!User.IsInRole("ADMIN"))
+        {
+            var courierPhone = await _db.Users.AsNoTracking()
+                .Where(x => x.Id == requesterId && x.Role == UserRole.COURIER && !x.IsSuspended)
+                .Select(x => x.PhoneNumber).SingleOrDefaultAsync(ct);
+            if (courierPhone is null || !string.Equals(courierPhone, deliveryOrder.RiderPhone, StringComparison.Ordinal))
+                return Forbid();
+        }
 
         if (string.IsNullOrWhiteSpace(dto.OtpCode) || dto.OtpCode.Length < 4 ||
             dto.OtpCode.Length > 8 || !dto.OtpCode.All(char.IsDigit))
@@ -787,3 +848,4 @@ public record FileDisputeRequest(
 public record ResolveDisputeRequest(
     string Notes
 );
+public sealed record AssignCourierRequest(long CourierUserId);
