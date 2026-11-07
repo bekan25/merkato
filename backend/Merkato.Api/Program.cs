@@ -1,6 +1,8 @@
 using DotNetEnv;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.DataProtection.KeyManagement;
+using Microsoft.AspNetCore.DataProtection.Repositories;
 using Microsoft.OpenApi;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -70,8 +72,12 @@ builder.Services.AddDbContext<MerkatoDbContext>(options =>
 // private certificate supplied only through Render secret environment variables.
 var dataProtection = builder.Services
     .AddDataProtection()
-    .SetApplicationName("MERKATO")
-    .PersistKeysToDbContext<MerkatoDbContext>();
+    .SetApplicationName("MERKATO");
+
+var dataProtectionXmlRepository = new PostgresXmlRepository(connectionString);
+builder.Services.AddSingleton<IXmlRepository>(dataProtectionXmlRepository);
+builder.Services.Configure<KeyManagementOptions>(options =>
+    options.XmlRepository = dataProtectionXmlRepository);
 
 if (builder.Environment.IsProduction())
 {
@@ -350,9 +356,8 @@ await using (var dataProtectionScope = app.Services.CreateAsyncScope())
     var dataProtectionDb = dataProtectionScope.ServiceProvider.GetRequiredService<MerkatoDbContext>();
     await dataProtectionDb.Database.ExecuteSqlRawAsync("""
         CREATE TABLE IF NOT EXISTS "DataProtectionKeys" (
-            "Id" SERIAL PRIMARY KEY,
-            "FriendlyName" TEXT NULL,
-            "Xml" TEXT NULL
+            "FriendlyName" TEXT PRIMARY KEY,
+            "Xml" TEXT NOT NULL
         );
         """);
 }
