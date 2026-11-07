@@ -14,6 +14,7 @@ public class MerkatoDbContext : DbContext
     public DbSet<WishlistItem> WishlistItems => Set<WishlistItem>();
     public DbSet<PriceAlert> PriceAlerts => Set<PriceAlert>();
     public DbSet<UserNotification> UserNotifications => Set<UserNotification>();
+    public DbSet<UserNotificationPreference> UserNotificationPreferences => Set<UserNotificationPreference>();
     public DbSet<PromotionCoupon> PromotionCoupons => Set<PromotionCoupon>();
     public DbSet<CouponRedemption> CouponRedemptions => Set<CouponRedemption>();
     public DbSet<ProductListingDetail> ProductListingDetails => Set<ProductListingDetail>();
@@ -72,6 +73,13 @@ modelBuilder.Entity<UserAddress>(e =>
         modelBuilder.Entity<PriceAlert>(e => { e.HasIndex(x => new { x.BuyerId, x.ProductId, x.IsActive }); e.Property(x => x.TargetPriceEtb).HasColumnType("numeric(18,4)"); e.HasOne<User>().WithMany().HasForeignKey(x => x.BuyerId).OnDelete(DeleteBehavior.Cascade); e.HasOne<Product>().WithMany().HasForeignKey(x => x.ProductId).OnDelete(DeleteBehavior.Cascade); });
         modelBuilder.Entity<UserNotification>(e => { e.HasIndex(x => new { x.UserId, x.IsRead, x.CreatedAt }); e.Property(x => x.Title).HasMaxLength(160).IsRequired(); e.Property(x => x.Message).HasMaxLength(1000).IsRequired(); e.Property(x => x.Type).HasMaxLength(40).IsRequired(); e.HasOne<User>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade); });
 
+       modelBuilder.Entity<UserNotificationPreference>(e =>
+        {
+            e.HasKey(x => x.UserId);
+            e.Property(x => x.UserId).ValueGeneratedNever();
+            e.Property(x => x.LanguageCode).HasMaxLength(5).IsRequired();
+            e.HasOne<User>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+        });
         // Coupon inventory and redemption constraints.
         modelBuilder.Entity<PromotionCoupon>(e => {
             e.HasIndex(x => x.Code).IsUnique(); e.HasIndex(x => x.SourceReferralId).IsUnique();
