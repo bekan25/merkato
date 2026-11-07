@@ -207,7 +207,7 @@ public class OrdersController : ControllerBase
             Quantity = request.Quantity,
             UnitPriceEtb = product.PriceEtb,
             InventoryReservationState = InventoryReservationState.RESERVED,
-            InventoryReservationExpiresAt = reservationTime.AddMinutes(15),
+            InventoryReservationExpiresAt = reservationTime.AddHours(2),
             ProductTitle = product.Name,
             TotalAmountEtb = buyerPayable,
             DeliveryFeeEtb = expectedDeliveryFee,
