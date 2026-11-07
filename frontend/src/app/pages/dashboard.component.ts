@@ -121,6 +121,7 @@ import { ApiService, MerkatoProduct, MerkatoOrder, MerkatoDispute, MerchantAnaly
                   <label>Store city <select name="location" [(ngModel)]="draft.location" required><option *ngFor="let city of supportedCities" [value]="city">{{city}}</option></select></label>
                 </section>
                 <section class="editor-card"><div class="editor-card-title"><span class="editor-icon">◈</span><div><h4>Pricing & availability</h4><p>Set the selling price in Ethiopian birr.</p></div></div>
+                  <label>Available stock quantity <input name="stockQuantity" [(ngModel)]="draft.stockQuantity" type="number" min="0" max="10000000" step="1" required placeholder="e.g. 25"></label>
                   <label>Base price <div class="price-input"><span>ETB</span><input name="price" [(ngModel)]="draft.priceEtb" type="number" min="0.01" step="0.01" required placeholder="0.00"></div></label>
                   <div class="editor-note"><strong>Pricing tip</strong><span>Use a competitive, accurate price. Buyers complete payment through MERKATO's verified checkout flow.</span></div>
                 </section>
@@ -200,7 +201,7 @@ export class DashboardComponent implements OnInit {
   readonly businessTypes = ['Retail shop','Wholesale','Manufacturer','Farmer / producer','Service provider','Online store','Other'];
   readonly productCategories = ['Electronics','Fashion','Home & Living','Beauty & Personal Care','Food & Grocery','Agriculture','Automotive','Books & Education','Sports & Outdoors','Baby & Kids','Other'];
   verificationDraft = { businessName: '', businessType: '', city: 'Addis Ababa', contactPhone: '' };
-  draft = { name: '', priceEtb: 0, category: 'Other', location: 'Addis Ababa', emoji: '🛍️' };
+  draft = { name: '', priceEtb: 0, category: 'Other', location: 'Addis Ababa', emoji: '🛍️', stockQuantity: 0 };
   get hasExistingProductImage(): boolean {
     return this.editingProductId !== null &&
       !!this.merchantProducts.find(product => product.id === this.editingProductId)?.imageUrl;
@@ -319,7 +320,7 @@ export class DashboardComponent implements OnInit {
   }
   createProduct(): void {
     this.productError = '';
-    if (this.draft.name.trim().length < 3 || this.draft.name.trim().length > 180 || this.draft.priceEtb <= 0 || !this.draft.category.trim() || !this.draft.location.trim()) { this.productError = 'Enter a clear product name, category, store city and a price greater than zero.'; return; }
+    if (this.draft.name.trim().length < 3 || this.draft.name.trim().length > 180 || this.draft.priceEtb <= 0 || !Number.isInteger(this.draft.stockQuantity) || this.draft.stockQuantity < 0 || !this.draft.category.trim() || !this.draft.location.trim()) { this.productError = 'Enter a clear product name, category, store city and a price greater than zero.'; return; }
     if (!this.selectedImage && !(this.editingProductId && this.merchantProducts.some(p => p.id === this.editingProductId && !!p.imageUrl))) { this.productError = 'Add a clear product photo before publishing. Buyers need to see what they are ordering.'; return; }
     this.saving = true;
     const request = this.editingProductId
@@ -343,7 +344,7 @@ export class DashboardComponent implements OnInit {
                 ? this.merchantProducts.map(item => item.id === product.id ? product : item)
                 : [product, ...this.merchantProducts];
               this.editingProductId = product.id;
-              this.draft = { name: product.name, priceEtb: product.priceEtb, category: product.category, location: product.location, emoji: product.emoji || '🛍️' };
+              this.draft = { name: product.name, priceEtb: product.priceEtb, category: product.category, location: product.location, emoji: product.emoji || '🛍️', stockQuantity: 0 };
               this.showProductForm = true;
               this.saving = false;
               this.productError = err?.status === 413
@@ -370,7 +371,7 @@ export class DashboardComponent implements OnInit {
     this.clearSelectedImage();
     this.editingProductId = null;
     this.showProductForm = false;
-    this.draft = { name: '', priceEtb: 0, category: 'Other', location: 'Addis Ababa', emoji: '🛍️' };
+    this.draft = { name: '', priceEtb: 0, category: 'Other', location: 'Addis Ababa', emoji: '🛍️', stockQuantity: 0 };
   }
   removeProduct(product: MerkatoProduct): void {
     if (!window.confirm('Archive ' + product.name + '? It will no longer appear in the public marketplace.')) return;
