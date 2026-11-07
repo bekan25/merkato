@@ -112,6 +112,36 @@ public sealed class BuyerEngagementController(MerkatoDbContext db) : ControllerB
             .ExecuteUpdateAsync(setters => setters.SetProperty(x => x.IsRead, true).SetProperty(x => x.ReadAt, DateTime.UtcNow), ct);
         return NoContent();
     }
+
+    [HttpDelete("notifications/{id:long}")]
+    public async Task<IActionResult> DeleteNotification(long id, CancellationToken ct)
+    {
+        var row = await db.UserNotifications.FirstOrDefaultAsync(x => x.Id == id && x.UserId == BuyerId, ct);
+        if (row is null) return NoContent();
+        db.UserNotifications.Remove(row); await db.SaveChangesAsync(ct); return NoContent();
+    }
+
+    [HttpGet("notification-preferences")]
+    public async Task<IActionResult> GetNotificationPreferences(CancellationToken ct)
+    {
+        var row = await db.UserNotificationPreferences.AsNoTracking().FirstOrDefaultAsync(x => x.UserId == BuyerId, ct);
+        return Ok(row ?? new UserNotificationPreference { UserId = BuyerId });
+    }
+
+    [HttpPut("notification-preferences")]
+    public async Task<IActionResult> UpdateNotificationPreferences(NotificationPreferencesInput input, CancellationToken ct)
+    {
+        var language = input.LanguageCode?.Trim().ToLowerInvariant();
+        if (language is not "en" and not "om" and not "am") return BadRequest("LanguageCode must be en, om, or am.");
+        var row = await db.UserNotificationPreferences.FirstOrDefaultAsync(x => x.UserId == BuyerId, ct);
+        if (row is null) { row = new UserNotificationPreference { UserId = BuyerId }; db.UserNotificationPreferences.Add(row); }
+        row.LanguageCode = language; row.InAppEnabled = input.InAppEnabled; row.EmailEnabled = input.EmailEnabled;
+        row.SmsEnabled = input.SmsEnabled; row.MarketingEnabled = input.MarketingEnabled; row.UpdatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync(ct);
+        return Ok(new { row.LanguageCode, row.InAppEnabled, row.EmailEnabled, row.SmsEnabled, row.MarketingEnabled, row.UpdatedAt });
+    }
+
+    public sealed record NotificationPreferencesInput(string LanguageCode, bool InAppEnabled, bool EmailEnabled, bool SmsEnabled, bool MarketingEnabled);
 }
 
 public sealed record PriceAlertInput(long ProductId, decimal TargetPriceEtb);
