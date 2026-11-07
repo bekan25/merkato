@@ -175,6 +175,41 @@ interface CartLine { product: MerkatoProduct; quantity: number; }
     @media(max-width:900px){.cart-layout{grid-template-columns:minmax(0,1fr) minmax(270px,.8fr);gap:16px}.cart-line{grid-template-columns:88px minmax(0,1fr) auto;gap:13px;padding:13px}.cart-product-image{height:88px;width:88px}}
     @media(max-width:680px){.cart-page{padding:22px 14px 40px}.cart-layout{grid-template-columns:1fr}.checkout-panel{position:static;order:-1;padding:20px}.cart-line{grid-template-columns:76px minmax(0,1fr);gap:12px;padding:12px}.cart-product-image{height:76px;width:76px}.line-total{grid-column:2;padding:0;text-align:left}.cart-product-info h3{font-size:14px}.quantity-control{gap:7px}.cart-heading{margin-bottom:22px}}
     @media(prefers-reduced-motion:reduce){.cart-page *{scroll-behavior:auto!important;transition:none!important}}
+    /* Layer 4 — cart and checkout experience */
+    .cart-page{max-width:1440px;margin:0 auto;padding:clamp(24px,4vw,58px) clamp(16px,5vw,76px) 64px}
+    .cart-heading h1{font-size:clamp(32px,4vw,48px);letter-spacing:-1.8px;color:#173d2d}
+    .cart-heading>p{max-width:650px;line-height:1.7}
+    .cart-layout{align-items:start;gap:clamp(18px,2.4vw,32px)}
+    .cart-items{min-width:0;display:grid;gap:14px}
+    .cart-line{border:1px solid #e8e9df;border-radius:16px;background:#fff;box-shadow:0 8px 26px rgba(31,50,35,.045);transition:border-color .18s ease,box-shadow .18s ease}
+    .cart-line:hover{border-color:#d8c79e;box-shadow:0 14px 34px rgba(31,50,35,.08)}
+    .cart-product-image{overflow:hidden;border-radius:12px;background:#f4f5ef}
+    .cart-product-image img{width:100%;height:100%;object-fit:cover}
+    .cart-product-info h3{color:#203d2c;line-height:1.35}
+    .quantity-control{width:max-content;max-width:100%;padding:4px;border:1px solid #e6e9e1;border-radius:999px;background:#fafbf8}
+    .quantity-control button:not(.remove-line){width:30px;height:30px;border:0;border-radius:50%;background:#eef3eb;color:#244b35;font-size:17px;font-weight:800;cursor:pointer}
+    .quantity-control button:focus-visible,.remove-line:focus-visible{outline:3px solid rgba(34,112,70,.25);outline-offset:2px}
+    .remove-line{padding:7px 10px;border:0;border-radius:999px;background:transparent;color:#a34d43;font-size:11px;font-weight:800;cursor:pointer}
+    .checkout-panel{position:sticky;top:18px;border:1px solid #e8e3d5;border-radius:18px;background:#fffefa;box-shadow:0 18px 48px rgba(39,48,31,.08)}
+    .checkout-panel h2{color:#173d2d;font-size:25px;letter-spacing:-.7px}
+    .summary-row{padding:11px 0;border-bottom:1px solid #efeee7}
+    .summary-total{margin:12px 0 18px;padding:15px 0;border-top:1px solid #e7e1d2;border-bottom:1px solid #e7e1d2}
+    .summary-total strong{font-size:22px;color:#153d2c}
+    .payment-methods{display:grid;gap:9px;padding:14px;border:1px solid #e8e9df;border-radius:14px;background:#fff}
+    .payment-methods legend{padding:0 6px;color:#3f5b48;font-size:12px;font-weight:850}
+    .payment-option{min-height:62px;border:1px solid #e7e9e1;border-radius:12px;background:#fff;transition:border-color .18s ease,background .18s ease,box-shadow .18s ease}
+    .payment-option:hover{border-color:#c7d5c5;background:#fbfcf9}
+    .payment-option.selected{border-color:#8eaf91;background:#f1f7ef;box-shadow:0 0 0 2px rgba(87,137,91,.08)}
+    .payment-option input{accent-color:#176a43}.delivery-quote{border-radius:11px;background:#f3f7ef}
+    .coupon-box{border-style:solid;background:#fffdf8}.checkout-note{border:1px solid #eee9dc;background:#f8f7f1}
+    .checkout-button{box-shadow:0 9px 22px rgba(18,59,47,.14)}.checkout-button:disabled{opacity:.62;cursor:wait;box-shadow:none}
+    .receipt-links a{display:inline-flex;align-items:center;min-height:36px;padding:7px 10px;border-radius:8px;background:#f3f7ef}
+    .cart-page .form-error{padding:10px 12px;border-radius:10px;background:#fff5f3}
+    @media(min-width:1100px){.checkout-panel{max-height:calc(100vh - 36px);overflow-y:auto;scrollbar-width:thin}}
+    @media(max-width:900px){.checkout-panel{position:static}}
+    @media(max-width:680px){.cart-page{padding:20px 14px 42px}.checkout-panel{order:0;padding:17px;border-radius:15px}.cart-line{border-radius:13px}.summary-total strong{font-size:19px}.payment-option{min-height:58px}}
+    @media(prefers-reduced-motion:reduce){.cart-line,.payment-option,.checkout-button{transition:none!important}}
+
   `]
 })
 export class CartComponent implements OnInit, OnDestroy {
