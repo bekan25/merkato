@@ -1289,6 +1289,19 @@ modelBuilder.Entity("Merkato.Domain.Entities.UserAddress", b =>
                 b.ToTable("UserAddresses");
             });
             
+modelBuilder.Entity("Merkato.Domain.Entities.UserNotificationPreference", b =>
+            {
+                b.Property<long>("UserId").ValueGeneratedNever().HasColumnType("bigint");
+                b.Property<bool>("EmailEnabled").HasColumnType("boolean");
+                b.Property<bool>("InAppEnabled").HasColumnType("boolean");
+                b.Property<string>("LanguageCode").IsRequired().HasMaxLength(5).HasColumnType("character varying(5)");
+                b.Property<bool>("MarketingEnabled").HasColumnType("boolean");
+                b.Property<bool>("SmsEnabled").HasColumnType("boolean");
+                b.Property<DateTime>("UpdatedAt").HasColumnType("timestamp with time zone");
+                b.HasKey("UserId");
+                b.ToTable("UserNotificationPreferences");
+            });
+            
 #pragma warning restore 612, 618
         }
     }
