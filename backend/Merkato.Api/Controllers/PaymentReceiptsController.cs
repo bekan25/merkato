@@ -338,6 +338,9 @@ public sealed class PaymentReceiptsController : ControllerBase
         if (order.SellerId != sellerId) return Forbid();
         if (order.PaymentMode != "SELLER_DIRECT")
             return Conflict(new { error = "This receipt belongs to an escrow-mode order and must follow the existing admin review workflow." });
+        if (!await _db.SellerPaymentAccounts.AnyAsync(x =>
+            x.SellerId == sellerId && x.PaymentRail == order.PaymentRail && x.IsActive, ct))
+            return Conflict(new { error = "Configure and activate the matching seller payment account before reviewing this transfer." });
         if (order.EscrowState != EscrowState.AWAITING_PAYMENT)
             return Conflict(new { error = "This order is not awaiting seller payment confirmation." });
         if (receipt.Status != "PENDING_REVIEW")
