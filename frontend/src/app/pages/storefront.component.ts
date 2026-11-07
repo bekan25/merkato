@@ -29,6 +29,14 @@ import { ShoppingAssistantComponent } from '../components/shopping-assistant.com
       </div>
     </section>
 
+    <section class="public-promotion-strip"    </section>
+
+    <section class="home-value-row" aria-label="MERKATO marketplace benefits">
+      <div class="home-value-item"><span class="home-value-icon" aria-hidden="true">⌖</span><span><strong>{{ t('discoverLocal') }}</strong><small>{{ t('everydayEssentials') }}</small></span></div>
+      <div class="home-value-item"><span class="home-value-icon" aria-hidden="true">↗</span><span><strong>{{ t('connectMerchants') }}</strong><small>{{ t('supportBusiness') }}</small></span></div>
+      <div class="home-value-item"><span class="home-value-icon" aria-hidden="true">✓</span><span><strong>{{ t('checkoutConfidence') }}</strong><small>{{ t('secureShopping') }}</small></span></div>
+    </section>
+
     <section class="public-promotion-strip" *ngIf="activePromotions.length">
       <div class="promotion-intro"><span>✦ MERKATO OFFERS</span><strong>Shop more. Save more.</strong><small>Limited-time offers from participating merchants.</small></div>
       <article *ngFor="let offer of activePromotions">
@@ -45,6 +53,9 @@ import { ShoppingAssistantComponent } from '../components/shopping-assistant.com
     <section id="categories" class="category-section section-wrap">
       <div class="section-heading"><div><span class="eyebrow">{{ t('exploreYourWay') }}</span><h2>{{ t('nextFavourite') }}</h2></div><span class="muted">{{ t('browseCategory') }}</span></div>
       <div class="category-list category-image-grid">
+        <button class="category-all-card" type="button" (click)="selectCategory('All')" [class.selected]="category === 'All'" [attr.aria-pressed]="category === 'All'" aria-label="Browse all categories">
+          <span class="category-all-icon" aria-hidden="true">✦</span><strong>All categories</strong><small>Explore everything ↗</small>
+        </button>
         <button *ngFor="let item of categories" type="button" (click)="selectCategory(item.name)" [class.selected]="category === item.name" [attr.aria-pressed]="category === item.name" [attr.aria-label]="'Browse ' + item.name">
           <img class="category-photo" [src]="item.image" [alt]="item.name + ' category'" loading="lazy" decoding="async">
           <span class="category-shade" aria-hidden="true"></span>
@@ -56,12 +67,12 @@ import { ShoppingAssistantComponent } from '../components/shopping-assistant.com
     <section id="marketplace" class="market-section section-wrap">
       <div class="section-heading market-heading">
         <div><span class="eyebrow">{{ t('marketplace') }}</span><h2>{{ t('freshSellers') }}</h2><p>{{ t('merchantOfferings') }}</p></div>
-        <div class="market-controls">
+        <div class="market-controls market-filter-panel">
           <label class="search-box"><span>⌕</span><input [(ngModel)]="search" (ngModelChange)="onSearchChange()" placeholder="{{ t('searchProducts') }}" aria-label="Search products"></label>
           <select [(ngModel)]="city" (ngModelChange)="loadProducts()" [attr.aria-label]="t('cityArea')"><option *ngFor="let item of cityOptions" [value]="item.value">{{item.label}}</option></select>
           <select [(ngModel)]="category" (ngModelChange)="loadProducts()" aria-label="Filter by category"><option *ngFor="let c of categoryOptions" [value]="c">{{c}}</option></select>
-          <input class="price-filter" type="number" min="0" [(ngModel)]="minPrice" placeholder="{{ t('minEtb') }}" aria-label="Minimum price">
-          <input class="price-filter" type="number" min="0" [(ngModel)]="maxPrice" placeholder="{{ t('maxEtb') }}" aria-label="Maximum price">
+          <label class="price-filter-wrap"><span>Min ETB</span><input class="price-filter" type="number" min="0" [(ngModel)]="minPrice" placeholder="{{ t('minEtb') }}" aria-label="Minimum price"></label>
+          <label class="price-filter-wrap"><span>Max ETB</span><input class="price-filter" type="number" min="0" [(ngModel)]="maxPrice" placeholder="{{ t('maxEtb') }}" aria-label="Maximum price"></label>
           <select [(ngModel)]="sortBy" aria-label="Sort products"><option value="newest">{{ t('newest') }}</option><option value="price-low">{{ t('priceLow') }}</option><option value="price-high">{{ t('priceHigh') }}</option><option value="name">{{ t('nameAZ') }}</option></select>
         </div>
       </div>
@@ -88,11 +99,12 @@ import { ShoppingAssistantComponent } from '../components/shopping-assistant.com
 
       <div class="compare-bar" *ngIf="compareProducts.length"><span>{{compareProducts.length}} products selected to compare</span><button type="button" (click)="compareProducts = []">Clear comparison</button><div class="compare-items"><span *ngFor="let item of compareProducts">{{item.name}} · {{item.priceEtb | number:'1.2-2'}} ETB</span></div></div>
       <div class="product-grid" *ngIf="!loading && !error">
-        <article class="product-card" *ngFor="let product of visibleProducts; trackBy: trackByProductId">
+        <article class="product-card" *ngFor="let product of visibleProducts; trackBy: trackByProductId" [attr.aria-label]="product.name + ' product card'">
           <div class="product-visual">
             <img *ngIf="product.imageUrl && !imageFailed(product.id)" [src]="imageUrl(product.imageUrl)" [alt]="product.name" loading="lazy" (error)="onImageError(product.id)">
             <span *ngIf="!product.imageUrl || imageFailed(product.id)" class="product-emoji">{{product.emoji || '🛍️'}}</span>
             <span class="product-category">{{product.category}}</span>
+            <span class="product-image-hint" aria-hidden="true">MERKATO FIND</span>
             <button class="save-button" type="button" (click)="toggleSaved(product, $event)" [class.saved]="isSaved(product.id)" [attr.aria-pressed]="isSaved(product.id)" [attr.aria-label]="isSaved(product.id) ? 'Remove from saved products' : 'Save product'">{{isSaved(product.id) ? '♥' : '♡'}}</button>
             <button class="quick-view-trigger" type="button" (click)="openQuickView(product)">{{ t('quickView') }}</button>
             <button class="compare-trigger" type="button" (click)="toggleCompare(product)" [class.active]="isCompared(product.id)">{{isCompared(product.id) ? '✓ ' + t('compare') : '⇄ ' + t('compare')}}</button>
@@ -243,6 +255,51 @@ import { ShoppingAssistantComponent } from '../components/shopping-assistant.com
     @media(prefers-reduced-motion:reduce){.category-list button{transition:none}}
 
     @media(prefers-reduced-motion:reduce){.quick-view-trigger,.product-visual img{transition:none}}
+
+    /* Layer 2 — editorial home page and responsive value proposition */
+    .home-value-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;max-width:1180px;margin:0 auto;padding:22px clamp(20px,5vw,70px);border-bottom:1px solid #edf0e9;background:#fff}
+    .home-value-item{display:flex;align-items:center;gap:13px;min-width:0;padding:13px 15px;border:1px solid #edf1e9;border-radius:13px;background:linear-gradient(135deg,#fff,#f8faf6)}
+    .home-value-icon{display:grid;place-items:center;flex:0 0 40px;width:40px;height:40px;border-radius:12px;background:#eaf2e9;color:#155b40;font-size:19px;font-weight:800}
+    .home-value-item strong,.home-value-item small{display:block}
+    .home-value-item strong{color:#173d2e;font-size:12px;font-weight:800;line-height:1.4}
+    .home-value-item small{margin-top:3px;color:#7b897f;font-size:10px;line-height:1.5}
+    .category-list.category-image-grid{grid-template-columns:repeat(7,minmax(0,1fr));align-items:stretch}
+    .category-list.category-image-grid>button{position:relative;min-width:0;overflow:hidden;border:1px solid #e8ede5;border-radius:15px;background:#f4f6f1;transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease}
+    .category-list.category-image-grid>button:hover,.category-list.category-image-grid>button:focus-visible{transform:translateY(-4px);box-shadow:0 13px 30px rgba(16,61,48,.13);border-color:#a8c5ad;outline:none}
+    .category-list.category-image-grid>button .category-photo{transition:transform .5s ease}
+    .category-list.category-image-grid>button:hover .category-photo{transform:scale(1.06)}
+    .category-list .category-all-card{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;min-height:148px;padding:15px;background:radial-gradient(circle at 50% 0,#e1eee1 0,transparent 70%),linear-gradient(145deg,#f7faf5,#eaf2e9);color:#174532;text-align:center}
+    .category-list .category-all-card .category-all-icon{display:grid;place-items:center;width:46px;height:46px;border-radius:15px;background:#174d3a;color:#f4d9a4;font-size:25px;box-shadow:0 8px 18px rgba(16,61,48,.16)}
+    .category-list .category-all-card strong{font-size:12px;font-weight:800}
+    .category-list .category-all-card small{font-size:9px;color:#75877a}
+    .category-list .category-all-card.selected{border-color:#0d7650;box-shadow:inset 0 0 0 1px #0d7650}
+    /* Layer 3 — product discovery, filters and product-card hierarchy */
+    .market-filter-panel{display:grid;grid-template-columns:minmax(220px,1.7fr) repeat(3,minmax(115px,.8fr)) repeat(2,minmax(95px,.65fr));gap:9px;align-items:center;padding:13px;border:1px solid #e9eee6;border-radius:16px;background:#fff;box-shadow:0 8px 25px rgba(20,55,39,.045)}
+    .market-filter-panel .search-box{min-width:0;width:100%;height:46px;border:1px solid #e5ebe3;border-radius:10px;padding:0 13px}
+    .market-filter-panel select{width:100%;min-width:0;height:46px;border:1px solid #e5ebe3;border-radius:10px;padding:0 10px;background:#fbfcfa;color:#425349;font-size:11px}
+    .price-filter-wrap{display:grid;gap:4px;min-width:0;color:#89958b;font-size:9px;font-weight:800;letter-spacing:.04em}
+    .price-filter-wrap .price-filter{width:100%;height:46px;border:1px solid #e5ebe3;border-radius:10px;background:#fbfcfa;font-size:11px}
+    .market-toolbar{padding:14px 2px 0}
+    .market-toolbar>span{font-weight:700;color:#607267}
+    .product-grid{align-items:stretch}
+    .product-card{position:relative;display:flex;flex-direction:column;min-width:0;border:1px solid #e9eee7;border-radius:16px;background:#fff;overflow:hidden;transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease}
+    .product-card:hover{transform:translateY(-5px);border-color:#d5e2d4;box-shadow:0 18px 38px rgba(18,59,47,.12)}
+    .product-visual{height:215px;flex:0 0 auto;background:linear-gradient(145deg,#f6f7f2,#e9eee6)}
+    .product-image-hint{position:absolute;left:12px;bottom:12px;z-index:1;padding:5px 8px;border:1px solid rgba(255,255,255,.75);border-radius:20px;background:rgba(255,255,255,.82);color:#486353;font-size:8px;font-weight:900;letter-spacing:.09em;backdrop-filter:blur(8px)}
+    .product-info{display:flex;flex:1;flex-direction:column;align-items:stretch;gap:2px;padding:15px}
+    .product-title-button{min-height:40px;margin:7px 0 10px;font-size:13px;line-height:1.5}
+    .product-bottom{margin-top:auto;padding-top:8px;border-top:1px solid #f0f2ed}
+    .product-bottom>strong{font-size:16px;letter-spacing:-.02em}
+    .add-button{height:38px;width:38px;border-radius:12px;box-shadow:0 5px 12px rgba(8,123,77,.12)}
+    .seller-verified-badge{width:max-content;max-width:100%;font-size:9px}
+    .wholesale-link{padding-top:3px;font-size:10px}
+    .compare-trigger{opacity:1;transform:translateY(0);bottom:11px;right:11px}
+    .save-button:focus-visible,.quick-view-trigger:focus-visible,.compare-trigger:focus-visible,.add-button:focus-visible,.product-title-button:focus-visible{outline:3px solid #d8b56f;outline-offset:3px}
+    .quick-view-dialog{max-height:min(90vh,760px);overflow:auto}
+    @media(max-width:1050px){.category-list.category-image-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.market-filter-panel{grid-template-columns:repeat(3,minmax(0,1fr))}.market-filter-panel .search-box{grid-column:span 3}}
+    @media(max-width:760px){.home-value-row{grid-template-columns:1fr;gap:8px;padding:15px 20px}.home-value-item{padding:10px 12px}.category-list.category-image-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.category-list.category-image-grid>button{height:126px}.category-list .category-all-card{min-height:126px}.market-filter-panel{grid-template-columns:repeat(2,minmax(0,1fr));padding:10px}.market-filter-panel .search-box{grid-column:span 2}.market-filter-panel select{height:43px}.price-filter-wrap .price-filter{height:43px}.product-visual{height:165px}.product-info{padding:12px}.product-title-button{font-size:12px}.compare-trigger{font-size:9px;padding:7px 9px}.product-image-hint{font-size:7px}}
+    @media(max-width:390px){.market-filter-panel{grid-template-columns:1fr}.market-filter-panel .search-box{grid-column:auto}.product-grid{gap:8px}.product-visual{height:135px}.product-info{padding:10px}.product-bottom>strong{font-size:13px}}
+    @media(prefers-reduced-motion:reduce){.category-list.category-image-grid>button,.category-list.category-image-grid>button .category-photo,.product-card{transition:none}.category-list.category-image-grid>button:hover,.product-card:hover{transform:none}}
   `]
 })
 export class StorefrontComponent implements OnInit, OnDestroy {
