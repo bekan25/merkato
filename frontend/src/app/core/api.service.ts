@@ -261,7 +261,7 @@ export class ApiService {
     return this.http.get<MerkatoDispute[]>(`${this.baseUrl}/disputes`);
   }
   fileDispute(orderId: number, reason: string, description: string): Observable<unknown> {
-    return this.http.post(`${this.baseUrl}/disputes`, { orderId, reason, description });
+    return this.http.post(`${this.baseUrl}/disputes/${orderId}`, { reason, description });
   }
 
   startDisputeReview(id: number): Observable<unknown> {
