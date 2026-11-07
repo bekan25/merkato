@@ -35,7 +35,7 @@ public partial class AddUserAccountProfileAndAddresses : Migration
     table.PrimaryKey("PK_UserAddresses", x => x.Id);
     table.ForeignKey("FK_UserAddresses_Users_UserId", x => x.UserId, "Users", "Id", onDelete: ReferentialAction.Cascade);
    });
-  migrationBuilder.CreateIndex(name: "IX_UserAddresses_UserId_IsDefault", table: "UserAddresses", columns: new[] { "UserId", "IsDefault" });
+  migrationBuilder.CreateIndex(name: "IX_UserAddresses_UserId", table: "UserAddresses", column: "UserId", unique: true, filter: "\"IsDefault\" = TRUE");
  }
  protected override void Down(MigrationBuilder migrationBuilder)
  {
