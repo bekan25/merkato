@@ -12,6 +12,8 @@ public class User
     public string? Email { get; set; }
     public string? PasswordHash { get; set; }
     public string FullName { get; set; } = string.Empty;
+    public byte[]? ProfilePhotoContent { get; set; }
+    public string? ProfilePhotoContentType { get; set; }
     public string PinHash { get; set; } = string.Empty;
     public int FailedLoginAttempts { get; set; } = 0;
     public DateTime? LoginLockedUntil { get; set; }
@@ -322,4 +324,22 @@ public class AffiliateCommission
     public string? PayoutReference { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? PaidAt { get; set; }
+}
+
+
+public sealed class UserAddress
+{
+ public long Id { get; set; }
+ public long UserId { get; set; }
+ public string Label { get; set; } = "Home";
+ public string RecipientName { get; set; } = string.Empty;
+ public string PhoneNumber { get; set; } = string.Empty;
+ public string City { get; set; } = string.Empty;
+ public string SubCity { get; set; } = string.Empty;
+ public string? Woreda { get; set; }
+ public string? StreetAddress { get; set; }
+ public string? DeliveryInstructions { get; set; }
+ public bool IsDefault { get; set; }
+ public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+ public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }

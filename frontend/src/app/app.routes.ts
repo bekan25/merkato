@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { StorefrontComponent } from './pages/storefront.component';
+import { AccountComponent } from './pages/account.component';
 import { AuthComponent } from './pages/auth.component';
 import { DashboardComponent } from './pages/dashboard.component';
 import { AdminDashboardComponent } from './pages/admin-dashboard.component';
@@ -24,6 +25,7 @@ export const routes: Routes = [
   { path: 'affiliate', component: AffiliateDashboardComponent, canActivate: [authGuard], title: 'Affiliate Earnings | MERKATO' },
   { path: 'wholesale/:productId', component: WholesaleComponent, canActivate: [authGuard], title: 'Wholesale | MERKATO' },
   { path: 'dashboard', component: DashboardComponent, canActivate: [authGuard], title: 'Dashboard | MERKATO' },
+  { path: 'account', component: AccountComponent, canActivate: [authGuard], title: 'My Account | MERKATO' },
   { path: 'merchant', component: DashboardComponent, canActivate: [roleGuard], data: { roles: ['MERCHANT', 'ADMIN'] } },
   { path: 'admin', component: AdminDashboardComponent, canActivate: [roleGuard], data: { roles: ['ADMIN'] }, title: 'Admin Console | MERKATO' },
   { path: 'admin/payments', component: AdminPaymentReviewsComponent, canActivate: [roleGuard], data: { roles: ['ADMIN'] }, title: 'Payment review | MERKATO' },

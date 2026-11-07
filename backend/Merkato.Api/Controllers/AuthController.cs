@@ -263,6 +263,25 @@ public class AuthController : ControllerBase
         return NoContent();
     }
 
+    [Authorize]
+    [HttpPost("change-pin")]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> ChangePin([FromBody] ChangePinDto dto)
+    {
+        var claim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!long.TryParse(claim, out var userId)) return Unauthorized();
+        if (string.IsNullOrWhiteSpace(dto.CurrentPin) || string.IsNullOrWhiteSpace(dto.NewPin) || dto.NewPin.Length < 6 || dto.NewPin.Length > 8 || dto.NewPin.Any(c => !char.IsDigit(c)))
+            return BadRequest("New PIN must contain 6 to 8 digits.");
+        var user = await _db.Users.FirstOrDefaultAsync(x => x.Id == userId);
+        if (user is null) return NotFound();
+        if (!PinHasher.Verify(dto.CurrentPin, user.PinHash)) return Unauthorized("Current PIN is incorrect.");
+        if (dto.CurrentPin == dto.NewPin) return BadRequest("Choose a new PIN different from the current PIN.");
+        user.PinHash = PinHasher.Hash(dto.NewPin);
+        user.TokenVersion++;
+        user.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+        return Ok(new { message = "PIN updated. Sign in again on your devices." });
+    }
     private AuthResponseDto CreateAuthResponse(User user) =>
         new(GenerateToken(user), user.Id, user.PhoneNumber, user.FullName,
             user.Role, user.TrustScore, user.IsFaydaVerified);
@@ -293,3 +312,5 @@ public class AuthController : ControllerBase
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 }
+
+public sealed record ChangePinDto(string CurrentPin, string NewPin);

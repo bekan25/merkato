@@ -31,3 +31,14 @@ public sealed class UserNotification
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? ReadAt { get; set; }
 }
+
+public sealed class UserNotificationPreference
+{
+    public long UserId { get; set; }
+    public string LanguageCode { get; set; } = "en";
+    public bool InAppEnabled { get; set; } = true;
+    public bool EmailEnabled { get; set; }
+    public bool SmsEnabled { get; set; }
+    public bool MarketingEnabled { get; set; }
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+}
