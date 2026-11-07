@@ -52,6 +52,10 @@ export class AuthService {
     try { return JSON.parse(raw) as AuthUser; } catch { return null; }
   }
   get isAuthenticated(): boolean { return !!this.token && !!this.user; }
+  clearLocalSession(): void {
+    sessionStorage.removeItem(this.tokenKey);
+    sessionStorage.removeItem(this.userKey);
+  }
   hasRole(roles: string[]): boolean { return !!this.user && roles.includes(this.user.role); }
   logout(): void {
     const token = this.token;
