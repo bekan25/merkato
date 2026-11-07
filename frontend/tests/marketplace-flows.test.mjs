@@ -55,6 +55,27 @@ test('role guard redirects authenticated users without the required role', async
 });
 
 
+test('saved delivery addresses load into checkout while manual address entry remains available', async () => {
+  const api = await read('../src/app/core/api.service.ts');
+  const cart = await read('../src/app/pages/cart.component.ts');
+  const account = await read('../src/app/pages/account.component.ts');
+  const controller = await read('../../backend/Merkato.Api/Controllers/AccountController.cs');
+  const migration = await read('../../backend/Merkato.Infrastructure/Migrations/20261107100000_AddUserAccountProfileAndAddresses.cs');
+
+  assert.match(api, /getMyDeliveryAddresses\(\)/);
+  assert.match(api, /\/account\/addresses/);
+  assert.match(cart, /loadSavedAddresses\(\)/);
+  assert.match(cart, /selectSavedAddress\(id: number\)/);
+  assert.match(cart, /Enter address manually/);
+  assert.match(cart, /saved\.deliveryInstructions/);
+  assert.match(cart, /saved address city/);
+  assert.match(account, /addressesError/);
+  assert.match(account, /loadAddresses\(\)/);
+  assert.match(controller, /HttpGet\("addresses"\)/);
+  assert.match(controller, /Where\(x => x\.UserId == UserId\)/);
+  assert.match(migration, /CreateTable\(name: "UserAddresses"/);
+});
+
 test('checkout quotes and validates city-based delivery fees instead of submitting zero', async () => {
   const api = await read('../src/app/core/api.service.ts');
   const cart = await read('../src/app/pages/cart.component.ts');
