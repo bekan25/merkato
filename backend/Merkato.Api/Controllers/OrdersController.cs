@@ -123,6 +123,12 @@ public class OrdersController : ControllerBase
         if (seller == null || seller.Role != UserRole.MERCHANT)
             return BadRequest(new { message = "The selected seller is not an active merchant account." });
 
+        var sellerPaymentAccountExists = await _db.SellerPaymentAccounts.AsNoTracking()
+            .AnyAsync(x => x.SellerId == request.SellerId &&
+                x.PaymentRail == request.PaymentRail && x.IsActive, ct);
+        if (!sellerPaymentAccountExists)
+            return Conflict(new { message = "The seller has not configured an active account for this payment method. Ask the seller to add it or choose another method." });
+
         if (request.ProductId is <= 0)
             return BadRequest(new { message = "ProductId must be a positive identifier when supplied." });
 
@@ -212,6 +218,7 @@ public class OrdersController : ControllerBase
             BuyerServiceFeeRatePercent = buyerRate,
             BuyerServiceFeeEtb = buyerServiceFee,
             PaymentRail = request.PaymentRail,
+            PaymentMode = "SELLER_DIRECT",
             DeliveryCourier = string.IsNullOrWhiteSpace(request.DeliveryCourier) ? "BEU_DELIVERY" : request.DeliveryCourier.Trim(),
             DeliveryAddress = request.DeliveryAddress.Trim(),
             CityArea = string.IsNullOrWhiteSpace(request.CityArea) ? "Addis Ababa" : request.CityArea.Trim(),
