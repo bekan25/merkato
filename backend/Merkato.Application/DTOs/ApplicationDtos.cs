@@ -66,7 +66,9 @@ public record OrderResponseDto(
     decimal MerchantCommissionRatePercent = 0m,
     decimal MerchantCommissionEtb = 0m,
     decimal BuyerServiceFeeRatePercent = 0m,
-    decimal BuyerServiceFeeEtb = 0m
+    decimal BuyerServiceFeeEtb = 0m,
+    string PaymentMode = "ESCROW",
+    string PaymentStatus = "PENDING"
 );
 
 public record PaymentWebhookDto(

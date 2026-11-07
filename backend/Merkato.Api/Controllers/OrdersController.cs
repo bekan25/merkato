@@ -43,7 +43,11 @@ public class OrdersController : ControllerBase
                 order.PaymentRail, order.DeliveryCourier, order.DeliveryAddress,
                 order.EscrowState, order.DeliveryStatus, order.CreatedAt,
                 order.ProductSubtotalEtb, order.DiscountEtb, order.MerchantCommissionRatePercent,
-                order.MerchantCommissionEtb, order.BuyerServiceFeeRatePercent, order.BuyerServiceFeeEtb))
+                order.MerchantCommissionEtb, order.BuyerServiceFeeRatePercent, order.BuyerServiceFeeEtb,
+                order.PaymentMode,
+                _db.PaymentTransactions.Where(payment => payment.OrderId == order.Id)
+                    .OrderByDescending(payment => payment.CreatedAt)
+                    .Select(payment => payment.Status.ToString()).FirstOrDefault() ?? "PENDING"))
             .ToListAsync(ct);
 
         return Ok(orders);
@@ -68,7 +72,11 @@ public class OrdersController : ControllerBase
                 order.PaymentRail, order.DeliveryCourier, order.DeliveryAddress,
                 order.EscrowState, order.DeliveryStatus, order.CreatedAt,
                 order.ProductSubtotalEtb, order.DiscountEtb, order.MerchantCommissionRatePercent,
-                order.MerchantCommissionEtb, order.BuyerServiceFeeRatePercent, order.BuyerServiceFeeEtb))
+                order.MerchantCommissionEtb, order.BuyerServiceFeeRatePercent, order.BuyerServiceFeeEtb,
+                order.PaymentMode,
+                _db.PaymentTransactions.Where(payment => payment.OrderId == order.Id)
+                    .OrderByDescending(payment => payment.CreatedAt)
+                    .Select(payment => payment.Status.ToString()).FirstOrDefault() ?? "PENDING"))
             .ToListAsync(ct);
 
         return Ok(orders);
@@ -123,6 +131,12 @@ public class OrdersController : ControllerBase
         if (seller == null || seller.Role != UserRole.MERCHANT)
             return BadRequest(new { message = "The selected seller is not an active merchant account." });
 
+        var sellerPaymentAccountExists = await _db.SellerPaymentAccounts.AsNoTracking()
+            .AnyAsync(x => x.SellerId == request.SellerId &&
+                x.PaymentRail == request.PaymentRail && x.IsActive, ct);
+        if (!sellerPaymentAccountExists)
+            return Conflict(new { message = "The seller has not configured an active account for this payment method. Ask the seller to add it or choose another method." });
+
         if (request.ProductId is <= 0)
             return BadRequest(new { message = "ProductId must be a positive identifier when supplied." });
 
@@ -173,11 +187,14 @@ public class OrdersController : ControllerBase
         var feeQuote = MarketplaceFeeCalculator.Calculate(
             request.AmountEtb, discountEtb, expectedDeliveryFee,
             feeSettings.MerchantCommissionRatePercent, feeSettings.BuyerServiceFeeRatePercent, feeSettings.IsEnabled);
+        // Seller-direct manual transfers go to the merchant, not MERKATO. Do not add a buyer service fee
+        // to a transfer MERKATO cannot receive. The merchant commission remains a separate amount due
+        // to MERKATO and must be settled manually outside this buyer-to-seller transfer.
         var merchantRate = feeSettings.IsEnabled ? feeSettings.MerchantCommissionRatePercent : 0m;
-        var buyerRate = feeSettings.IsEnabled ? feeSettings.BuyerServiceFeeRatePercent : 0m;
+        var buyerRate = 0m;
         var merchantCommission = feeQuote.MerchantCommissionEtb;
-        var buyerServiceFee = feeQuote.BuyerServiceFeeEtb;
-        var buyerPayable = feeQuote.BuyerPayableEtb;
+        var buyerServiceFee = 0m;
+        var buyerPayable = Math.Max(0m, request.AmountEtb - discountEtb + expectedDeliveryFee);
 
         var riskDecision = await _risk.EvaluateOrderRiskAsync(buyerId, buyerPayable, ct);
         if (riskDecision != RiskDecision.ALLOW)
@@ -201,7 +218,7 @@ public class OrdersController : ControllerBase
             Quantity = request.Quantity,
             UnitPriceEtb = product.PriceEtb,
             InventoryReservationState = InventoryReservationState.RESERVED,
-            InventoryReservationExpiresAt = reservationTime.AddMinutes(15),
+            InventoryReservationExpiresAt = reservationTime.AddHours(2),
             ProductTitle = product.Name,
             TotalAmountEtb = buyerPayable,
             DeliveryFeeEtb = expectedDeliveryFee,
@@ -212,6 +229,7 @@ public class OrdersController : ControllerBase
             BuyerServiceFeeRatePercent = buyerRate,
             BuyerServiceFeeEtb = buyerServiceFee,
             PaymentRail = request.PaymentRail,
+            PaymentMode = "SELLER_DIRECT",
             DeliveryCourier = string.IsNullOrWhiteSpace(request.DeliveryCourier) ? "BEU_DELIVERY" : request.DeliveryCourier.Trim(),
             DeliveryAddress = request.DeliveryAddress.Trim(),
             CityArea = string.IsNullOrWhiteSpace(request.CityArea) ? "Addis Ababa" : request.CityArea.Trim(),
@@ -240,7 +258,8 @@ public class OrdersController : ControllerBase
             order.PaymentRail, order.DeliveryCourier, order.DeliveryAddress,
             order.EscrowState, order.DeliveryStatus, order.CreatedAt,
             order.ProductSubtotalEtb, order.DiscountEtb, order.MerchantCommissionRatePercent,
-            order.MerchantCommissionEtb, order.BuyerServiceFeeRatePercent, order.BuyerServiceFeeEtb);
+            order.MerchantCommissionEtb, order.BuyerServiceFeeRatePercent, order.BuyerServiceFeeEtb,
+            order.PaymentMode, "PENDING");
 
         return Ok(response);
     }
@@ -259,6 +278,11 @@ public class OrdersController : ControllerBase
         if (!User.IsInRole("ADMIN") && order.BuyerId != userId) return Forbid();
         if (order.EscrowState != EscrowState.AWAITING_PAYMENT)
             return Conflict(new { message = "Only an unpaid order can be cancelled." });
+
+        var paymentAlreadyVerified = await _db.PaymentTransactions.AnyAsync(
+            x => x.OrderId == orderId && x.Status == PaymentStatus.VERIFIED, ct);
+        if (paymentAlreadyVerified)
+            return Conflict(new { message = "A verified payment cannot be cancelled through the unpaid-order cancellation flow. Contact the seller for the next steps." });
 
         var paymentPending = await _db.PaymentTransactions.AnyAsync(
             x => x.OrderId == orderId && (x.Status == PaymentStatus.INITIATED || x.Status == PaymentStatus.PENDING), ct);

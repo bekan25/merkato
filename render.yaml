@@ -18,7 +18,7 @@ services:
       - key: Jwt__Key
         generateValue: true
       - key: Jwt__Issuer
-        value: https://merkato-bekan25.onrender.com
+        value: https://merkato.aclclouds.online;https://merkato-bekan25.onrender.com
       - key: Jwt__Audience
         value: merkato-web
       - key: Jwt__ExpiryMinutes

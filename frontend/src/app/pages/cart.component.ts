@@ -102,14 +102,8 @@ interface CartLine { product: MerkatoProduct; quantity: number; }
                 <span><strong>Bank of Abyssinia</strong><small>Bank transfer</small></span>
                 <span class="payment-check" aria-hidden="true">✓</span>
               </label>
-              <label class="payment-option payment-option-text" [class.selected]="paymentRail === 4">
-                <input type="radio" name="paymentRail" [value]="4" [(ngModel)]="paymentRail">
-                <span class="payment-glyph" aria-hidden="true">₿</span>
-                <span><strong>Sandbox</strong><small>Testing only</small></span>
-                <span class="payment-check" aria-hidden="true">✓</span>
-              </label>
             </fieldset>
-            <p class="checkout-note">Order creation and payment initiation are connected. A real provider checkout or payment confirmation still depends on verified merchant gateway credentials and webhook setup.</p>
+            <p class="checkout-note">You will transfer directly to the seller's configured account. MERKATO does not receive or hold the transfer; upload the receipt and wait for the seller to confirm funds received.</p>
             <p class="form-error" *ngIf="error">{{error}}</p>
             <button class="btn btn-primary checkout-button" [disabled]="submitting || loading">
               {{ submitting ? t('submitting') : t('placeOrder') }} <span>↗</span>
@@ -416,7 +410,7 @@ export class CartComponent implements OnInit, OnDestroy {
       sessionStorage.removeItem('merkato_cart');
       this.lines = [];
       this.removeCoupon();
-      this.success = `${created} order(s) created. ${pending} payment(s) initiated. Upload a receipt for each order below; an administrator must verify the transfer before escrow is funded.`;
+      this.success = `${created} order(s) created. ${pending} payment(s) initiated. Upload a receipt for each order below; the seller must verify the transfer in their own account before delivery can proceed.`;
     } catch (err: any) {
       this.error = err?.error?.message || 'The order could not be completed. Some earlier orders may already have been saved; check order history before retrying.';
     } finally {

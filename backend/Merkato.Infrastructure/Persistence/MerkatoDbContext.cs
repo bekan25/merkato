@@ -40,6 +40,7 @@ public class MerkatoDbContext : DbContext
     public DbSet<Order> Orders => Set<Order>();
     public DbSet<PaymentTransaction> PaymentTransactions => Set<PaymentTransaction>();
     public DbSet<PaymentReceipt> PaymentReceipts => Set<PaymentReceipt>();
+    public DbSet<SellerPaymentAccount> SellerPaymentAccounts => Set<SellerPaymentAccount>();
     public DbSet<EscrowAccount> EscrowAccounts => Set<EscrowAccount>();
     public DbSet<LedgerTransaction> LedgerTransactions => Set<LedgerTransaction>();
     public DbSet<LedgerEntry> LedgerEntries => Set<LedgerEntry>();
@@ -205,6 +206,8 @@ modelBuilder.Entity<UserAddress>(e =>
             entity.Property(o => o.BuyerServiceFeeRatePercent).HasColumnType("numeric(7,4)");
             entity.Property(o => o.BuyerServiceFeeEtb).HasColumnType("numeric(18,4)");
 
+            entity.Property(o => o.PaymentMode).HasMaxLength(24).IsRequired();
+
             entity.Property(o => o.RowVersion)
                 .IsConcurrencyToken();
         });
@@ -219,6 +222,17 @@ modelBuilder.Entity<UserAddress>(e =>
 
             entity.Property(p => p.AmountEtb)
                 .HasColumnType("numeric(18,4)");
+        });
+
+        // Seller-owned payout destinations; each seller can maintain one active destination per rail.
+        modelBuilder.Entity<SellerPaymentAccount>(entity =>
+        {
+            entity.HasIndex(x => new { x.SellerId, x.PaymentRail }).IsUnique();
+            entity.Property(x => x.AccountHolderName).HasMaxLength(120).IsRequired();
+            entity.Property(x => x.AccountIdentifier).HasMaxLength(120).IsRequired();
+            entity.Property(x => x.BankName).HasMaxLength(120);
+            entity.Property(x => x.Instructions).HasMaxLength(500);
+            entity.HasOne<User>().WithMany().HasForeignKey(x => x.SellerId).OnDelete(DeleteBehavior.Restrict);
         });
 
         // Private payment evidence; transaction references are globally unique when supplied.
