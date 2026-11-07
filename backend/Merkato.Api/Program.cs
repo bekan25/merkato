@@ -362,6 +362,16 @@ await using (var dataProtectionScope = app.Services.CreateAsyncScope())
         """);
 }
 
+// Force creation of the first Data Protection key during startup. The key ring
+// is otherwise lazy and can remain empty until a feature first calls Protect().
+// A discarded protected marker is sufficient to create and persist the encrypted
+// key in PostgreSQL without storing application data or a reusable token.
+var keyRingProtector = app.Services
+    .GetRequiredService<IDataProtectionProvider>()
+    .CreateProtector("MERKATO.DataProtection.KeyRing.Initialization");
+_ = keyRingProtector.Protect("MERKATO:" + Guid.NewGuid().ToString("N"));
+app.Logger.LogInformation("Data Protection key ring initialized through the PostgreSQL repository.");
+
 // ============================================================
 // GLOBAL ERROR HANDLING
 // ============================================================

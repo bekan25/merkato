@@ -127,6 +127,42 @@ jobs:
           fi
           curl --fail --silent http://127.0.0.1:8080/health
           curl --fail --silent --output /dev/null http://127.0.0.1:8080/
+          # Assert that the encrypted Data Protection key was actually persisted.
+          key_count="$(docker run --rm --network host postgres:16 psql "postgresql://merkato_ci:ci-password-not-for-production@127.0.0.1:5432/merkato_ci" -Atc 'SELECT count(*) FROM "DataProtectionKeys";')"
+          if [ "$key_count" -lt 1 ]; then
+            echo "Expected an initialized Data Protection key in PostgreSQL, found: $key_count"
+            docker logs merkato-smoke
+            exit 1
+          fi
+          # Exercise real registration/login and prove the JWT session survives an app restart.
+          curl --fail --silent --show-error -X POST http://127.0.0.1:8080/api/auth/register \
+            -H "Content-Type: application/json" \
+            -d '{"phoneNumber":"0911000001","fullName":"CI Session Buyer","role":"BUYER","pin":"123456"}' >/tmp/merkato-register.json
+          curl --fail --silent --show-error -X POST http://127.0.0.1:8080/api/auth/login \
+            -H "Content-Type: application/json" \
+            -d '{"phoneNumber":"0911000001","pin":"123456"}' >/tmp/merkato-login.json
+          token="$(jq -r '.token // empty' /tmp/merkato-login.json)"
+          if [ -z "$token" ]; then
+            echo "Login did not return a JWT token."
+            cat /tmp/merkato-login.json
+            exit 1
+          fi
+          curl --fail --silent --show-error -H "Authorization: Bearer $token" http://127.0.0.1:8080/api/auth/me
+          docker restart merkato-smoke
+          ready=0
+          for attempt in $(seq 1 40); do
+            if curl --fail --silent http://127.0.0.1:8080/health/ready; then
+              ready=1
+              break
+            fi
+            sleep 3
+          done
+          if [ "$ready" -ne 1 ]; then
+            docker logs merkato-smoke
+            exit 1
+          fi
+          # The exact same token must still authenticate after the container restart.
+          curl --fail --silent --show-error -H "Authorization: Bearer $token" http://127.0.0.1:8080/api/auth/me
           docker logs merkato-smoke
           docker rm --force merkato-smoke
           rm -f /tmp/merkato-dp.key /tmp/merkato-dp.crt /tmp/merkato-dp.pfx
