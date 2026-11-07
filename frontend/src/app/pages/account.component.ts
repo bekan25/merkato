@@ -106,6 +106,10 @@ interface ReturnRequestItem { id:number; orderId:number; reason:string; status:s
  .form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}
  .form-grid label{display:grid;gap:8px;min-width:0;color:#53675b;font-size:11px;font-weight:800;letter-spacing:.1px}
  .form-grid input,.form-grid select,.form-grid textarea{width:100%;min-width:0;box-sizing:border-box;min-height:45px;padding:12px 14px;border:1px solid rgba(184,204,188,.72);border-radius:13px;outline:none;background:rgba(250,253,249,.78);color:#1d3c2e;font:500 14px Inter,system-ui,sans-serif;box-shadow:inset 0 1px 2px rgba(24,60,40,.025);transition:border-color .2s ease,box-shadow .2s ease,background .2s ease}
+ .form-grid input:not([readonly]),.form-grid select,.form-grid textarea,.photo-row input[type=file]{pointer-events:auto;touch-action:manipulation;user-select:text;-webkit-user-select:text;cursor:text}
+ .form-grid select{cursor:pointer}
+ .form-grid input:disabled,.form-grid select:disabled,.form-grid textarea:disabled{opacity:.65;cursor:not-allowed}
+ .form-grid input[readonly]{cursor:not-allowed;user-select:none;-webkit-user-select:none}
  .form-grid textarea{resize:vertical;line-height:1.5}
  .form-grid input[readonly]{background:rgba(235,241,235,.8);color:#77867c}
  .form-grid input:focus,.form-grid select:focus,.form-grid textarea:focus{border-color:#8eb49a;background:rgba(255,255,255,.96);box-shadow:0 0 0 4px rgba(68,139,91,.13),0 6px 16px rgba(32,91,53,.06)}
