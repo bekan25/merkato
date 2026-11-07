@@ -171,6 +171,19 @@ test('backend enforces buyer, merchant and admin permissions independently of An
   assert.ok(program.includes('account.IsSuspended'));
 });
 
+test('seller-direct payment retries reuse one order payment and receipt page can recover initiation', async () => {
+  const api = await read('../src/app/core/api.service.ts');
+  const page = await read('../src/app/pages/payment-receipt.component.ts');
+  const payments = await read('../../backend/Merkato.Api/Controllers/PaymentsController.cs');
+
+  assert.match(api, /merkato-order-\$\{orderId\}-payment/);
+  assert.match(page, /this\.api\.initiatePayment\(this\.order\.id, this\.order\.totalAmountEtb, this\.order\.paymentRail\)/);
+  assert.match(page, /paymentReady/);
+  assert.match(payments, /verifiedDirect/);
+  assert.match(payments, /pendingForOrder/);
+  assert.match(payments, /active transfer request already exists/);
+});
+
 test('checkout sends one quantity-aware order per product and validates live available stock', async () => {
   const api = await read('../src/app/core/api.service.ts');
   const cart = await read('../src/app/pages/cart.component.ts');
