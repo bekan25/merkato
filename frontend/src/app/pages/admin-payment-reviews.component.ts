@@ -36,6 +36,10 @@ import { ApiService, PaymentReceiptReview } from '../core/api.service';
               <div><small>Detected date</small><b>{{selected.ocrTransactionDate ? (selected.ocrTransactionDate | date:'medium') : 'Not detected'}}</b></div>
             </div>
             <p *ngIf="selected.ocrError">{{selected.ocrError}}</p>
+            <ul class="checks" *ngIf="selected.verificationNotes?.length">
+              <li *ngFor="let note of selected.verificationNotes">{{note}}</li>
+            </ul>
+            <span class="checks-ok" *ngIf="selected.verificationNotes && !selected.verificationNotes.length">No automatic warnings. This is still not proof that the money arrived.</span>
           </section>
           <label>Confirmed transaction reference
             <input [(ngModel)]="selected.transactionReference" maxlength="150" placeholder="Enter the verified bank/provider reference">
