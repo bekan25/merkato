@@ -8,7 +8,7 @@ import { ApiService, ShoppingAssistantResponse } from '../core/api.service';
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <section class="assistant-shell" aria-labelledby="assistant-title">
+    <section class="assistant-shell" aria-labelledby="assistant-title" [attr.aria-busy]="loading">
       <div class="assistant-heading">
         <div>
           <span class="assistant-kicker">MERKATO INTELLIGENCE</span>
@@ -18,7 +18,8 @@ import { ApiService, ShoppingAssistantResponse } from '../core/api.service';
         <span class="assistant-mark" aria-hidden="true">✦</span>
       </div>
 
-      <div class="assistant-conversation" aria-live="polite">
+      <div class="assistant-conversation" aria-live="polite" aria-relevant="additions text">
+        <p class="assistant-loading" *ngIf="loading" role="status">Checking the live marketplace assistant…</p>
         <p class="assistant-intro" *ngIf="!answer && !loading">Try: “I need an affordable phone in Addis Ababa” or “Meeshaa manaaf gatii madaalawaa barbaada”.</p>
         <p class="assistant-answer" *ngIf="answer">{{ answer }}</p>
         <p class="assistant-error" *ngIf="error" role="alert">{{ error }}</p>
@@ -38,12 +39,13 @@ import { ApiService, ShoppingAssistantResponse } from '../core/api.service';
           maxlength="1000"
           placeholder="What are you looking for?"
           aria-label="Ask the MERKATO shopping assistant"
+          aria-describedby="assistant-note"
           [disabled]="loading">
-        <button type="submit" [disabled]="loading || !question.trim()">
+        <button type="submit" [disabled]="loading || !question.trim()" [attr.aria-label]="loading ? 'Assistant is responding' : 'Send question to shopping assistant'">
           {{ loading ? 'Thinking…' : 'Ask assistant ↗' }}
         </button>
       </form>
-      <small class="assistant-note">AI suggestions can be imperfect. Confirm product details with the merchant before ordering.</small>
+      <small id="assistant-note" class="assistant-note">AI suggestions can be imperfect. Confirm product details with the merchant before ordering.</small>
     </section>
   `,
   styles: [`
@@ -56,7 +58,8 @@ import { ApiService, ShoppingAssistantResponse } from '../core/api.service';
     .assistant-mark{display:grid;place-items:center;width:44px;height:44px;flex:none;border-radius:14px;background:#e7f0e5;color:#1e6848;font-size:24px}
     .assistant-conversation{min-height:74px;margin:22px 0 14px;padding:16px;border:1px solid #e4ebe1;border-radius:14px;background:#fff}
     .assistant-intro,.assistant-answer{margin:0;color:#526258;font-size:13px;line-height:1.7;white-space:pre-wrap}
-    .assistant-error{margin:0;color:#a33434;font-size:13px}
+    .assistant-error{margin:0;color:#a33434;font-size:13px;line-height:1.6}
+    .assistant-loading{margin:0 0 10px;color:#42634d;font-size:12px;font-weight:750}
     .assistant-products{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:9px;margin-top:14px}
     .assistant-products article{display:flex;align-items:center;gap:10px;padding:11px;border-radius:11px;background:#f6f8f4}
     .assistant-products article>span{font-size:22px}
@@ -97,8 +100,10 @@ export class ShoppingAssistantComponent {
         this.loading = false;
       },
       error: httpError => {
-        this.error = httpError?.error?.message
-          || 'The shopping assistant is unavailable right now. Please try again.';
+        this.error = httpError?.status === 503
+          ? 'The MERKATO AI assistant is temporarily unavailable (HTTP 503). You can still search the live marketplace catalogue or try again later.'
+          : httpError?.error?.message
+            || 'The shopping assistant is unavailable right now. Please try again.';
         this.loading = false;
       }
     });

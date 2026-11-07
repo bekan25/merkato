@@ -106,3 +106,76 @@ body{font-family:'DM Sans','Noto Sans Ethiopic',Inter,system-ui,sans-serif;color
 .mk-card{min-width:0;padding:18px;border:1px solid var(--mk-line);border-radius:var(--mk-radius-md);background:var(--mk-paper);box-shadow:var(--mk-shadow-sm)}
 .mk-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:999px;font-size:10px;font-weight:800;line-height:1.4}.mk-badge--neutral{background:#eef1ed;color:#536158}.mk-badge--gold{background:#f6eddb;color:#80602b}.mk-badge--success{background:#e8f4ec;color:#176b43}.mk-badge--warning{background:#fbf2df;color:#8a641d}.mk-badge--danger{background:#fbeceb;color:#a43d3d}
 .mk-input{width:100%;min-height:42px;padding:10px 12px;border:1px solid var(--mk-line);border-radius:9px;background:#fff;color:var(--mk-ink);font:inherit}.mk-skeleton{border-radius:9px;background:linear-gradient(90deg,#edf0eb 25%,#f7f8f5 50%,#edf0eb 75%);background-size:200% 100%;animation:mk-shimmer 1.5s ease-in-out infinite}@keyframes mk-shimmer{to{background-position:-200% 0}}
+
+
+/* MERKATO Layer 5 — merchant and administrator operations surfaces */
+app-admin-dashboard{display:block;min-height:100vh;background:#f6f5ef;color:#20372a}
+app-admin-dashboard .shell{background:#f6f5ef}
+app-admin-dashboard .sidebar{background:linear-gradient(180deg,#142a20,#1d4431)!important;border-right:1px solid #d2b16c33;box-shadow:10px 0 32px #172b2010}
+app-admin-dashboard .brand .mark{background:linear-gradient(145deg,#e3c789,#b98743)!important;box-shadow:0 8px 20px #b9874330}
+app-admin-dashboard .nav a,app-admin-dashboard .logout{min-height:42px;border:1px solid transparent;transition:background .16s ease,border-color .16s ease,color .16s ease}
+app-admin-dashboard .nav a:hover,app-admin-dashboard .nav a.active{background:#ffffff17!important;border-color:#d8b66b35!important;color:#fff!important}
+app-admin-dashboard .nav a:focus-visible,app-admin-dashboard .logout:focus-visible{outline:3px solid #e6c77e!important;outline-offset:2px}
+app-admin-dashboard .main{max-width:1680px;margin:0 auto;width:100%}
+app-admin-dashboard .hero{border:1px solid #d7b66f44;box-shadow:0 18px 42px #172d201b}
+app-admin-dashboard .metric,app-admin-dashboard .panel{border-color:#e8e1d4!important;border-radius:15px!important;box-shadow:0 8px 24px #1c30240a!important}
+app-admin-dashboard .metric{transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}
+app-admin-dashboard .metric:hover{transform:translateY(-2px);border-color:#d9c59e!important;box-shadow:0 14px 30px #1c302414!important}
+app-admin-dashboard .metric-icon{background:#f4eddf!important;color:#a47a3d!important}
+app-admin-dashboard .panel h3{color:#244a36}
+app-admin-dashboard .table-wrap{max-width:100%;overflow-x:auto;overscroll-behavior-inline:contain;scrollbar-width:thin}
+app-admin-dashboard table{min-width:560px}
+app-admin-dashboard th{position:sticky;top:0;background:#f7f4ec!important;color:#8c7857!important}
+app-admin-dashboard td,app-admin-dashboard th{border-bottom-color:#eee8dc!important}
+app-admin-dashboard .action{min-height:32px;border-radius:8px!important;transition:background .16s ease,border-color .16s ease}
+app-admin-dashboard .action:hover:not(:disabled){background:#f4eddf;border-color:#d5bd91}
+app-admin-dashboard .refresh,app-admin-dashboard .save{min-height:40px;border-radius:10px!important}
+app-admin-dashboard input:focus-visible,app-admin-dashboard select:focus-visible,app-admin-dashboard textarea:focus-visible{outline:3px solid #c99b5280!important;outline-offset:2px}
+app-admin-dashboard .status{border:1px solid transparent}
+app-admin-dashboard .status.pending,app-admin-dashboard .status.open,app-admin-dashboard .status.under_review{border-color:#efdfb9}
+app-admin-dashboard .status.approved,app-admin-dashboard .status.held,app-admin-dashboard .status.released,app-admin-dashboard .status.completed{border-color:#d7e9d9}
+app-admin-dashboard .status.rejected,app-admin-dashboard .status.failed,app-admin-dashboard .status.refunded{border-color:#f0d7d2}
+app-admin-payment-reviews{display:block;min-height:100vh;background:#f6f5ef}
+app-admin-payment-reviews .page{max-width:1500px}
+app-admin-payment-reviews .queue,app-admin-payment-reviews .review{border-color:#e8e1d4!important;border-radius:16px!important;box-shadow:0 9px 28px #1c30240a!important}
+app-admin-payment-reviews .queue-head{color:#244a36}
+app-admin-payment-reviews .item{border-radius:10px;transition:background .16s ease,border-color .16s ease}
+app-admin-payment-reviews .item:hover,app-admin-payment-reviews .item.active{background:#f6f1e7!important;outline:1px solid #dfc99f}
+app-admin-payment-reviews .item:focus-visible{outline:3px solid #c99b5280;outline-offset:2px}
+app-admin-payment-reviews .ocr-panel{border-color:#e8e1d4!important;background:#faf8f2!important}
+app-admin-payment-reviews .warning{border-color:#ead8b5!important;background:#fbf5e8!important}
+app-admin-payment-reviews .approve{background:linear-gradient(135deg,#183b2e,#285b43)!important}
+app-admin-payment-reviews .reject{background:#a94f45!important}
+app-admin-payment-reviews .refresh,app-admin-payment-reviews .view{min-height:40px;border-color:#dfd3bd!important}
+app-admin-payment-reviews input:focus-visible,app-admin-payment-reviews textarea:focus-visible,app-admin-payment-reviews button:focus-visible{outline:3px solid #c99b5280!important;outline-offset:2px}
+app-dashboard .workspace-section,app-dashboard .workspace-card{min-width:0}
+app-dashboard .table-wrap{overscroll-behavior-inline:contain}
+app-dashboard .workspace-sidebar .side-link:focus-visible{outline:3px solid #e5c783!important;outline-offset:2px}
+app-dashboard .workspace-card:focus-within,app-dashboard .workspace-section:focus-within{border-color:#d7c39a}
+@media(max-width:1050px){app-admin-dashboard .shell{grid-template-columns:205px minmax(0,1fr)}app-admin-dashboard .sidebar{padding:18px 12px}}
+@media(max-width:700px){app-admin-dashboard .sidebar{position:sticky;top:0;z-index:20;display:block;height:auto;padding:10px 12px;overflow:hidden}app-admin-dashboard .brand{padding-bottom:8px}app-admin-dashboard .nav{display:flex;overflow-x:auto;gap:5px;padding-bottom:3px;scrollbar-width:thin}app-admin-dashboard .nav a{flex:0 0 auto;white-space:nowrap}app-admin-dashboard .main{padding:16px 12px 30px}app-admin-dashboard .top{align-items:flex-start}app-admin-dashboard .hero{padding:18px}app-admin-dashboard .panel{padding:14px}}
+@media(max-width:520px){app-admin-dashboard .metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}app-admin-dashboard .metric{padding:12px}app-admin-dashboard .metric strong{font-size:20px}app-admin-dashboard .top{flex-direction:column}app-admin-dashboard .top-actions{width:100%;justify-content:space-between}app-admin-payment-reviews .page{padding:20px 12px 38px}app-admin-payment-reviews .queue,app-admin-payment-reviews .review{padding:13px}}
+@media(prefers-reduced-motion:reduce){app-admin-dashboard .metric,app-admin-dashboard .nav a,app-admin-payment-reviews .item{transition:none!important}app-admin-dashboard .metric:hover{transform:none}}
+
+
+/* MERKATO Layer 6 — AI assistant presentation, accessibility and responsive polish */
+html{scroll-padding-top:96px;text-size-adjust:100%;-webkit-text-size-adjust:100%}
+:where(button,a,input,select,textarea,[tabindex]):focus-visible{outline:3px solid rgba(177,130,58,.82)!important;outline-offset:3px}
+:where(button,a,input,select,textarea){touch-action:manipulation}
+app-shopping-assistant{display:block;max-width:1240px;margin-inline:auto}
+app-shopping-assistant .assistant-shell{border:1px solid #e6dece!important;border-radius:22px!important;background:radial-gradient(circle at 92% 8%,#d8b77a20,transparent 25%),linear-gradient(135deg,#fffefa,#f7f5ef)!important;box-shadow:0 18px 48px rgba(24,48,34,.08)!important}
+app-shopping-assistant .assistant-mark{background:#f2ead9!important;color:#8c672f!important}
+app-shopping-assistant .assistant-conversation{border-color:#e9e2d5!important;border-radius:14px!important;background:#fffefa!important}
+app-shopping-assistant .assistant-form input{min-height:48px;border-color:#e4ddcf!important;background:#fffefa!important}
+app-shopping-assistant .assistant-form input:focus-visible{border-color:#bd914d!important;box-shadow:0 0 0 4px #c99b5222!important}
+app-shopping-assistant .assistant-form button{min-height:48px;background:linear-gradient(135deg,#183b2e,#285b43)!important;box-shadow:0 8px 18px #1a443020}
+app-shopping-assistant .assistant-form button:hover:not(:disabled){filter:brightness(1.08)}
+app-shopping-assistant .assistant-products article{min-width:0;border:1px solid #ece5d8;background:#faf8f2!important}
+app-shopping-assistant .assistant-error{padding:10px 12px;border:1px solid #f0d7d2;border-radius:9px;background:#fff5f3}
+app-shopping-assistant .assistant-loading{display:flex;align-items:center;gap:8px}
+app-shopping-assistant .assistant-note{line-height:1.6}
+@media(max-width:760px){app-shopping-assistant{padding-inline:16px!important}app-shopping-assistant .assistant-shell{padding:22px!important}}
+@media(max-width:520px){app-shopping-assistant{padding-inline:12px!important}app-shopping-assistant .assistant-heading{gap:12px}app-shopping-assistant .assistant-mark{width:38px;height:38px}app-shopping-assistant .assistant-shell{padding:17px!important;border-radius:16px!important}app-shopping-assistant .assistant-conversation{padding:12px!important}app-shopping-assistant .assistant-products{grid-template-columns:minmax(0,1fr)!important}}
+@media(prefers-contrast:more){:where(button,a,input,select,textarea):focus-visible{outline-color:#704600!important}app-shopping-assistant .assistant-note{color:#5d675f!important}}
+@media(hover:hover){app-shopping-assistant .assistant-products article{transition:border-color .16s ease,transform .16s ease}app-shopping-assistant .assistant-products article:hover{transform:translateY(-1px);border-color:#d4bd91}}
+@media(prefers-reduced-motion:reduce){app-shopping-assistant .assistant-products article{transition:none!important}app-shopping-assistant .assistant-products article:hover{transform:none}}
