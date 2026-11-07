@@ -200,6 +200,15 @@ public class OrdersController : ControllerBase
         if (riskDecision != RiskDecision.ALLOW)
             return Conflict(new { message = "This order requires additional verification and cannot be placed yet.", riskDecision = riskDecision.ToString() });
 
+        var inventoryConfigured = await _db.ProductListingDetails
+            .AnyAsync(x => x.ProductId == product.Id, ct);
+        if (!inventoryConfigured)
+            return Conflict(new
+            {
+                code = "INVENTORY_NOT_CONFIGURED",
+                message = "This seller has not configured inventory for this product yet. Ask the seller to set the real available stock before checkout."
+            });
+
         var reservationTime = DateTime.UtcNow;
         var reservedStock = await _db.ProductListingDetails
             .Where(x => x.ProductId == product.Id && x.StockQuantity - x.ReservedQuantity >= request.Quantity)
@@ -207,7 +216,11 @@ public class OrdersController : ControllerBase
                 .SetProperty(x => x.ReservedQuantity, x => x.ReservedQuantity + request.Quantity)
                 .SetProperty(x => x.UpdatedAt, reservationTime), ct);
         if (reservedStock != 1)
-            return Conflict(new { message = "This product is out of available stock or inventory has not been configured. Refresh the listing before checkout." });
+            return Conflict(new
+            {
+                code = "INSUFFICIENT_STOCK",
+                message = "The available stock has changed or is insufficient for this quantity. Refresh the listing and reduce the quantity before checkout."
+            });
 
         var order = new Order
         {
