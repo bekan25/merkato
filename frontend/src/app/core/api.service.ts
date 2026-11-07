@@ -58,6 +58,12 @@ export interface PaymentReceiptReview {
   status: string;
   createdAt: string;
   reviewNote?: string;
+  ocrStatus?: string;
+  ocrProvider?: string | null;
+  ocrTransactionReference?: string | null;
+  ocrAmountEtb?: number | null;
+  ocrTransactionDate?: string | null;
+  ocrError?: string | null;
 }
 
 export interface SellerVerification {
