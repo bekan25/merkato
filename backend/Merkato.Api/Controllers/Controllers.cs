@@ -34,7 +34,7 @@ public class DeliveriesController : ControllerBase
     // ============================================================
 
     [HttpPost]
-    [Authorize(Roles = "BUYER,MERCHANT,ADMIN")]
+    [Authorize(Roles = "BUYER,ADMIN")]
     public async Task<IActionResult> CreateDelivery(
         [FromBody] CreateDeliveryDto dto,
         CancellationToken ct)
@@ -49,6 +49,10 @@ public class DeliveriesController : ControllerBase
         var order = await _db.Orders.AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == dto.OrderId, ct);
         if (order == null) return NotFound(new { message = "Order not found." });
+        if (order.EscrowState != EscrowState.HELD)
+            return Conflict(new { message = "Delivery can only be created after the payment is verified and funds are held in escrow." });
+        if (dto.FeeEtb != order.DeliveryFeeEtb)
+            return Conflict(new { message = "Delivery fee must match the amount quoted and stored on the order.", expectedDeliveryFeeEtb = order.DeliveryFeeEtb });
 
         var claim = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (!long.TryParse(claim, out var userId)) return Unauthorized();
