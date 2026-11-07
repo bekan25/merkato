@@ -1,5 +1,6 @@
 using DotNetEnv;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.OpenApi;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -85,7 +86,7 @@ if (builder.Environment.IsProduction())
     X509Certificate2 certificate;
     try
     {
-        certificate = X509CertificateLoader.LoadPkcs12FromBytes(
+        certificate = X509CertificateLoader.LoadPkcs12(
             Convert.FromBase64String(certificateBase64),
             certificatePassword,
             X509KeyStorageFlags.EphemeralKeySet);
