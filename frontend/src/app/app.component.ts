@@ -47,7 +47,35 @@ import { MkBadgeComponent } from './shared/ui-primitives.component';
         <a routerLink="/cart" routerLinkActive="active"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h2l2.4 12.2a2 2 0 0 0 2 1.6h8.8a2 2 0 0 0 2-1.6L22 8H6"/><circle cx="10" cy="20" r="1"/><circle cx="18" cy="20" r="1"/></svg><small>{{ t('cart') }}</small></a>
         <a [routerLink]="auth.isAuthenticated ? '/account' : '/login'" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><small>{{ t('account') }}</small></a>
       </nav>
-      <footer class="site-footer"><a class="brand footer-brand" routerLink="/"><span class="brand-mark">M</span><span>merkato<small>ETHIOPIAN MARKETPLACE</small></span></a><span>Connecting Ethiopia, one marketplace.</span><span>© 2026 MERKATO</span></footer>
+      <footer class="site-footer">
+        <div class="footer-main">
+          <div class="footer-about">
+            <a class="brand footer-brand" routerLink="/" aria-label="MERKATO home"><span class="brand-mark">M</span><span>merkato<small>ETHIOPIAN MARKETPLACE</small></span></a>
+            <p>Connecting Ethiopia through local stores, trusted sellers and everyday finds.</p>
+            <span class="footer-country">🇪🇹 Made for shoppers and sellers across Ethiopia</span>
+          </div>
+          <nav class="footer-column" aria-label="Shop links">
+            <h2>Shop</h2>
+            <a routerLink="/" fragment="marketplace">All products</a>
+            <a routerLink="/" [queryParams]="{category:'Electronics'}" fragment="marketplace">Electronics</a>
+            <a routerLink="/" [queryParams]="{category:'Fashion'}" fragment="marketplace">Fashion</a>
+            <a routerLink="/" [queryParams]="{category:'Home & Living'}" fragment="marketplace">Home &amp; Living</a>
+          </nav>
+          <nav class="footer-column" aria-label="Marketplace links">
+            <h2>Marketplace</h2>
+            <a routerLink="/" fragment="how-it-works">Sell on MERKATO</a>
+            <a routerLink="/commerce" *ngIf="auth.isAuthenticated">Commerce Hub</a>
+            <a [routerLink]="auth.isAuthenticated ? auth.dashboardPath() : '/login'">{{auth.isAuthenticated ? 'My workspace' : 'Sign in'}}</a>
+            <a routerLink="/cart">Shopping cart</a>
+          </nav>
+          <div class="footer-column footer-locale">
+            <h2>Made for Ethiopia</h2>
+            <p>Discover local products and connect with independent sellers.</p>
+            <span class="footer-languages">English · Afaan Oromoo · አማርኛ</span>
+          </div>
+        </div>
+        <div class="footer-bottom"><span>© 2026 MERKATO. All rights reserved.</span><span>Connect · Discover · Shop</span></div>
+      </footer>
     </div>
   `,
   styles: [`
@@ -74,7 +102,16 @@ import { MkBadgeComponent } from './shared/ui-primitives.component';
     .account-menu-panel{position:absolute;top:calc(100% + 12px);right:0;z-index:50;min-width:190px;padding:8px;border:1px solid #e8e1d4;border-radius:14px;background:#fffefa;box-shadow:0 16px 42px rgba(25,45,34,.16)}
     .account-menu-panel a{display:block;padding:11px 12px;border-radius:9px;color:#254a37;font-size:12px;font-weight:650}
     .account-menu-panel a:hover,.account-menu-panel a:focus-visible{background:#f2eee4;color:#123b2f}
-.mobile-bottom-nav{display:none}
+    .site-footer{padding:38px clamp(18px,5vw,76px) 18px;background:linear-gradient(135deg,#092f24,#104b36);color:#e9f2e9}
+    .footer-main{display:grid;grid-template-columns:minmax(220px,1.6fr) repeat(3,minmax(130px,1fr));gap:clamp(22px,4vw,54px);max-width:1440px;margin:0 auto;padding-bottom:30px}
+    .footer-brand{display:inline-flex;color:#fff!important}.footer-brand small{color:#b8d0bd!important}.footer-about p,.footer-locale p{max-width:310px;margin:16px 0 12px;color:#c2d6c8;font-size:12px;line-height:1.75}
+    .footer-country,.footer-languages{display:block;color:#d6e5d8;font-size:11px;line-height:1.7}
+    .footer-column{display:flex;flex-direction:column;align-items:flex-start;gap:12px}
+    .footer-column h2{margin:5px 0 4px;color:#fff;font-size:12px;font-weight:800;letter-spacing:.04em}
+    .footer-column a{color:#c6d9ca;font-size:12px;text-decoration:none;transition:color .18s ease}
+    .footer-column a:hover,.footer-column a:focus-visible{color:#fff;text-decoration:underline;text-underline-offset:4px}
+    .footer-bottom{display:flex;justify-content:space-between;gap:16px;max-width:1440px;margin:0 auto;padding-top:16px;border-top:1px solid #ffffff24;color:#b9cec0;font-size:10px}
+    .mobile-bottom-nav{display:none}
     .announcement{position:relative;padding:10px 44px 10px 18px;text-align:center}
     .announcement-dismiss{position:absolute;right:14px;top:50%;transform:translateY(-50%);width:28px;height:28px;border:0;border-radius:50%;background:#ffffff20;color:#fff;font-size:20px;line-height:1;cursor:pointer}
     .language-picker>svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
@@ -112,7 +149,15 @@ import { MkBadgeComponent } from './shared/ui-primitives.component';
       .department-nav.mobile-open{display:flex}
       .department-nav a{padding:12px 9px;border-bottom:1px solid #edf1eb;font-size:12px}
       .department-nav a:last-child{border-bottom:0}
-      .site-footer{gap:12px;padding-bottom:88px}
+      .site-footer{padding:28px 16px calc(92px + env(safe-area-inset-bottom))}
+      .footer-main{grid-template-columns:repeat(2,minmax(0,1fr));gap:25px 18px;padding-bottom:22px}
+      .footer-about{grid-column:1/-1}
+      .footer-about p,.footer-locale p{max-width:100%;margin:12px 0}
+      .footer-column{gap:10px}
+      .footer-column h2{font-size:11px}
+      .footer-column a,.footer-locale p{font-size:11px}
+      .footer-bottom{flex-direction:column;gap:7px;font-size:10px}
+
       .account-menu{align-items:center}
       .account-menu-panel{top:calc(100% + 8px);right:0}
       .mobile-bottom-nav{position:fixed;left:0;right:0;bottom:0;z-index:40;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;padding:8px 10px calc(8px + env(safe-area-inset-bottom));background:rgba(255,254,250,.97);border-top:1px solid #e8e1d4;box-shadow:0 -8px 28px rgba(24,45,34,.09);backdrop-filter:blur(18px)}
