@@ -37,6 +37,8 @@ export interface MerkatoOrder {
   buyerServiceFeeRatePercent?: number;
   buyerServiceFeeEtb?: number;
   paymentRail: number;
+  paymentMode?: string;
+  paymentStatus?: string;
   deliveryCourier: string;
   deliveryAddress: string;
   escrowState: string | number;
