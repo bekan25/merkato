@@ -32,16 +32,27 @@ import { ApiService, MerkatoOrder } from '../core/api.service';
               <input type="file" accept="image/jpeg,image/png,.jpg,.jpeg,.png" (change)="selectFile($event)" required>
             </label>
             <div class="file-name" *ngIf="file">Selected: {{file.name}} · {{(file.size / 1024 / 1024) | number:'1.2-2'}} MB</div>
-            <div class="notice">Never upload your PIN, password, or full card details. OCR is not enabled yet; an administrator will manually compare your receipt and transaction details.</div>
+            <div class="notice">Never upload your PIN, password, or full card details. OCR reads visible receipt details automatically, but it does not prove that money reached the bank. An administrator must independently verify the transfer.</div>
             <button type="submit" [disabled]="submitting || !file">{{submitting ? 'Submitting…' : 'Submit receipt'}}</button>
           </form>
-          <div class="success" *ngIf="submitted">Receipt submitted successfully. Status: <strong>PENDING REVIEW</strong>. You can check updates from your dashboard.</div>
+          <div class="success" *ngIf="submitted">Receipt submitted successfully. Status: <strong>PENDING REVIEW</strong>. OCR reading is shown below; an administrator must verify the transfer before escrow is funded.</div>
+          <section class="ocr-result" *ngIf="ocrResult">
+            <h2>Automatic receipt reading</h2>
+            <div class="ocr-status" [class.matched]="ocrResult.ocrStatus === 'MATCHED'" [class.mismatch]="ocrResult.ocrStatus === 'MISMATCH'">{{ocrResult.ocrStatus}}</div>
+            <div class="ocr-grid">
+              <div><small>Provider</small><strong>{{ocrResult.ocrProvider || 'Not detected'}}</strong></div>
+              <div><small>Detected amount</small><strong>{{ocrResult.ocrAmountEtb == null ? 'Not detected' : (ocrResult.ocrAmountEtb | number:'1.2-2') + ' ETB'}}</strong></div>
+              <div><small>Transaction reference</small><strong>{{ocrResult.ocrTransactionReference || 'Not detected'}}</strong></div>
+              <div><small>Transaction date</small><strong>{{ocrResult.ocrTransactionDate ? (ocrResult.ocrTransactionDate | date:'medium') : 'Not detected'}}</strong></div>
+            </div>
+            <p *ngIf="ocrResult.ocrError">{{ocrResult.ocrError}}</p>
+          </section>
         </ng-container>
       </section>
     </main>
   `,
   styles: [`
-    :host{display:block;min-height:75vh;background:#f5f8f4;color:#20372a;font-family:Inter,Arial,sans-serif}.page{max-width:850px;margin:auto;padding:38px 18px 70px}.back{display:inline-block;margin-bottom:18px;color:#52705b;text-decoration:none;font-size:13px}.panel{padding:clamp(20px,4vw,36px);border:1px solid #e4ebe2;border-radius:20px;background:#fff;box-shadow:0 18px 50px #173d2d0b}.eyebrow{color:#a27e36;font-size:10px;font-weight:900;letter-spacing:1.7px}h1{margin:10px 0;color:#173d2d;font-size:clamp(27px,4vw,38px);letter-spacing:-1.2px}.intro{color:#748278;font-size:13px;line-height:1.7}.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:22px 0;padding:15px;border-radius:13px;background:#f5f8f3}.summary div{display:grid;gap:6px;min-width:0}.summary small{color:#87938a;font-size:9px;font-weight:850;letter-spacing:.8px}.summary strong{color:#294b36;font-size:13px;overflow-wrap:anywhere}.form{display:grid}form{display:grid;gap:16px;margin-top:20px}label{display:grid;gap:8px;color:#405b47;font-size:12px;font-weight:800}label span{display:inline;color:#8a968d;font-size:10px;font-weight:500}input{width:100%;min-height:45px;padding:11px 12px;border:1px solid #dfe8dd;border-radius:10px;background:#fbfcfa;color:#233c2c;font:13px Arial}.file-label input{padding:9px;background:#f8faf7}.file-name{color:#55705c;font-size:11px}.notice{padding:13px;border:1px solid #eee4ca;border-radius:10px;background:#fffaf0;color:#79683f;font-size:11px;line-height:1.6}button{min-height:48px;border:0;border-radius:11px;background:#1e563a;color:#fff;font-size:13px;font-weight:850;cursor:pointer}button:disabled{opacity:.55;cursor:not-allowed}.success,.error,.state{margin-top:16px;padding:13px;border-radius:10px;font-size:12px;line-height:1.6}.success{background:#edf7ef;color:#28623b}.error{background:#fff0ed;color:#a84d40}.state{background:#f5f8f3;color:#68776b}@media(max-width:580px){.summary{grid-template-columns:1fr 1fr}.summary div:last-child{grid-column:1/-1}}
+    :host{display:block;min-height:75vh;background:#f5f8f4;color:#20372a;font-family:Inter,Arial,sans-serif}.page{max-width:850px;margin:auto;padding:38px 18px 70px}.back{display:inline-block;margin-bottom:18px;color:#52705b;text-decoration:none;font-size:13px}.panel{padding:clamp(20px,4vw,36px);border:1px solid #e4ebe2;border-radius:20px;background:#fff;box-shadow:0 18px 50px #173d2d0b}.eyebrow{color:#a27e36;font-size:10px;font-weight:900;letter-spacing:1.7px}h1{margin:10px 0;color:#173d2d;font-size:clamp(27px,4vw,38px);letter-spacing:-1.2px}.intro{color:#748278;font-size:13px;line-height:1.7}.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:22px 0;padding:15px;border-radius:13px;background:#f5f8f3}.summary div{display:grid;gap:6px;min-width:0}.summary small{color:#87938a;font-size:9px;font-weight:850;letter-spacing:.8px}.summary strong{color:#294b36;font-size:13px;overflow-wrap:anywhere}.form{display:grid}form{display:grid;gap:16px;margin-top:20px}label{display:grid;gap:8px;color:#405b47;font-size:12px;font-weight:800}label span{display:inline;color:#8a968d;font-size:10px;font-weight:500}input{width:100%;min-height:45px;padding:11px 12px;border:1px solid #dfe8dd;border-radius:10px;background:#fbfcfa;color:#233c2c;font:13px Arial}.file-label input{padding:9px;background:#f8faf7}.file-name{color:#55705c;font-size:11px}.notice{padding:13px;border:1px solid #eee4ca;border-radius:10px;background:#fffaf0;color:#79683f;font-size:11px;line-height:1.6}button{min-height:48px;border:0;border-radius:11px;background:#1e563a;color:#fff;font-size:13px;font-weight:850;cursor:pointer}button:disabled{opacity:.55;cursor:not-allowed}.success,.error,.state{margin-top:16px;padding:13px;border-radius:10px;font-size:12px;line-height:1.6}.success{background:#edf7ef;color:#28623b}.ocr-result{margin-top:14px;padding:15px;border:1px solid #e2ebe1;border-radius:12px;background:#f8faf7}.ocr-result h2{margin:0 0 10px;color:#31523a;font-size:14px}.ocr-status{display:inline-block;margin-bottom:12px;padding:5px 9px;border-radius:20px;background:#f2eddf;color:#856d35;font-size:10px;font-weight:900}.ocr-status.matched{background:#e6f4e9;color:#287443}.ocr-status.mismatch{background:#fff0ed;color:#a84d40}.ocr-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.ocr-grid div{display:grid;gap:4px;min-width:0}.ocr-grid small{color:#849086;font-size:10px}.ocr-grid strong{color:#38543e;font-size:12px;overflow-wrap:anywhere}.ocr-result p{color:#a64d43;font-size:11px}.error{background:#fff0ed;color:#a84d40}.state{background:#f5f8f3;color:#68776b}@media(max-width:580px){.summary{grid-template-columns:1fr 1fr}.summary div:last-child{grid-column:1/-1}}
   `]
 })
 export class PaymentReceiptComponent implements OnInit {
@@ -54,6 +65,12 @@ export class PaymentReceiptComponent implements OnInit {
   submitted = false;
   error = '';
   transactionReference = '';
+  ocrResult: {
+    receiptId: number; orderId: number; paymentTransactionId: number; expectedAmountEtb: number;
+    transactionReference: string | null; status: string; ocrStatus: string; ocrProvider: string | null;
+    ocrTransactionReference: string | null; ocrAmountEtb: number | null; ocrTransactionDate: string | null;
+    ocrError: string | null; message: string;
+  } | null = null;
   file: File | null = null;
 
   async ngOnInit(): Promise<void> {
@@ -90,7 +107,7 @@ export class PaymentReceiptComponent implements OnInit {
     this.submitting = true;
     this.error = '';
     try {
-      await firstValueFrom(this.api.uploadPaymentReceipt(this.order.id, this.file, this.transactionReference.trim()));
+      this.ocrResult = await firstValueFrom(this.api.uploadPaymentReceipt(this.order.id, this.file, this.transactionReference.trim()));
       this.submitted = true;
       this.file = null;
     } catch (e: any) {
