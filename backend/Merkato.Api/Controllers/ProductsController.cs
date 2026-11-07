@@ -92,7 +92,9 @@ public class ProductsController : ControllerBase
                 p.Emoji,
                 p.ImageUrl,
                 p.IsActive,
-                p.CreatedAt))
+                p.CreatedAt,
+                false,
+                _db.ProductListingDetails.Where(x => x.ProductId == p.Id).Select(x => (int?)x.StockQuantity).FirstOrDefault() ?? 0))
             .ToListAsync();
 
         return Ok(products);
@@ -213,7 +215,9 @@ public class ProductsController : ControllerBase
             product.Emoji,
             product.ImageUrl,
             product.IsActive,
-            product.CreatedAt));
+            product.CreatedAt,
+            false,
+            request.StockQuantity));
     }
 
     // ==========================================
@@ -323,7 +327,9 @@ public class ProductsController : ControllerBase
             product.Emoji,
             product.ImageUrl,
             product.IsActive,
-            product.CreatedAt));
+            product.CreatedAt,
+            false,
+            listingInventory.StockQuantity));
     }
 
     // ==========================================
