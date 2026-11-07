@@ -100,6 +100,9 @@ jobs:
         run: docker build --file backend/Dockerfile --tag merkato:ci .
       - name: Run container smoke test against PostgreSQL
         run: |
+          openssl req -x509 -newkey rsa:2048 -keyout /tmp/merkato-dp.key -out /tmp/merkato-dp.crt -days 2 -nodes -subj "/CN=merkato-ci-dataprotection"
+          openssl pkcs12 -export -out /tmp/merkato-dp.pfx -inkey /tmp/merkato-dp.key -in /tmp/merkato-dp.crt -passout pass:ci-dp-password
+          DP_CERT_BASE64="$(base64 -w0 /tmp/merkato-dp.pfx)"
           docker run --detach --network host --name merkato-smoke \
             -e ASPNETCORE_ENVIRONMENT=Production \
             -e ConnectionStrings__PostgreSql="Host=127.0.0.1;Port=5432;Database=merkato_ci;Username=merkato_ci;Password=ci-password-not-for-production" \
@@ -107,17 +110,26 @@ jobs:
             -e Jwt__Issuer="https://api.merkato.test" \
             -e Jwt__Audience="https://merkato.test" \
             -e MERKATO_ALLOWED_ORIGINS="https://merkato.test" \
+            -e MERKATO_DP_CERT_PFX_BASE64="$DP_CERT_BASE64" \
+            -e MERKATO_DP_CERT_PASSWORD="ci-dp-password" \
             -e MERKATO_APPLY_MIGRATIONS="true" merkato:ci
+          ready=0
           for attempt in $(seq 1 40); do
             if curl --fail --silent http://127.0.0.1:8080/health/ready; then
+              ready=1
               break
             fi
             sleep 3
           done
+          if [ "$ready" -ne 1 ]; then
+            docker logs merkato-smoke
+            exit 1
+          fi
           curl --fail --silent http://127.0.0.1:8080/health
           curl --fail --silent --output /dev/null http://127.0.0.1:8080/
           docker logs merkato-smoke
           docker rm --force merkato-smoke
+          rm -f /tmp/merkato-dp.key /tmp/merkato-dp.crt /tmp/merkato-dp.pfx
       - name: Validate Compose deployment configuration
         env:
           POSTGRES_DB: merkato_ci
