@@ -438,6 +438,10 @@ public class DisputesController : ControllerBase
             return Forbid();
         }
 
+        // MERKATO escrow dispute/refund paths must never be applied to seller-direct transfers.
+        if (order.PaymentMode == "SELLER_DIRECT")
+            return Conflict(new { message = "This order was paid directly to the seller and is not covered by MERKATO escrow dispute/refund handling. Contact the seller and the payment provider with your transfer evidence." });
+
         // Only escrow-protected orders can be disputed.
         if (order.EscrowState != EscrowState.HELD &&
             order.EscrowState != EscrowState.INSPECTION_ACTIVE)
