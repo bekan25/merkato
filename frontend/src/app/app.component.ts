@@ -47,7 +47,7 @@ import { MkBadgeComponent } from './shared/ui-primitives.component';
         <a routerLink="/cart" routerLinkActive="active"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h2l2.4 12.2a2 2 0 0 0 2 1.6h8.8a2 2 0 0 0 2-1.6L22 8H6"/><circle cx="10" cy="20" r="1"/><circle cx="18" cy="20" r="1"/></svg><small>{{ t('cart') }}</small></a>
         <a [routerLink]="auth.isAuthenticated ? '/account' : '/login'" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><small>{{ t('account') }}</small></a>
       </nav>
-      <footer class="site-footer">
+      <footer class="site-footer" style="background-color:#092f24;background-image:linear-gradient(135deg,#092f24 0%,#104b36 55%,#08734b 100%);color:#f4fff6;">
         <div class="footer-main">
           <div class="footer-about">
             <a class="brand footer-brand" routerLink="/" aria-label="MERKATO home"><span class="brand-mark">M</span><span>merkato<small>ETHIOPIAN MARKETPLACE</small></span></a>
@@ -74,7 +74,7 @@ import { MkBadgeComponent } from './shared/ui-primitives.component';
             <span class="footer-languages">English · Afaan Oromoo · አማርኛ</span>
           </div>
         </div>
-        <div class="footer-bottom"><span>© 2026 MERKATO. All rights reserved.</span><span>Connect · Discover · Shop</span></div>
+        <div class="footer-bottom"><span>© 2026 MERKATO. All Rights Reserved.</span><span>Connect · Discover · Shop</span></div>
       </footer>
     </div>
   `,
@@ -102,7 +102,7 @@ import { MkBadgeComponent } from './shared/ui-primitives.component';
     .account-menu-panel{position:absolute;top:calc(100% + 12px);right:0;z-index:50;min-width:190px;padding:8px;border:1px solid #e8e1d4;border-radius:14px;background:#fffefa;box-shadow:0 16px 42px rgba(25,45,34,.16)}
     .account-menu-panel a{display:block;padding:11px 12px;border-radius:9px;color:#254a37;font-size:12px;font-weight:650}
     .account-menu-panel a:hover,.account-menu-panel a:focus-visible{background:#f2eee4;color:#123b2f}
-    .site-footer{padding:38px clamp(18px,5vw,76px) 18px;background:linear-gradient(135deg,#092f24,#104b36);color:#e9f2e9}
+    .site-footer{display:block!important;position:relative;isolation:isolate;box-sizing:border-box;width:100%;padding:38px clamp(18px,5vw,76px) 18px;background-color:#092f24!important;background-image:linear-gradient(135deg,#092f24 0%,#104b36 55%,#08734b 100%)!important;color:#f4fff6!important}.site-footer *{box-sizing:border-box}.site-footer .footer-column h2,.site-footer .footer-brand,.site-footer .footer-bottom{color:#fff!important}.site-footer .footer-about p,.site-footer .footer-locale p,.site-footer .footer-column a,.site-footer .footer-country,.site-footer .footer-languages{color:#e0f0e4!important}.site-footer .footer-bottom{border-top:1px solid rgba(255,255,255,.28)!important;color:#f4fff6!important}
     .footer-main{display:grid;grid-template-columns:minmax(220px,1.6fr) repeat(3,minmax(130px,1fr));gap:clamp(22px,4vw,54px);max-width:1440px;margin:0 auto;padding-bottom:30px}
     .footer-brand{display:inline-flex;color:#fff!important}.footer-brand small{color:#b8d0bd!important}.footer-about p,.footer-locale p{max-width:310px;margin:16px 0 12px;color:#c2d6c8;font-size:12px;line-height:1.75}
     .footer-country,.footer-languages{display:block;color:#d6e5d8;font-size:11px;line-height:1.7}
