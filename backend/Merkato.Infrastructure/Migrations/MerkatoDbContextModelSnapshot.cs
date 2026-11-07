@@ -1302,6 +1302,16 @@ modelBuilder.Entity("Merkato.Domain.Entities.UserNotificationPreference", b =>
                 b.ToTable("UserNotificationPreferences");
             });
             
+modelBuilder.Entity("Merkato.Domain.Entities.UserAddress", b =>
+            {
+                b.HasOne("Merkato.Domain.Entities.User", null).WithMany().HasForeignKey("UserId").OnDelete(DeleteBehavior.Cascade).IsRequired();
+            });
+            
+            modelBuilder.Entity("Merkato.Domain.Entities.UserNotificationPreference", b =>
+            {
+                b.HasOne("Merkato.Domain.Entities.User", null).WithMany().HasForeignKey("UserId").OnDelete(DeleteBehavior.Cascade).IsRequired();
+            });
+            
 #pragma warning restore 612, 618
         }
     }
