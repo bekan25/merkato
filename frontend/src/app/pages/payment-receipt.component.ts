@@ -35,6 +35,7 @@ import { ApiService, MerkatoOrder, SellerPaymentDestination } from '../core/api.
             <p class="transfer-warning">Check the beneficiary name and amount before transferring. Do not send money to any account not shown here.</p>
           </section>
           <div class="error" *ngIf="destinationError">{{destinationError}}</div>
+          <div class="notice" *ngIf="paymentInitError">{{paymentInitError}}</div>
           <form (ngSubmit)="submit()">
             <label>Bank / provider transaction reference <span>(if shown on your receipt)</span>
               <input name="reference" [(ngModel)]="transactionReference" maxlength="150" placeholder="Enter transaction ID or reference">
@@ -44,7 +45,7 @@ import { ApiService, MerkatoOrder, SellerPaymentDestination } from '../core/api.
             </label>
             <div class="file-name" *ngIf="file">Selected: {{file.name}} · {{(file.size / 1024 / 1024) | number:'1.2-2'}} MB</div>
             <div class="notice">Automatic OCR reads visible receipt details such as provider, amount, transaction reference and date. Never upload your PIN, password or full card details. OCR is an assistant only; it cannot confirm that money reached the provider account.</div>
-            <button type="submit" [disabled]="submitting || !file">{{submitting ? 'Submitting…' : 'Submit receipt'}}</button>
+            <button type="submit" [disabled]="submitting || !file || !paymentReady">{{submitting ? 'Submitting…' : 'Submit receipt'}}</button>
           </form>
           <section class="ocr-result" *ngIf="ocrResult" aria-live="polite">
             <div class="ocr-result-head">
@@ -84,6 +85,8 @@ export class PaymentReceiptComponent implements OnInit {
   ocrResult: import('../core/api.service').PaymentReceiptUploadResult | null = null;
   destination: SellerPaymentDestination | null = null;
   destinationError = '';
+  paymentReady = false;
+  paymentInitError = '';
 
   async ngOnInit(): Promise<void> {
     try {
@@ -92,6 +95,18 @@ export class PaymentReceiptComponent implements OnInit {
       this.order = orders.find(x => x.id === this.orderId) ?? null;
       if (!this.order) this.error = 'Order not found in your account, or you do not have permission to view it.';
       if (this.order) {
+        if ((this.order.paymentStatus || '').toUpperCase() === 'VERIFIED') {
+          this.paymentInitError = 'Payment is already verified for this order. Do not transfer again or upload another receipt.';
+        } else if ((this.order.paymentMode || '').toUpperCase() === 'SELLER_DIRECT') {
+          try {
+            await firstValueFrom(this.api.initiatePayment(this.order.id, this.order.totalAmountEtb, this.order.paymentRail));
+            this.paymentReady = true;
+          } catch (e: any) {
+            this.paymentInitError = e?.error?.error || e?.error?.message || 'Could not prepare the payment request. Do not transfer until this page confirms the seller payment details and payment request.';
+          }
+        } else {
+          this.paymentReady = true;
+        }
         try { this.destination = await firstValueFrom(this.api.getSellerPaymentDestination(this.order.id)); }
         catch (e: any) { this.destinationError = e?.error?.error || 'Seller payment details are not available for this order yet.'; }
       }
