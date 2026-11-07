@@ -14,6 +14,7 @@ export interface MerkatoProduct {
   imageUrl?: string | null;
   isActive: boolean;
   createdAt: string;
+  stockQuantity?: number;
 }
 
 interface DiscoveryProductsResponse {
