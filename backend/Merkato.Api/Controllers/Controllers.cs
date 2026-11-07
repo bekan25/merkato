@@ -49,8 +49,19 @@ public class DeliveriesController : ControllerBase
         var order = await _db.Orders.AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == dto.OrderId, ct);
         if (order == null) return NotFound(new { message = "Order not found." });
-        if (order.EscrowState != EscrowState.HELD)
-            return Conflict(new { message = "Delivery can only be created after the payment is verified and funds are held in escrow." });
+        if (order.PaymentMode == "SELLER_DIRECT")
+        {
+            var sellerConfirmed = await _db.PaymentReceipts.AsNoTracking()
+                .AnyAsync(x => x.OrderId == order.Id && x.Status == "SELLER_CONFIRMED", ct);
+            var verifiedPayment = await _db.PaymentTransactions.AsNoTracking()
+                .AnyAsync(x => x.OrderId == order.Id && x.Status == PaymentStatus.VERIFIED, ct);
+            if (!sellerConfirmed || !verifiedPayment)
+                return Conflict(new { message = "Delivery can only be created after the seller independently confirms the transfer in their own account." });
+        }
+        else if (order.EscrowState != EscrowState.HELD)
+        {
+            return Conflict(new { message = "Delivery can only be created after payment is verified and funds are held in escrow." });
+        }
         if (dto.FeeEtb != order.DeliveryFeeEtb)
             return Conflict(new { message = "Delivery fee must match the amount quoted and stored on the order.", expectedDeliveryFeeEtb = order.DeliveryFeeEtb });
 
