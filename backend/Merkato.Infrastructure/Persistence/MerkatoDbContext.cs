@@ -57,7 +57,7 @@ public class MerkatoDbContext : DbContext
         // Account addresses are scoped to the owning user.
 modelBuilder.Entity<UserAddress>(e =>
 {
-    e.HasIndex(x => new { x.UserId, x.IsDefault });
+    e.HasIndex(x => x.UserId).IsUnique().HasFilter("\"IsDefault\" = TRUE");
     e.Property(x => x.Label).HasMaxLength(40).IsRequired();
     e.Property(x => x.RecipientName).HasMaxLength(120).IsRequired();
     e.Property(x => x.PhoneNumber).HasMaxLength(20).IsRequired();
