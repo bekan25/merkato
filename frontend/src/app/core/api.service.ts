@@ -44,6 +44,22 @@ export interface MerkatoOrder {
   createdAt: string;
 }
 
+export interface PaymentReceiptUploadResult {
+  receiptId: number;
+  orderId: number;
+  paymentTransactionId: number;
+  expectedAmountEtb: number;
+  transactionReference: string | null;
+  status: string;
+  ocrStatus: 'MATCHED' | 'MISMATCH' | 'NEEDS_REVIEW' | 'UNAVAILABLE' | string;
+  ocrProvider: string | null;
+  ocrTransactionReference: string | null;
+  ocrAmountEtb: number | null;
+  ocrTransactionDate: string | null;
+  ocrError: string | null;
+  message: string;
+}
+
 export interface PaymentReceiptReview {
   id: number;
   orderId: number;
@@ -185,12 +201,12 @@ export class ApiService {
     return this.http.post(`${this.baseUrl}/payments/initiate`, { orderId, amountEtb, paymentRail }, { headers });
   }
 
-  uploadPaymentReceipt(orderId: number, receipt: File, transactionReference = ''): Observable<unknown> {
+  uploadPaymentReceipt(orderId: number, receipt: File, transactionReference = ''): Observable<PaymentReceiptUploadResult> {
     const form = new FormData();
     form.append('orderId', String(orderId));
     form.append('receipt', receipt, receipt.name);
     if (transactionReference.trim()) form.append('transactionReference', transactionReference.trim());
-    return this.http.post('/api/payment-receipts', form);
+    return this.http.post<PaymentReceiptUploadResult>('/api/payment-receipts', form);
   }
 
   getMyPaymentReceipts(): Observable<unknown[]> {
