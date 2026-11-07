@@ -26,6 +26,7 @@ export class MkCardComponent {}
 @Component({
   selector: 'mk-badge',
   standalone: true,
+  imports: [CommonModule],
   template: `<span class="mk-badge" [ngClass]="'mk-badge--' + variant" [attr.aria-label]="ariaLabel || null"><ng-content /></span>`,
   styles: [':host{display:inline-flex;max-width:100%;vertical-align:middle}']
 })
