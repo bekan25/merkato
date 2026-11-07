@@ -230,7 +230,9 @@ export class ApiService {
   }
 
   initiatePayment(orderId: number, amountEtb: number, paymentRail: number): Observable<unknown> {
-    const headers = new HttpHeaders({ 'Idempotency-Key': crypto.randomUUID() });
+    // Stable per-order key makes retries from the cart and receipt page idempotent,
+    // including when the original response was lost after the server saved the request.
+    const headers = new HttpHeaders({ 'Idempotency-Key': `merkato-order-${orderId}-payment` });
     return this.http.post(`${this.baseUrl}/payments/initiate`, { orderId, amountEtb, paymentRail }, { headers });
   }
 

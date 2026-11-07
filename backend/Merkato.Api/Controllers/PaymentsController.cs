@@ -137,6 +137,32 @@ public class PaymentsController : ControllerBase
                 });
             }
 
+            var verifiedDirect = await _db.PaymentTransactions
+                .AnyAsync(x => x.OrderId == order.Id && x.Status == PaymentStatus.VERIFIED, ct);
+            if (verifiedDirect)
+                return Conflict(new { error = "Payment for this order has already been verified. Do not transfer again." });
+
+            // A previous client version may have used a different idempotency key.
+            // Reuse the active order payment rather than creating a duplicate transaction.
+            var pendingForOrder = await _db.PaymentTransactions
+                .Where(x => x.OrderId == order.Id &&
+                    (x.Status == PaymentStatus.PENDING || x.Status == PaymentStatus.INITIATED))
+                .OrderByDescending(x => x.CreatedAt)
+                .FirstOrDefaultAsync(ct);
+            if (pendingForOrder is not null)
+                return Ok(new
+                {
+                    paymentTransactionId = pendingForOrder.Id,
+                    orderId = pendingForOrder.OrderId,
+                    amountEtb = pendingForOrder.AmountEtb,
+                    currency = pendingForOrder.Currency,
+                    paymentRail = pendingForOrder.PaymentRail.ToString(),
+                    status = pendingForOrder.Status.ToString(),
+                    idempotencyKey = pendingForOrder.IdempotencyKey,
+                    transferMode = "SELLER_DIRECT",
+                    message = "An active transfer request already exists for this order. Use the same seller payment destination and upload the receipt."
+                });
+
             var directTransaction = new PaymentTransaction
             {
                 OrderId = order.Id,
