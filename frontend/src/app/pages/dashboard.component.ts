@@ -362,7 +362,7 @@ export class DashboardComponent implements OnInit {
   toggleProductForm(): void { if (this.showProductForm) this.cancelEdit(); else this.showProductForm = true; }
   editProduct(product: MerkatoProduct): void {
     this.editingProductId = product.id;
-    this.draft = { name: product.name, priceEtb: product.priceEtb, category: product.category, location: product.location, emoji: product.emoji || '🛍️' };
+    this.draft = { name: product.name, priceEtb: product.priceEtb, category: product.category, location: product.location, emoji: product.emoji || '🛍️', stockQuantity: product.stockQuantity ?? 0 };
     this.showProductForm = true;
     this.clearSelectedImage();
     this.productError = '';
