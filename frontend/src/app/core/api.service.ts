@@ -93,6 +93,35 @@ export interface SellerVerification {
   submittedAt?: string | null;
 }
 
+export interface SellerPaymentAccount {
+  id: number;
+  sellerId: number;
+  paymentRail: string;
+  accountHolderName: string;
+  accountIdentifier: string;
+  bankName?: string | null;
+  instructions?: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SellerPaymentDestination {
+  orderId: number;
+  orderNumber: string;
+  sellerId: number;
+  amountEtb: number;
+  currency: string;
+  paymentDestination: {
+    paymentRail: string;
+    accountHolderName: string;
+    accountIdentifier: string;
+    bankName?: string | null;
+    instructions?: string | null;
+  };
+  notice: string;
+}
+
 export interface MerkatoDispute {
   id: number;
   orderId: number;
@@ -255,6 +284,34 @@ export class ApiService {
 
   decideSellerVerification(sellerId: number, decision: 'APPROVED' | 'REJECTED', note = ''): Observable<unknown> {
     return this.http.post(`${this.baseUrl}/trust/seller-verifications/${sellerId}/decision`, { decision, note });
+  }
+
+  getSellerPaymentAccounts(): Observable<SellerPaymentAccount[]> {
+    return this.http.get<SellerPaymentAccount[]>('/api/seller-payment-accounts/mine');
+  }
+
+  saveSellerPaymentAccount(payload: { paymentRail: number; accountHolderName: string; accountIdentifier: string; bankName?: string; instructions?: string; isActive: boolean }): Observable<SellerPaymentAccount> {
+    return this.http.put<SellerPaymentAccount>('/api/seller-payment-accounts/mine', payload);
+  }
+
+  deactivateSellerPaymentAccount(id: number): Observable<void> {
+    return this.http.delete<void>('/api/seller-payment-accounts/mine/' + id);
+  }
+
+  getSellerPaymentDestination(orderId: number): Observable<SellerPaymentDestination> {
+    return this.http.get<SellerPaymentDestination>('/api/seller-payment-accounts/order/' + orderId);
+  }
+
+  getSellerPendingPaymentReceipts(): Observable<PaymentReceiptReview[]> {
+    return this.http.get<PaymentReceiptReview[]>('/api/payment-receipts/seller/pending');
+  }
+
+  getSellerPaymentReceiptFile(id: number): Observable<Blob> {
+    return this.http.get('/api/payment-receipts/seller/' + id + '/file', { responseType: 'blob' });
+  }
+
+  reviewSellerPaymentReceipt(id: number, payload: { decision: 'APPROVE' | 'REJECT'; note: string; transactionReference: string | null }): Observable<unknown> {
+    return this.http.post('/api/payment-receipts/seller/' + id + '/review', payload);
   }
 
   getDisputes(): Observable<MerkatoDispute[]> {
