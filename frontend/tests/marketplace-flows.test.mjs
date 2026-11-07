@@ -201,3 +201,23 @@ test('checkout sends one quantity-aware order per product and validates live ava
   assert.match(orders, /INSUFFICIENT_STOCK/);
 });
 
+
+test('checkout loads saved buyer addresses and maps selection into delivery address and city quote', async () => {
+  const api = await read('../src/app/core/api.service.ts');
+  const cart = await read('../src/app/pages/cart.component.ts');
+  const account = await read('../../backend/Merkato.Api/Controllers/AccountController.cs');
+
+  assert.match(api, /getSavedAddresses\\(\\): Observable<MerkatoSavedAddress\\[\\]>/);
+  assert.match(api, /\\/account\\/addresses/);
+  assert.match(account, /HttpGet\\("addresses"\\)/);
+  assert.match(account, /Where\\(x => x\\.UserId == UserId\\)/);
+  assert.match(cart, /this\\.api\\.getSavedAddresses\\(\\)/);
+  assert.match(cart, /this\\.savedAddresses\\.find\\(x => x\\.isDefault\\)/);
+  assert.match(cart, /saved\\.recipientName/);
+  assert.match(cart, /saved\\.phoneNumber/);
+  assert.match(cart, /saved\\.streetAddress/);
+  assert.match(cart, /this\\.loadDeliveryQuote\\(\\)/);
+  assert.match(cart, /Choose a city with an available delivery quote/);
+  assert.match(cart, /Enter a new address manually/);
+});
+
