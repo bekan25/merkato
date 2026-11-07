@@ -180,6 +180,8 @@ public sealed class PaymentReceiptsController : ControllerBase
         {
             var extension = item.ContentType == "image/png" ? ".png" : ".jpg";
             var ocr = await _ocr.ReadAsync(item.Content, extension, item.expectedAmountEtb, ct);
+            var check = ReceiptCrossCheck.Evaluate(new ReceiptCrossCheckInput(
+                ocr, item.TransactionReference, item.OrderCreatedAt, item.OrderRail, null, DateTime.UtcNow));
             result.Add(new
             {
                 item.Id, item.OrderId, item.OrderNumber, item.BuyerId, item.PaymentTransactionId,
@@ -187,11 +189,8 @@ public sealed class PaymentReceiptsController : ControllerBase
                 item.Sha256, item.Status, item.CreatedAt, ocrStatus = ocr.Status,
                 ocrProvider = ocr.Provider, ocrTransactionReference = ocr.TransactionReference,
                 ocrAmountEtb = ocr.AmountEtb, ocrTransactionDate = ocr.TransactionDate, ocrError = ocr.Error,
-                verificationFlags = ReceiptCrossCheck.Evaluate(new ReceiptCrossCheckInput(
-                    ocr, item.TransactionReference, item.OrderCreatedAt, item.OrderRail, null, DateTime.UtcNow)).Flags,
-                verificationNotes = ReceiptCrossCheck.Evaluate(new ReceiptCrossCheckInput(
-                    ocr, item.TransactionReference, item.OrderCreatedAt, item.OrderRail, null, DateTime.UtcNow)).Flags
-                    .Select(ReceiptCrossCheck.Describe)
+                verificationFlags = check.Flags,
+                verificationNotes = check.Flags.Select(ReceiptCrossCheck.Describe)
             });
         }
         return Ok(result);
