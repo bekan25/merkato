@@ -1268,7 +1268,30 @@ b.Property<long>("SellerId")
                 b.ToTable("CreatorCommissions");
             });
 
-modelBuilder.Entity("Merkato.Domain.Entities.UserAddress", b =>
+modelBuilder.Entity("Merkato.Domain.Entities.SellerPaymentAccount", b =>
+            {
+                b.Property<long>("Id").ValueGeneratedOnAdd().HasColumnType("bigint");
+                NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+                b.Property<long>("SellerId").HasColumnType("bigint");
+                b.Property<int>("PaymentRail").HasColumnType("integer");
+                b.Property<string>("AccountHolderName").IsRequired().HasMaxLength(120).HasColumnType("character varying(120)");
+                b.Property<string>("AccountIdentifier").IsRequired().HasMaxLength(120).HasColumnType("character varying(120)");
+                b.Property<string>("BankName").HasMaxLength(120).HasColumnType("character varying(120)");
+                b.Property<string>("Instructions").HasMaxLength(500).HasColumnType("character varying(500)");
+                b.Property<bool>("IsActive").HasColumnType("boolean");
+                b.Property<DateTime>("CreatedAt").HasColumnType("timestamp with time zone");
+                b.Property<DateTime>("UpdatedAt").HasColumnType("timestamp with time zone");
+                b.HasKey("Id");
+                b.HasIndex("SellerId", "PaymentRail").IsUnique();
+                b.ToTable("SellerPaymentAccounts");
+            });
+
+            modelBuilder.Entity("Merkato.Domain.Entities.SellerPaymentAccount", b =>
+            {
+                b.HasOne("Merkato.Domain.Entities.User", null).WithMany().HasForeignKey("SellerId").OnDelete(DeleteBehavior.Restrict).IsRequired();
+            });
+
+            modelBuilder.Entity("Merkato.Domain.Entities.UserAddress", b =>
             {
                 b.Property<long>("Id").ValueGeneratedOnAdd().HasColumnType("bigint");
                 NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
