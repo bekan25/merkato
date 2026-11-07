@@ -77,7 +77,18 @@ public sealed class SellerDirectPaymentTests
         var destination = await buyerController.ForOrder(77, CancellationToken.None);
         Assert.IsType<OkObjectResult>(destination);
 
-        var (_, otherBuyerController) = Create(nameof(SellerCanSaveOwnAccountAndBuyerCanOnlyReadTheirOrderDestination) + "-other", 99, "BUYER");
+        var otherIdentity = new ClaimsIdentity(new[]
+        {
+            new Claim(ClaimTypes.NameIdentifier, "99"),
+            new Claim(ClaimTypes.Role, "BUYER")
+        }, "test");
+        var otherBuyerController = new SellerPaymentAccountsController(db)
+        {
+            ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(otherIdentity) }
+            }
+        };
         var denied = await otherBuyerController.ForOrder(77, CancellationToken.None);
         Assert.IsType<ForbidResult>(denied);
     }
