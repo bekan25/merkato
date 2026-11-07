@@ -68,7 +68,7 @@ test('saved delivery addresses load into checkout while manual address entry rem
   assert.match(cart, /selectSavedAddress\(id: number\)/);
   assert.match(cart, /Enter address manually/);
   assert.match(cart, /saved\.deliveryInstructions/);
-  assert.match(cart, /saved address city/);
+  assert.match(cart, /Saved address city/i);
   assert.match(account, /addressesError/);
   assert.match(account, /loadAddresses\(\)/);
   assert.match(controller, /HttpGet\("addresses"\)/);
