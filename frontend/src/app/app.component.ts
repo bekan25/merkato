@@ -12,7 +12,7 @@ import { MkBadgeComponent } from './shared/ui-primitives.component';
   imports: [CommonModule, FormsModule, RouterOutlet, RouterLink, RouterLinkActive, MkBadgeComponent],
   template: `
     <div class="app-shell">
-      <div class="announcement">MERKATO ETHIOPIA <span>•</span> {{ t('announcement') }}</div>
+      <div class="announcement" *ngIf="announcementVisible">MERKATO ETHIOPIA <span>•</span> {{ t('announcement') }}<button type="button" class="announcement-dismiss" aria-label="Dismiss announcement" (click)="announcementVisible = false">×</button></div>
       <header class="site-header">
         <a class="brand" routerLink="/" aria-label="MERKATO home"><span class="brand-mark">M</span><span>merkato<small>ETHIOPIAN MARKETPLACE</small></span></a>
         <form class="global-search" (ngSubmit)="searchMarketplace()" role="search">
@@ -23,14 +23,15 @@ import { MkBadgeComponent } from './shared/ui-primitives.component';
           <button type="submit" aria-label="Search">⌕</button>
         </form>
         <div class="header-actions">
-          <label class="language-picker" aria-label="Choose language"><span aria-hidden="true">◎</span><select [(ngModel)]="language" (ngModelChange)="changeLanguage($event)" name="siteLanguage" [attr.aria-label]="t('language')"><option value="en">EN</option><option value="om">OR</option><option value="am">አማ</option></select></label>
+          <label class="language-picker" aria-label="Choose language"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg><select [(ngModel)]="language" (ngModelChange)="changeLanguage($event)" name="siteLanguage" [attr.aria-label]="t('language')"><option value="en">EN</option><option value="om">OR</option><option value="am">አማ</option></select></label>
           <a class="delivery-link" routerLink="/" fragment="marketplace"><small>{{ t('delivering') }}</small><strong>🇪🇹 Ethiopia</strong></a>
           <a class="account-link" *ngIf="!auth.isAuthenticated" routerLink="/login"><small>{{ t('helloSignIn') }}</small><strong>{{ t('account') }}</strong></a>
           <details class="account-menu" *ngIf="auth.isAuthenticated"><summary class="account-link" [attr.aria-label]="t('openAccountMenu')"><small>Hello, {{auth.user?.fullName?.split(' ')?.[0]}}</small><strong>{{ t('myAccount') }} <span aria-hidden="true">⌄</span></strong></summary><div class="account-menu-panel"><a [routerLink]="auth.dashboardPath()">{{ t('dashboard') }}</a><a routerLink="/commerce">{{ t('commerceHub') }}</a></div></details>
           <a class="cart-link" routerLink="/cart"><span class="cart-icon">🛒</span><strong>{{ t('cart') }}</strong><mk-badge class="cart-count" variant="gold" [ariaLabel]="cartCount + ' items in cart'">{{cartCount}}</mk-badge></a>
         </div>
       </header>
-      <button class="mobile-menu-toggle" type="button" (click)="mobileNavOpen = !mobileNavOpen" [attr.aria-expanded]="mobileNavOpen" aria-controls="main-department-nav"><span>{{mobileNavOpen ? '×' : '☰'}}</span>{{mobileNavOpen ? 'Close menu' : 'Browse MERKATO'}}</button>
+      <nav class="mobile-category-nav" aria-label="Browse marketplace categories"><a *ngFor="let item of mobileCategories" [routerLink]="['/']" [queryParams]="{category: item.value}" fragment="marketplace">{{item.label}}</a></nav>
+      <button class="mobile-menu-toggle" type="button" (click)="mobileNavOpen = !mobileNavOpen" [attr.aria-expanded]="mobileNavOpen" aria-controls="main-department-nav"><span aria-hidden="true">☰</span>{{mobileNavOpen ? 'Close menu' : 'Browse MERKATO'}}</button>
       <nav id="main-department-nav" class="department-nav" [class.mobile-open]="mobileNavOpen" aria-label="Main navigation">
         <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}" (click)="closeMobileNav()">☰ {{ t('departments') }}</a>
         <a routerLink="/" fragment="categories" (click)="closeMobileNav()">{{ t('finds') }}</a>
@@ -41,10 +42,10 @@ import { MkBadgeComponent } from './shared/ui-primitives.component';
       </nav>
       <main><router-outlet /></main>
       <nav class="mobile-bottom-nav" aria-label="Mobile navigation">
-        <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}"><span aria-hidden="true">⌂</span><small>{{ t('home') }}</small></a>
-        <a routerLink="/" fragment="marketplace"><span aria-hidden="true">⌕</span><small>{{ t('finds') }}</small></a>
-        <a routerLink="/cart" routerLinkActive="active"><span aria-hidden="true">🛒</span><small>{{ t('cart') }}</small></a>
-        <a [routerLink]="auth.isAuthenticated ? auth.dashboardPath() : '/login'" routerLinkActive="active"><span aria-hidden="true">◎</span><small>{{ t('account') }}</small></a>
+        <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg><small>{{ t('home') }}</small></a>
+        <a routerLink="/" fragment="marketplace"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><small>{{ t('finds') }}</small></a>
+        <a routerLink="/cart" routerLinkActive="active"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h2l2.4 12.2a2 2 0 0 0 2 1.6h8.8a2 2 0 0 0 2-1.6L22 8H6"/><circle cx="10" cy="20" r="1"/><circle cx="18" cy="20" r="1"/></svg><small>{{ t('cart') }}</small></a>
+        <a [routerLink]="auth.isAuthenticated ? auth.dashboardPath() : '/login'" routerLinkActive="active"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><small>{{ t('account') }}</small></a>
       </nav>
       <footer class="site-footer"><a class="brand footer-brand" routerLink="/"><span class="brand-mark">M</span><span>merkato<small>ETHIOPIAN MARKETPLACE</small></span></a><span>Connecting Ethiopia, one marketplace.</span><span>© 2026 MERKATO</span></footer>
     </div>
@@ -73,7 +74,11 @@ import { MkBadgeComponent } from './shared/ui-primitives.component';
     .account-menu-panel{position:absolute;top:calc(100% + 12px);right:0;z-index:50;min-width:190px;padding:8px;border:1px solid #e8e1d4;border-radius:14px;background:#fffefa;box-shadow:0 16px 42px rgba(25,45,34,.16)}
     .account-menu-panel a{display:block;padding:11px 12px;border-radius:9px;color:#254a37;font-size:12px;font-weight:650}
     .account-menu-panel a:hover,.account-menu-panel a:focus-visible{background:#f2eee4;color:#123b2f}
-    .mobile-bottom-nav{display:none}
+.mobile-bottom-nav{display:none}
+    .announcement{position:relative;padding:10px 44px 10px 18px;text-align:center}
+    .announcement-dismiss{position:absolute;right:14px;top:50%;transform:translateY(-50%);width:28px;height:28px;border:0;border-radius:50%;background:#ffffff20;color:#fff;font-size:20px;line-height:1;cursor:pointer}
+    .language-picker>svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+    .mobile-category-nav{display:none}
 
     .language-picker{display:inline-flex;align-items:center;gap:5px;height:34px;padding:0 9px;border:1px solid #dce8dc;border-radius:22px;background:#fff;color:#087b4d;white-space:nowrap}
     .language-picker>span{font-size:17px;line-height:1}
@@ -90,15 +95,18 @@ import { MkBadgeComponent } from './shared/ui-primitives.component';
     .cart-count{min-width:20px;height:20px;display:grid;place-items:center;border-radius:50%;background:#fff;color:#087b4d}
     @media(max-width:760px){.global-search{border-radius:12px}.global-search button{border-radius:0}.cart-link{background:transparent;padding:5px}}
     @media(max-width:760px){
-      .site-header{padding:10px 14px;display:grid;grid-template-columns:1fr auto;gap:10px}
+      .site-header{padding:9px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:58px}
       .brand{font-size:19px}.brand-mark{height:33px;width:33px}
-      .global-search{grid-column:1/-1;grid-row:2;width:100%;max-width:none;height:40px}
-      .global-search select{width:78px;font-size:10px}
-      .global-search button{width:42px}
-      .header-actions{gap:11px}.delivery-link{display:none}
-      .account-link small{font-size:8px}.account-link strong{font-size:10px}
-      .cart-link{font-size:10px}.cart-icon{font-size:18px}
-      .mobile-menu-toggle{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;height:40px;border:0;border-bottom:1px solid #e4ebe2;background:rgba(239,245,236,.94);color:#315541;font-size:11px;font-weight:750;cursor:pointer}
+      .brand small{display:none!important}
+      .global-search{display:none!important}
+      .header-actions{display:flex;align-items:center;gap:0}
+      .header-actions>:not(.language-picker){display:none!important}
+      .language-picker{height:34px;padding:0 9px}
+      .mobile-menu-toggle{display:none!important}
+      .mobile-category-nav{display:flex;gap:8px;overflow-x:auto;overscroll-behavior-inline:contain;scrollbar-width:none;padding:9px 14px 11px;background:#fffefa;border-bottom:1px solid #e9e4d8;white-space:nowrap}
+      .mobile-category-nav::-webkit-scrollbar{display:none}
+      .mobile-category-nav a{flex:0 0 auto;padding:8px 13px;border:1px solid #dfe7dd;border-radius:999px;background:#f5f7f1;color:#244b37;font-size:11px;font-weight:750;text-decoration:none}
+      .mobile-category-nav a:focus-visible{outline:3px solid #8b672e!important;outline-offset:2px}
       .mobile-menu-toggle span{font-size:17px}
       .department-nav{display:none;height:auto;min-height:0;padding:8px 14px 14px;gap:0;flex-direction:column;align-items:stretch;white-space:normal;background:rgba(249,251,247,.97);border-bottom:1px solid #e3ebe1}
       .department-nav.mobile-open{display:flex}
@@ -108,8 +116,9 @@ import { MkBadgeComponent } from './shared/ui-primitives.component';
       .account-menu{align-items:center}
       .account-menu-panel{top:calc(100% + 8px);right:0}
       .mobile-bottom-nav{position:fixed;left:0;right:0;bottom:0;z-index:40;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;padding:8px 10px calc(8px + env(safe-area-inset-bottom));background:rgba(255,254,250,.97);border-top:1px solid #e8e1d4;box-shadow:0 -8px 28px rgba(24,45,34,.09);backdrop-filter:blur(18px)}
-      .mobile-bottom-nav a{min-height:48px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border-radius:10px;color:#64736a;font-size:19px}
-      .mobile-bottom-nav a small{font-size:10px;font-weight:700;line-height:1.2}
+      .mobile-bottom-nav a{min-width:0;min-height:50px;display:grid;grid-template-rows:22px 14px;align-content:center;justify-items:center;gap:3px;border-radius:10px;color:#64736a;text-decoration:none}
+      .mobile-bottom-nav a svg{display:block;width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+      .mobile-bottom-nav a small{display:block;align-self:center;font-size:10px;font-weight:700;line-height:14px;white-space:nowrap}
       .mobile-bottom-nav a.active,.mobile-bottom-nav a:focus-visible{color:#123b2f;background:#edf3ed}
       main{padding-bottom:8px}
     }
@@ -122,6 +131,15 @@ export class AppComponent implements OnInit {
   headerSearch = '';
   searchDepartment = 'All';
   mobileNavOpen = false;
+  announcementVisible = true;
+  mobileCategories = [
+    { value: 'Electronics', label: 'Electronics' },
+    { value: 'Fashion', label: 'Fashion' },
+    { value: 'Home & Living', label: 'Home & Living' },
+    { value: 'Food', label: 'Food' },
+    { value: 'Beauty', label: 'Beauty' },
+    { value: 'Other', label: 'Other' }
+  ];
   language: 'en' | 'om' | 'am' = this.restoreLanguage();
 
   ngOnInit(): void {
