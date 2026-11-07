@@ -90,7 +90,7 @@ if (builder.Environment.IsProduction())
             certificatePassword,
             X509KeyStorageFlags.EphemeralKeySet);
     }
-    catch (Exception exception) when (exception is FormatException or CryptographicException)
+    catch (Exception exception) when (exception is FormatException or System.Security.Cryptography.CryptographicException)
     {
         throw new InvalidOperationException("The MERKATO Data Protection certificate configuration is invalid.", exception);
     }
