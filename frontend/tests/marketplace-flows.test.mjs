@@ -207,17 +207,16 @@ test('checkout loads saved buyer addresses and maps selection into delivery addr
   const cart = await read('../src/app/pages/cart.component.ts');
   const account = await read('../../backend/Merkato.Api/Controllers/AccountController.cs');
 
-  assert.match(api, /getSavedAddresses\\(\\): Observable<MerkatoSavedAddress\\[\\]>/);
-  assert.match(api, /\\/account\\/addresses/);
-  assert.match(account, /HttpGet\\("addresses"\\)/);
-  assert.match(account, /Where\\(x => x\\.UserId == UserId\\)/);
-  assert.match(cart, /this\\.api\\.getSavedAddresses\\(\\)/);
-  assert.match(cart, /this\\.savedAddresses\\.find\\(x => x\\.isDefault\\)/);
-  assert.match(cart, /saved\\.recipientName/);
-  assert.match(cart, /saved\\.phoneNumber/);
-  assert.match(cart, /saved\\.streetAddress/);
-  assert.match(cart, /this\\.loadDeliveryQuote\\(\\)/);
-  assert.match(cart, /Choose a city with an available delivery quote/);
-  assert.match(cart, /Enter a new address manually/);
+  assert.ok(api.includes('getSavedAddresses(): Observable<MerkatoSavedAddress[]>'));
+  assert.ok(api.includes('/account/addresses'));
+  assert.ok(account.includes('[HttpGet("addresses")]'));
+  assert.ok(account.includes('Where(x => x.UserId == UserId)'));
+  assert.ok(cart.includes('this.api.getSavedAddresses()'));
+  assert.ok(cart.includes('this.savedAddresses.find(x => x.isDefault)'));
+  assert.ok(cart.includes('saved.recipientName'));
+  assert.ok(cart.includes('saved.phoneNumber'));
+  assert.ok(cart.includes('saved.streetAddress'));
+  assert.ok(cart.includes('this.loadDeliveryQuote()'));
+  assert.ok(cart.includes('Choose a city with an available delivery quote'));
+  assert.ok(cart.includes('Enter a new address manually'));
 });
-
