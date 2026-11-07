@@ -6,11 +6,17 @@ using Merkato.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 namespace Merkato.Tests;
 public sealed class SocialCommerceWorkflowTests
 {
- private static SocialCommerceController Controller(MerkatoDbContext db,long user,string role){var identity=new ClaimsIdentity(new[]{new Claim(ClaimTypes.NameIdentifier,user.ToString()),new Claim(ClaimTypes.Role,role)},"test");return new SocialCommerceController(db){ControllerContext=new ControllerContext{HttpContext=new DefaultHttpContext{User=new ClaimsPrincipal(identity)}}};}
+ private sealed class TestHttpClientFactory : IHttpClientFactory
+ {
+  public HttpClient CreateClient(string name) => new HttpClient();
+ }
+ private static SocialCommerceController Controller(MerkatoDbContext db,long user,string role){var identity=new ClaimsIdentity(new[]{new Claim(ClaimTypes.NameIdentifier,user.ToString()),new Claim(ClaimTypes.Role,role)},"test");return new SocialCommerceController(db,new ConfigurationBuilder().Build(),new TestHttpClientFactory(),NullLogger<SocialCommerceController>.Instance){ControllerContext=new ControllerContext{HttpContext=new DefaultHttpContext{User=new ClaimsPrincipal(identity)}}};}
  [Fact]
  public async Task CreatorPostRequiresModerationBeforePublicFeed()
  {
@@ -20,7 +26,7 @@ public sealed class SocialCommerceWorkflowTests
   db.Products.Add(new Product{Id=20,SellerId=6,Name="Phone",Category="Electronics",PriceEtb=10000,IsActive=true});
   await db.SaveChangesAsync();
   var creator=Controller(db,5,"BUYER");
-  var created=Assert.IsType<CreatedAtActionResult>(await creator.Create(new CreateSocialPost(20,"My product story","https://media.example.test/phone.mp4","VIDEO"),CancellationToken.None));
+  var created=Assert.IsType<CreatedAtActionResult>(await creator.Create(new CreateSocialPost(20,"My product story","https://res.cloudinary.com/merkato-test/video/upload/phone.mp4","VIDEO"),CancellationToken.None));
   Assert.Equal("PENDING",created.Value!.GetType().GetProperty("Status")!.GetValue(created.Value));
   var feed=Assert.IsType<OkObjectResult>(await creator.Feed(1,20,CancellationToken.None));
   var items=feed.Value!.GetType().GetProperty("items")!.GetValue(feed.Value);

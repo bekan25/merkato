@@ -9,12 +9,15 @@ import { CommerceHubComponent } from './pages/commerce-hub.component';
 import { SourcingComponent } from './pages/sourcing.component';
 import { SocialCommerceComponent } from './pages/social-commerce.component';
 import { AffiliateDashboardComponent } from './pages/affiliate-dashboard.component';
+import { PaymentReceiptComponent } from './pages/payment-receipt.component';
+import { AdminPaymentReviewsComponent } from './pages/admin-payment-reviews.component';
 import { authGuard, roleGuard } from './core/route.guards';
 
 export const routes: Routes = [
   { path: '', component: StorefrontComponent, title: 'MERKATO | Marketplace' },
   { path: 'login', component: AuthComponent, title: 'Sign in | MERKATO' },
   { path: 'cart', component: CartComponent, title: 'Shopping cart | MERKATO' },
+  { path: 'payment/:orderId', component: PaymentReceiptComponent, canActivate: [authGuard], title: 'Upload payment receipt | MERKATO' },
   { path: 'commerce', component: CommerceHubComponent, canActivate: [authGuard], title: 'Commerce Growth Hub | MERKATO' },
   { path: 'sourcing', component: SourcingComponent, canActivate: [authGuard], title: 'One Request | MERKATO' },
   { path: 'social', component: SocialCommerceComponent, title: 'Social Commerce | MERKATO' },
@@ -23,5 +26,6 @@ export const routes: Routes = [
   { path: 'dashboard', component: DashboardComponent, canActivate: [authGuard], title: 'Dashboard | MERKATO' },
   { path: 'merchant', component: DashboardComponent, canActivate: [roleGuard], data: { roles: ['MERCHANT', 'ADMIN'] } },
   { path: 'admin', component: AdminDashboardComponent, canActivate: [roleGuard], data: { roles: ['ADMIN'] }, title: 'Admin Console | MERKATO' },
+  { path: 'admin/payments', component: AdminPaymentReviewsComponent, canActivate: [roleGuard], data: { roles: ['ADMIN'] }, title: 'Payment review | MERKATO' },
   { path: '**', redirectTo: '' }
 ];

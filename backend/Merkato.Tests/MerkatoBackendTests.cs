@@ -58,6 +58,19 @@ public class MerkatoBackendTests
         var inspection = new InspectionService(db, escrow, audit);
         var delivery = new DeliveryService(db, inspection, audit);
 
+        db.Orders.Add(new Order
+        {
+            Id = 101L,
+            OrderNumber = "MK-DELIVERY-TEST",
+            BuyerId = 1L,
+            SellerId = 2L,
+            ProductTitle = "Test parcel",
+            TotalAmountEtb = 100m,
+            DeliveryAddress = "Test address",
+            CityArea = "Addis Ababa"
+        });
+        await db.SaveChangesAsync();
+
         var created = await delivery.CreateDeliveryAsync(101L, "BEU_DELIVERY", 100m, "8899");
 
         // Attempt 1: Wrong OTP

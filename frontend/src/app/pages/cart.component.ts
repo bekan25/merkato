@@ -116,6 +116,10 @@ interface CartLine { product: MerkatoProduct; quantity: number; }
             </button>
           </form>
           <p class="checkout-success" *ngIf="success">{{success}}</p>
+          <div class="receipt-links" *ngIf="paymentReadyOrderIds.length">
+            <strong>Next step: upload your transfer receipt</strong>
+            <a *ngFor="let orderId of paymentReadyOrderIds" [routerLink]="['/payment', orderId]">Upload receipt for order #{{orderId}} ↗</a>
+          </div>
         </aside>
       </div>
     </section>
@@ -165,7 +169,7 @@ interface CartLine { product: MerkatoProduct; quantity: number; }
     .coupon-box{display:grid;gap:8px;padding:13px;border:1px dashed #d8c28c;border-radius:12px;background:#fffdf7}.coupon-box>label{color:#695323;font-weight:800}.coupon-input-row{display:flex;gap:8px}.coupon-product-label{display:grid;gap:5px;color:#7a6a45;font-size:10px}.coupon-product-label select{min-height:38px!important;padding:7px 9px!important}.coupon-input-row input{min-width:0;flex:1;text-transform:uppercase}.coupon-input-row button{border:0;border-radius:9px;padding:0 14px;background:#b58a25;color:#fff;font-size:11px;font-weight:800;cursor:pointer}.coupon-input-row button:disabled{opacity:.55;cursor:not-allowed}.coupon-box small{color:#887d67;font-size:9px;line-height:1.5}.coupon-success{margin:0;color:#267245;font-size:11px}.coupon-success button{margin-left:8px;border:0;background:none;color:#a14e4e;font-size:10px;font-weight:800;cursor:pointer}
     .checkout-note{padding:12px;border-radius:10px;background:#f7f5ee;color:#7d725f;font-size:10px;line-height:1.65}
     .checkout-button{width:100%;min-height:48px;border-radius:11px}
-    .checkout-success{padding:12px;border:1px solid #cce4d1;border-radius:10px;background:#f0f8f1;color:#28623b;font-size:11px;line-height:1.6}
+    .receipt-links{display:grid;gap:8px;margin-top:12px;padding:13px;border:1px solid #e8dfc7;border-radius:11px;background:#fffaf0}.receipt-links strong{color:#695323;font-size:11px}.receipt-links a{color:#245d3d;font-size:11px;font-weight:800;text-decoration:none}.checkout-success{padding:12px;border:1px solid #cce4d1;border-radius:10px;background:#f0f8f1;color:#28623b;font-size:11px;line-height:1.6}
     .cart-page .state-panel{padding:42px 22px;border:1px solid rgba(255,255,255,.9);border-radius:18px;background:rgba(255,255,255,.76);text-align:center}
     .cart-page .state-panel .btn{margin-top:10px}
     @media(max-width:900px){.cart-layout{grid-template-columns:minmax(0,1fr) minmax(270px,.8fr);gap:16px}.cart-line{grid-template-columns:88px minmax(0,1fr) auto;gap:13px;padding:13px}.cart-product-image{height:88px;width:88px}}
@@ -181,6 +185,7 @@ export class CartComponent implements OnInit, OnDestroy {
   submitting = false;
   error = '';
   success = '';
+  paymentReadyOrderIds: number[] = [];
   address = '';
   cityArea = 'Addis Ababa';
   readonly supportedCities = ['Addis Ababa','Adama','Hawassa','Bahir Dar','Dire Dawa','Jimma','Mekelle','Gondar','Dessie'];
@@ -334,6 +339,7 @@ export class CartComponent implements OnInit, OnDestroy {
   async checkout(): Promise<void> {
     this.error = '';
     this.success = '';
+    this.paymentReadyOrderIds = [];
     if (!this.lines.length) { this.error = 'Your cart is empty.'; return; }
     if (!this.address.trim() || !this.cityArea.trim()) { this.error = 'Enter your delivery address and city / area.'; return; }
     if (this.deliveryFeeEtb === null || this.deliveryQuoteLoading) { this.error = this.deliveryQuoteError || 'Wait for a valid delivery fee quote before placing the order.'; return; }
@@ -366,6 +372,7 @@ export class CartComponent implements OnInit, OnDestroy {
           try {
             await firstValueFrom(this.api.initiatePayment(order.id, order.totalAmountEtb, this.paymentRail));
             pending++;
+            this.paymentReadyOrderIds.push(order.id);
           } catch {
             // The order remains saved; payment can be retried after gateway setup.
           }
@@ -374,7 +381,7 @@ export class CartComponent implements OnInit, OnDestroy {
       sessionStorage.removeItem('merkato_cart');
       this.lines = [];
       this.removeCoupon();
-      this.success = `${created} order request(s) created. ${pending} payment initiation request(s) recorded as pending. Complete payment when the configured provider checkout is enabled.`;
+      this.success = `${created} order(s) created. ${pending} payment(s) initiated. Upload a receipt for each order below; an administrator must verify the transfer before escrow is funded.`;
     } catch (err: any) {
       this.error = err?.error?.message || 'The order could not be completed. Some earlier orders may already have been saved; check order history before retrying.';
     } finally {

@@ -61,11 +61,15 @@ jobs:
         with:
           dotnet-version: 10.0.x
       - name: Restore
-        run: dotnet restore backend/Merkato.sln
+        run: |
+          dotnet restore backend/Merkato.Api/Merkato.Api.csproj
+          dotnet restore backend/Merkato.Tests/Merkato.Tests.csproj
       - name: Build
-        run: dotnet build backend/Merkato.sln --configuration Release --no-restore
+        run: |
+          dotnet build backend/Merkato.Api/Merkato.Api.csproj --configuration Release --no-restore
+          dotnet build backend/Merkato.Tests/Merkato.Tests.csproj --configuration Release --no-restore
       - name: Test
-        run: dotnet test backend/Merkato.sln --configuration Release --no-build
+        run: dotnet test backend/Merkato.Tests/Merkato.Tests.csproj --configuration Release --no-build
       - name: Verify EF Core model snapshot and apply migrations
         run: |
           dotnet tool install --global dotnet-ef --version 10.0.14
