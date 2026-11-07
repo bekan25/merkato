@@ -164,6 +164,9 @@ public class DeliveriesController : ControllerBase
         [FromBody] DeliveryStatus nextStatus,
         CancellationToken ct)
     {
+        if (nextStatus == DeliveryStatus.DELIVERED)
+            return BadRequest(new { message = "Delivery completion requires the buyer's OTP. Use the verify-otp endpoint." });
+
         if (!long.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
             return Unauthorized();
 
