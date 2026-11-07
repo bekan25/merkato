@@ -4,6 +4,7 @@ using Merkato.Application.Interfaces;
 using Merkato.Domain.Entities;
 using Merkato.Domain.Enums;
 using Merkato.Infrastructure.Persistence;
+using Merkato.Infrastructure.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -35,6 +36,58 @@ public sealed class SellerDirectPaymentTests
             }
         };
         return (db, controller);
+    }
+
+    private sealed class NoopInspectionService : IInspectionService
+    {
+        public Task<InspectionWindow> StartInspectionAsync(long orderId, CancellationToken ct = default) =>
+            Task.FromException<InspectionWindow>(new NotSupportedException());
+        public Task<InspectionWindow> AcceptInspectionAsync(long orderId, long buyerId, CancellationToken ct = default) =>
+            Task.FromException<InspectionWindow>(new NotSupportedException());
+        public Task<int> AutoReleaseExpiredInspectionsAsync(CancellationToken ct = default) =>
+            Task.FromResult(0);
+    }
+
+    [Fact]
+    public async Task SellerDirectDeliveryIsBlockedUntilSellerConfirmsFunds()
+    {
+        var options = new DbContextOptionsBuilder<MerkatoDbContext>()
+            .UseInMemoryDatabase(nameof(SellerDirectDeliveryIsBlockedUntilSellerConfirmsFunds)).Options;
+        await using var db = new MerkatoDbContext(options);
+        db.Orders.Add(new Order { Id = 100, SellerId = 22, BuyerId = 33, PaymentMode = "SELLER_DIRECT", TotalAmountEtb = 250m });
+        await db.SaveChangesAsync();
+        var service = new DeliveryService(db, new NoopInspectionService(), new NoopAuditLogService());
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.CreateDeliveryAsync(100, "BEU_DELIVERY", 0m, "123456", CancellationToken.None));
+        Assert.Empty(await db.Deliveries.ToListAsync());
+    }
+
+    [Fact]
+    public async Task SellerDirectDeliveryIsAllowedOnlyWithSellerConfirmedReceiptAndVerifiedPayment()
+    {
+        var options = new DbContextOptionsBuilder<MerkatoDbContext>()
+            .UseInMemoryDatabase(nameof(SellerDirectDeliveryIsAllowedOnlyWithSellerConfirmedReceiptAndVerifiedPayment)).Options;
+        await using var db = new MerkatoDbContext(options);
+        db.Orders.Add(new Order { Id = 101, SellerId = 22, BuyerId = 33, PaymentMode = "SELLER_DIRECT", TotalAmountEtb = 250m });
+        db.PaymentTransactions.Add(new PaymentTransaction
+        {
+            Id = 501, OrderId = 101, AmountEtb = 250m, Status = PaymentStatus.VERIFIED,
+            WebhookVerified = false, CreatedAt = DateTime.UtcNow
+        });
+        db.PaymentReceipts.Add(new PaymentReceipt
+        {
+            Id = 601, OrderId = 101, BuyerId = 33, PaymentTransactionId = 501,
+            FileName = "receipt.jpg", ContentType = "image/jpeg", Content = new byte[] { 1, 2, 3 },
+            Sha256 = new string('A', 64), Status = "SELLER_CONFIRMED",
+            ReviewedBy = 22, ReviewedAt = DateTime.UtcNow, CreatedAt = DateTime.UtcNow
+        });
+        await db.SaveChangesAsync();
+        var service = new DeliveryService(db, new NoopInspectionService(), new NoopAuditLogService());
+
+        var delivery = await service.CreateDeliveryAsync(101, "BEU_DELIVERY", 0m, "123456", CancellationToken.None);
+
+        Assert.Equal(DeliveryStatus.CREATED, delivery.Status);
     }
 
     [Fact]
