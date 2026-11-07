@@ -464,16 +464,19 @@ public class DisputesController : ControllerBase
             CreatedAt = DateTime.UtcNow
         };
 
+        // Persist the dispute and escrow state transition atomically. If the
+        // escrow transition fails, do not leave an orphan OPEN dispute behind.
+        await using var disputeTransaction = await _db.Database.BeginTransactionAsync(ct);
         _db.Disputes.Add(dispute);
-
         await _db.SaveChangesAsync(ct);
 
-        // Move escrow to DISPUTED.
         await _escrow.FileDisputeAsync(
             orderId,
             buyerId,
             request.Reason,
             ct);
+
+        await disputeTransaction.CommitAsync(ct);
 
         return Ok(new
         {
