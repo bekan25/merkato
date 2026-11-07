@@ -54,6 +54,25 @@ import { AuthService } from '../core/auth.service';
     .auth-form .back-link{display:inline-block;margin-bottom:24px;color:#64766a;font-size:12px}
     @media(max-width:760px){.auth-page{padding:16px;gap:16px}.auth-aside{padding:24px;border-radius:19px}.auth-message{margin:35px 0 24px}.auth-message h1{font-size:42px}.auth-footnote{display:none}.auth-form{border-radius:19px}}
     @media(prefers-reduced-motion:reduce){.auth-form input,.auth-form select{transition:none!important}}
+    /* Layer 4 — authentication experience */
+    .auth-page{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(360px,.95fr);align-items:stretch;max-width:1480px;margin:0 auto}
+    .auth-aside{display:flex;flex-direction:column;justify-content:space-between;min-height:620px}
+    .auth-message h1{line-height:1.04;text-wrap:balance}
+    .auth-form-wrap{min-width:0}
+    .auth-form{width:min(100%,520px);border-color:#e8ede6;background:#fff;box-shadow:0 28px 80px rgba(23,61,45,.12)}
+    .auth-form form{gap:18px}.auth-form label{gap:9px}
+    .auth-form input,.auth-form select{box-sizing:border-box;transition:border-color .18s ease,box-shadow .18s ease,background .18s ease}
+    .auth-form input:hover,.auth-form select:hover{border-color:#bdcdbd;background:#fff}
+    .auth-form input:focus-visible,.auth-form select:focus-visible{border-color:#477d5d;box-shadow:0 0 0 4px rgba(71,125,93,.15)}
+    .auth-submit{display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 10px 22px rgba(18,59,47,.14)}
+    .auth-submit:disabled{opacity:.62;cursor:wait;box-shadow:none}
+    .auth-note{align-items:center;background:#f6f8f3}.auth-register-note{padding-top:4px}
+    .auth-form .form-error{padding:11px 13px;border:1px solid #f0d0ce;border-radius:10px;background:#fff6f5;color:#a33b35;font-size:12px;line-height:1.5}
+    @media(min-width:1100px){.auth-page{gap:clamp(30px,5vw,76px)}}
+    @media(max-width:900px){.auth-page{grid-template-columns:minmax(0,1fr) minmax(0,1fr);padding:24px}.auth-aside{min-height:560px}.auth-message{margin:55px 0 35px}}
+    @media(max-width:760px){.auth-page{grid-template-columns:1fr;padding:14px;min-height:auto}.auth-aside{min-height:0;padding:24px}.auth-message{margin:35px 0 25px}.auth-message h1{font-size:clamp(34px,9vw,44px);letter-spacing:-1.8px}.auth-form-wrap{padding-bottom:18px}.auth-form{width:100%;box-sizing:border-box;padding:23px}.auth-form h2{font-size:27px}}
+    @media(max-width:380px){.auth-form{padding:18px}.auth-form input,.auth-form select{min-height:46px}}
+
   `]
 })
 export class AuthComponent {
