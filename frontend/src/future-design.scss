@@ -156,3 +156,26 @@ app-dashboard .workspace-card:focus-within,app-dashboard .workspace-section:focu
 @media(max-width:700px){app-admin-dashboard .sidebar{position:sticky;top:0;z-index:20;display:block;height:auto;padding:10px 12px;overflow:hidden}app-admin-dashboard .brand{padding-bottom:8px}app-admin-dashboard .nav{display:flex;overflow-x:auto;gap:5px;padding-bottom:3px;scrollbar-width:thin}app-admin-dashboard .nav a{flex:0 0 auto;white-space:nowrap}app-admin-dashboard .main{padding:16px 12px 30px}app-admin-dashboard .top{align-items:flex-start}app-admin-dashboard .hero{padding:18px}app-admin-dashboard .panel{padding:14px}}
 @media(max-width:520px){app-admin-dashboard .metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}app-admin-dashboard .metric{padding:12px}app-admin-dashboard .metric strong{font-size:20px}app-admin-dashboard .top{flex-direction:column}app-admin-dashboard .top-actions{width:100%;justify-content:space-between}app-admin-payment-reviews .page{padding:20px 12px 38px}app-admin-payment-reviews .queue,app-admin-payment-reviews .review{padding:13px}}
 @media(prefers-reduced-motion:reduce){app-admin-dashboard .metric,app-admin-dashboard .nav a,app-admin-payment-reviews .item{transition:none!important}app-admin-dashboard .metric:hover{transform:none}}
+
+
+/* MERKATO Layer 6 — AI assistant presentation, accessibility and responsive polish */
+html{scroll-padding-top:96px;text-size-adjust:100%;-webkit-text-size-adjust:100%}
+:where(button,a,input,select,textarea,[tabindex]):focus-visible{outline:3px solid rgba(177,130,58,.82)!important;outline-offset:3px}
+:where(button,a,input,select,textarea){touch-action:manipulation}
+app-shopping-assistant{display:block;max-width:1240px;margin-inline:auto}
+app-shopping-assistant .assistant-shell{border:1px solid #e6dece!important;border-radius:22px!important;background:radial-gradient(circle at 92% 8%,#d8b77a20,transparent 25%),linear-gradient(135deg,#fffefa,#f7f5ef)!important;box-shadow:0 18px 48px rgba(24,48,34,.08)!important}
+app-shopping-assistant .assistant-mark{background:#f2ead9!important;color:#8c672f!important}
+app-shopping-assistant .assistant-conversation{border-color:#e9e2d5!important;border-radius:14px!important;background:#fffefa!important}
+app-shopping-assistant .assistant-form input{min-height:48px;border-color:#e4ddcf!important;background:#fffefa!important}
+app-shopping-assistant .assistant-form input:focus-visible{border-color:#bd914d!important;box-shadow:0 0 0 4px #c99b5222!important}
+app-shopping-assistant .assistant-form button{min-height:48px;background:linear-gradient(135deg,#183b2e,#285b43)!important;box-shadow:0 8px 18px #1a443020}
+app-shopping-assistant .assistant-form button:hover:not(:disabled){filter:brightness(1.08)}
+app-shopping-assistant .assistant-products article{min-width:0;border:1px solid #ece5d8;background:#faf8f2!important}
+app-shopping-assistant .assistant-error{padding:10px 12px;border:1px solid #f0d7d2;border-radius:9px;background:#fff5f3}
+app-shopping-assistant .assistant-loading{display:flex;align-items:center;gap:8px}
+app-shopping-assistant .assistant-note{line-height:1.6}
+@media(max-width:760px){app-shopping-assistant{padding-inline:16px!important}app-shopping-assistant .assistant-shell{padding:22px!important}}
+@media(max-width:520px){app-shopping-assistant{padding-inline:12px!important}app-shopping-assistant .assistant-heading{gap:12px}app-shopping-assistant .assistant-mark{width:38px;height:38px}app-shopping-assistant .assistant-shell{padding:17px!important;border-radius:16px!important}app-shopping-assistant .assistant-conversation{padding:12px!important}app-shopping-assistant .assistant-products{grid-template-columns:minmax(0,1fr)!important}}
+@media(prefers-contrast:more){:where(button,a,input,select,textarea):focus-visible{outline-color:#704600!important}app-shopping-assistant .assistant-note{color:#5d675f!important}}
+@media(hover:hover){app-shopping-assistant .assistant-products article{transition:border-color .16s ease,transform .16s ease}app-shopping-assistant .assistant-products article:hover{transform:translateY(-1px);border-color:#d4bd91}}
+@media(prefers-reduced-motion:reduce){app-shopping-assistant .assistant-products article{transition:none!important}app-shopping-assistant .assistant-products article:hover{transform:none}}
