@@ -18,7 +18,7 @@ export interface MerkatoProduct {
 }
 
 interface DiscoveryProductsResponse {
-  items: Array<Pick<MerkatoProduct, 'id' | 'sellerId' | 'name' | 'priceEtb' | 'location' | 'category' | 'emoji' | 'imageUrl'>>;
+  items: Array<Pick<MerkatoProduct, 'id' | 'sellerId' | 'name' | 'priceEtb' | 'location' | 'category' | 'emoji' | 'imageUrl' | 'stockQuantity'>>;
   count: number;
   limit: number;
 }
@@ -155,6 +155,7 @@ export class ApiService {
     return this.http.get<DiscoveryProductsResponse>(`${this.baseUrl}/v1/discovery/products`, { params }).pipe(
       map(response => (response?.items ?? []).map(item => ({
         ...item,
+        stockQuantity: Number(item.stockQuantity ?? 0),
         isActive: true,
         createdAt: ''
       })))
@@ -224,7 +225,7 @@ export class ApiService {
     return this.http.delete<void>(`${this.baseUrl}/products/${id}`);
   }
 
-  createOrder(payload: { sellerId: number; productTitle: string; productId?: number; amountEtb: number; deliveryFeeEtb: number; paymentRail: number; deliveryCourier: string; deliveryAddress: string; cityArea: string; couponCode?: string }): Observable<MerkatoOrder> {
+  createOrder(payload: { sellerId: number; productTitle: string; productId?: number; quantity?: number; amountEtb: number; deliveryFeeEtb: number; paymentRail: number; deliveryCourier: string; deliveryAddress: string; cityArea: string; couponCode?: string }): Observable<MerkatoOrder> {
     return this.http.post<MerkatoOrder>(`${this.baseUrl}/orders`, payload);
   }
 
