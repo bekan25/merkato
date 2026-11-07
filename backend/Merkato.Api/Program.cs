@@ -687,6 +687,10 @@ app.MapGet("/api/v1/discovery/products", async Task<IResult> (
             product.Emoji,
             product.ImageUrl,
             product.SellerId,
+            stockQuantity = db.ProductListingDetails
+                .Where(detail => detail.ProductId == product.Id)
+                .Select(detail => (int?)(detail.StockQuantity - detail.ReservedQuantity))
+                .FirstOrDefault() ?? 0,
             sellerVerified = db.Users.Where(user => user.Id == product.SellerId && user.Role == Merkato.Domain.Enums.UserRole.MERCHANT)
                 .Select(user => user.IsSellerVerified).FirstOrDefault()
         })
