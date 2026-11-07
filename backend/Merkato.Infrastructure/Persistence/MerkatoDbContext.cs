@@ -206,6 +206,8 @@ modelBuilder.Entity<UserAddress>(e =>
             entity.Property(o => o.BuyerServiceFeeRatePercent).HasColumnType("numeric(7,4)");
             entity.Property(o => o.BuyerServiceFeeEtb).HasColumnType("numeric(18,4)");
 
+            entity.Property(o => o.PaymentMode).HasMaxLength(24).IsRequired();
+
             entity.Property(o => o.RowVersion)
                 .IsConcurrencyToken();
         });
