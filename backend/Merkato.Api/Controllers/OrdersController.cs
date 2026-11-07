@@ -187,11 +187,14 @@ public class OrdersController : ControllerBase
         var feeQuote = MarketplaceFeeCalculator.Calculate(
             request.AmountEtb, discountEtb, expectedDeliveryFee,
             feeSettings.MerchantCommissionRatePercent, feeSettings.BuyerServiceFeeRatePercent, feeSettings.IsEnabled);
+        // Seller-direct manual transfers go to the merchant, not MERKATO. Do not add a buyer service fee
+        // to a transfer MERKATO cannot receive. The merchant commission remains a separate amount due
+        // to MERKATO and must be settled manually outside this buyer-to-seller transfer.
         var merchantRate = feeSettings.IsEnabled ? feeSettings.MerchantCommissionRatePercent : 0m;
-        var buyerRate = feeSettings.IsEnabled ? feeSettings.BuyerServiceFeeRatePercent : 0m;
+        var buyerRate = 0m;
         var merchantCommission = feeQuote.MerchantCommissionEtb;
-        var buyerServiceFee = feeQuote.BuyerServiceFeeEtb;
-        var buyerPayable = feeQuote.BuyerPayableEtb;
+        var buyerServiceFee = 0m;
+        var buyerPayable = Math.Max(0m, request.AmountEtb - discountEtb + expectedDeliveryFee);
 
         var riskDecision = await _risk.EvaluateOrderRiskAsync(buyerId, buyerPayable, ct);
         if (riskDecision != RiskDecision.ALLOW)
