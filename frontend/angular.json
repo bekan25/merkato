@@ -32,7 +32,8 @@
               }
             ],
             "styles": [
-              "src/styles.scss"
+              "src/styles.scss",
+              "src/next-gen-design.scss"
             ],
             "scripts": []
           },
