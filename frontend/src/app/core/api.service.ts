@@ -60,6 +60,8 @@ export interface PaymentReceiptUploadResult {
   ocrAmountEtb: number | null;
   ocrTransactionDate: string | null;
   ocrError: string | null;
+  verificationFlags?: string[];
+  verificationNotes?: string[];
   message: string;
 }
 
@@ -83,6 +85,9 @@ export interface PaymentReceiptReview {
   ocrAmountEtb?: number | null;
   ocrTransactionDate?: string | null;
   ocrError?: string | null;
+  /** Codes and plain-language notes from the automatic cross-check. Advice for the reviewer only, never proof of payment. */
+  verificationFlags?: string[];
+  verificationNotes?: string[];
 }
 
 export interface SellerVerification {
