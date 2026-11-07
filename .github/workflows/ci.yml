@@ -137,10 +137,10 @@ jobs:
           # Exercise real registration/login and prove the JWT session survives an app restart.
           curl --fail --silent --show-error -X POST http://127.0.0.1:8080/api/auth/register \
             -H "Content-Type: application/json" \
-            -d '{"phoneNumber":"09110000001","fullName":"CI Session Buyer","role":"BUYER","pin":"123456"}' >/tmp/merkato-register.json
+            -d '{"phoneNumber":"0911000001","fullName":"CI Session Buyer","role":"BUYER","pin":"123456"}' >/tmp/merkato-register.json
           curl --fail --silent --show-error -X POST http://127.0.0.1:8080/api/auth/login \
             -H "Content-Type: application/json" \
-            -d '{"phoneNumber":"09110000001","pin":"123456"}' >/tmp/merkato-login.json
+            -d '{"phoneNumber":"0911000001","pin":"123456"}' >/tmp/merkato-login.json
           token="$(jq -r '.token // empty' /tmp/merkato-login.json)"
           if [ -z "$token" ]; then
             echo "Login did not return a JWT token."
