@@ -64,6 +64,8 @@ public class Order
     public decimal BuyerServiceFeeEtb { get; set; }
     
     public PaymentRail PaymentRail { get; set; }
+    // ESCROW preserves the legacy held-funds workflow; SELLER_DIRECT is confirmed by the merchant.
+    public string PaymentMode { get; set; } = "ESCROW";
     public string DeliveryCourier { get; set; } = "BEU_DELIVERY";
     public string ProductTitle { get; set; } = string.Empty;
     public string DeliveryAddress { get; set; } = string.Empty;
