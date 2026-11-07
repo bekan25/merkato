@@ -1,7 +1,11 @@
 using System;
 using Microsoft.EntityFrameworkCore.Migrations;
+using Merkato.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 #nullable disable
 namespace Merkato.Infrastructure.Migrations;
+[DbContext(typeof(MerkatoDbContext))]
+[Migration("20261107110000_AddUserNotificationPreferences")]
 public partial class AddUserNotificationPreferences : Migration
 {
  protected override void Up(MigrationBuilder migrationBuilder)
