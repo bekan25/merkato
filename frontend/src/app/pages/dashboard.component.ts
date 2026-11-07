@@ -60,6 +60,32 @@ import { ApiService, MerkatoProduct, MerkatoOrder, MerkatoDispute, MerchantAnaly
     .fee-saved{color:#187343;font-weight:700}
     @media(max-width:620px){.fee-settings-form{grid-template-columns:1fr}}
     @media(max-width:760px){.product-editor{padding:16px}.editor-layout{grid-template-columns:1fr}.editor-heading h3{font-size:21px}.buyer-shortcuts,.buyer-insights{grid-template-columns:1fr}}
+    /* Layer 4 — buyer workspace and order history */
+    .workspace{background:#f7f8f4}.workspace-main{min-width:0}
+    .workspace-topbar{gap:16px}.workspace-topbar h1{color:#173d2d;letter-spacing:-1.1px}
+    .welcome-panel{border:1px solid rgba(255,255,255,.7);box-shadow:0 14px 36px rgba(24,54,35,.08)}
+    .buyer-shortcut{min-width:0;text-decoration:none;box-shadow:0 7px 22px rgba(35,48,34,.035)}
+    .buyer-shortcut:focus-visible{outline:3px solid rgba(35,112,69,.3);outline-offset:3px}
+    .buyer-shortcut strong{font-size:13px}.buyer-shortcut small{font-size:10px;line-height:1.5}
+    .buyer-insights article{box-shadow:0 7px 20px rgba(35,48,34,.035)}
+    .buyer-insights article strong{font-size:clamp(18px,2vw,24px);overflow-wrap:anywhere}
+    .workspace-card{border:1px solid #e9e9df;box-shadow:0 8px 24px rgba(35,48,34,.035);transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}
+    .workspace-card:hover{transform:translateY(-2px);border-color:#d9c79f;box-shadow:0 14px 30px rgba(35,48,34,.07)}
+    .workspace-section{min-width:0;border:1px solid #ebe9df;border-radius:16px;background:#fff;padding:clamp(16px,2vw,24px);box-shadow:0 8px 24px rgba(35,48,34,.035)}
+    .workspace-section-head{gap:14px;align-items:center}.workspace-section-head h2{color:#173d2d;letter-spacing:-.6px}
+    .table-wrap{max-width:100%;overflow-x:auto;border:1px solid #ecebe4;border-radius:12px;scrollbar-width:thin}
+    .table-wrap table{width:100%;min-width:680px;border-collapse:separate;border-spacing:0;background:#fff}
+    .table-wrap th{position:sticky;top:0;background:#f5f6f1;color:#536456;font-size:10px;font-weight:850;letter-spacing:.04em;text-transform:uppercase}
+    .table-wrap th,.table-wrap td{padding:13px 14px;border-bottom:1px solid #eff0e9;text-align:left;white-space:nowrap}
+    .table-wrap tbody tr:last-child td{border-bottom:0}.table-wrap tbody tr:hover{background:#fbfcf8}
+    .table-wrap td{color:#3f5044;font-size:11px}
+    .table-wrap td a{display:inline-flex;align-items:center;padding:7px 10px;border-radius:8px;background:#eff6ee;color:#17633f;font-weight:800;text-decoration:none}
+    .status-pill{display:inline-flex;align-items:center;min-height:25px;padding:4px 9px;border:1px solid #e5e8dd;border-radius:999px;background:#f5f7f1;color:#53654f;font-size:9px;font-weight:850;white-space:nowrap}
+    .empty-inline{padding:22px;border:1px dashed #d9dfd4;border-radius:12px;background:#fafbf8;color:#7c887e;line-height:1.65}
+    @media(max-width:760px){.workspace{display:block}.workspace-sidebar{position:relative;width:auto;min-height:0}.workspace-main{padding:18px 14px 42px}.workspace-topbar{align-items:flex-start}.workspace-section-head{align-items:flex-start;flex-direction:column}.buyer-shortcuts,.buyer-insights{grid-template-columns:repeat(2,minmax(0,1fr))}.workspace-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media(max-width:480px){.buyer-shortcuts,.buyer-insights,.workspace-grid{grid-template-columns:1fr}.workspace-topbar{flex-direction:column}.workspace-date{align-self:flex-start}.workspace-section{padding:13px}.workspace-section-head .btn{width:100%;justify-content:center}.table-wrap table{min-width:620px}}
+    @media(prefers-reduced-motion:reduce){.workspace-card,.buyer-shortcut{transition:none!important}.workspace-card:hover,.buyer-shortcut:hover{transform:none}}
+
   `],
   template: `
     <section class="workspace">
