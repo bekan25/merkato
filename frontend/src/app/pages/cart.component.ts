@@ -43,10 +43,13 @@ interface CartLine { product: MerkatoProduct; quantity: number; }
               <small>{{line.product.category}} · {{line.product.location}}</small>
               <h3>{{line.product.name}}</h3>
               <strong>{{line.product.priceEtb | number:'1.2-2'}} ETB</strong>
+              <small class="stock-status" [class.out-of-stock]="(line.product.stockQuantity ?? 0) < 1">
+                {{(line.product.stockQuantity ?? 0) > 0 ? ('Available: ' + line.product.stockQuantity) : 'Stock not configured / out of stock'}}
+              </small>
               <div class="quantity-control">
                 <button type="button" (click)="changeQuantity(line,-1)" aria-label="Decrease quantity">−</button>
                 <span>{{line.quantity}}</span>
-                <button type="button" (click)="changeQuantity(line,1)" aria-label="Increase quantity">+</button>
+                <button type="button" (click)="changeQuantity(line,1)" [disabled]="line.quantity >= (line.product.stockQuantity ?? 0) || line.quantity >= 99" aria-label="Increase quantity">+</button>
                 <button type="button" class="remove-line" (click)="remove(line.product.id)">{{ t('remove') }}</button>
               </div>
             </div>
@@ -57,10 +60,9 @@ interface CartLine { product: MerkatoProduct; quantity: number; }
           <span class="eyebrow">{{ t('orderSummary') }}</span>
           <h2>{{ t('almostYours') }}</h2>
           <div class="summary-row"><span>Items ({{itemCount}})</span><strong>{{subtotal | number:'1.2-2'}} ETB</strong></div>
-          <div class="summary-row"><span>{{ t('deliveryFee') }} ({{itemCount}} {{ t('orders') }})</span><strong>{{deliveryFeeEtb === null ? t('quoteRequired') : (deliveryFeeEtb * itemCount | number:'1.2-2') + ' ETB'}}</strong></div>
-          <div class="summary-row"><span>Buyer service fee ({{buyerServiceFeeRatePercent}}%)</span><strong>{{buyerServiceFeeEtb | number:'1.2-2'}} ETB</strong></div>
+          <div class="summary-row"><span>{{ t('deliveryFee') }} ({{lines.length}} {{ t('orders') }})</span><strong>{{deliveryFeeEtb === null ? t('quoteRequired') : (deliveryFeeEtb * lines.length | number:'1.2-2') + ' ETB'}}</strong></div>
           <div class="summary-row" *ngIf="couponDiscountEtb > 0"><span>Coupon discount</span><strong>−{{couponDiscountEtb | number:'1.2-2'}} ETB</strong></div>
-          <div class="summary-total"><span>{{ t('estimatedTotal') }}</span><strong>{{(subtotal - couponDiscountEtb + buyerServiceFeeEtb + (deliveryFeeEtb || 0) * itemCount) | number:'1.2-2'}} ETB</strong></div>
+          <div class="summary-total"><span>{{ t('estimatedTotal') }}</span><strong>{{(subtotal - couponDiscountEtb + (deliveryFeeEtb || 0) * lines.length) | number:'1.2-2'}} ETB</strong></div>
           <form (ngSubmit)="checkout()">
             <label>{{ t('deliveryAddress') }}<textarea name="address" [(ngModel)]="address" required rows="3" placeholder="{{ t('addressPlaceholder') }}"></textarea></label>
             <label>{{ t('cityArea') }}<select name="city" [(ngModel)]="cityArea" (ngModelChange)="onCityChange()" required>
@@ -132,6 +134,8 @@ interface CartLine { product: MerkatoProduct; quantity: number; }
     .cart-product-info{min-width:0}.cart-product-info>small{color:#8a988e;font-size:10px}
     .cart-product-info h3{margin:7px 0;color:#1d3d2d;font-size:16px;line-height:1.35}
     .cart-product-info>strong{color:#1d6247;font-size:13px}
+    .stock-status{display:block;margin-top:5px;color:#53745d;font-size:10px;font-weight:650}
+    .stock-status.out-of-stock{color:#a14e4e}
     .quantity-control{display:flex;align-items:center;gap:10px;margin-top:14px}
     .quantity-control button{height:30px;min-width:30px;border:1px solid #e1e9df;border-radius:8px;background:rgba(255,255,255,.9);color:#244b36;cursor:pointer}
     .quantity-control span{min-width:18px;text-align:center;color:#344c3d;font-size:12px;font-weight:800}
@@ -219,12 +223,7 @@ export class CartComponent implements OnInit, OnDestroy {
   cityArea = 'Addis Ababa';
   readonly supportedCities = ['Addis Ababa','Adama','Hawassa','Bahir Dar','Dire Dawa','Jimma','Mekelle','Gondar','Dessie'];
   deliveryFeeEtb: number | null = null;
-  merchantCommissionRatePercent = 1;
-  buyerServiceFeeRatePercent = 0.5;
-  get buyerServiceFeeEtb(): number {
-    const eligible = Math.max(0, this.subtotal - this.couponDiscountEtb);
-    return Math.round(eligible * this.buyerServiceFeeRatePercent) / 100;
-  }
+
   deliveryQuoteError = '';
   deliveryQuoteLoading = false;
   paymentRail = 0;
@@ -250,13 +249,6 @@ export class CartComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     window.addEventListener('merkato-language-change', this.languageListener);
     this.loadDeliveryQuote();
-    this.api.getMarketplaceFees().subscribe({
-      next: fees => {
-        this.merchantCommissionRatePercent = fees.isEnabled ? Number(fees.merchantCommissionRatePercent ?? 1) : 0;
-        this.buyerServiceFeeRatePercent = fees.isEnabled ? Number(fees.buyerServiceFeeRatePercent ?? 0.5) : 0;
-      },
-      error: () => { /* Keep launch defaults visible; the API remains authoritative at order creation. */ }
-    });
     if (!this.auth.isAuthenticated) {
       this.loading = false;
       this.error = 'Sign in as a buyer to place an order.';
@@ -338,7 +330,9 @@ export class CartComponent implements OnInit, OnDestroy {
   }
 
   changeQuantity(line: CartLine, delta: number): void {
-    line.quantity = Math.max(1, Math.min(99, line.quantity + delta));
+    const available = Math.max(0, Math.min(99, Number(line.product.stockQuantity ?? 0)));
+    if (available < 1) return;
+    line.quantity = Math.max(1, Math.min(available, line.quantity + delta));
     this.persist();
   }
 
@@ -376,41 +370,51 @@ export class CartComponent implements OnInit, OnDestroy {
       this.error = 'Please sign in with a buyer account to place orders.';
       return;
     }
+    const invalidStockLine = this.lines.find(line =>
+      (line.product.stockQuantity ?? 0) < 1 || line.quantity > (line.product.stockQuantity ?? 0)
+    );
+    if (invalidStockLine) {
+      this.error = `Not enough configured stock for "${invalidStockLine.product.name}". Available: ${invalidStockLine.product.stockQuantity ?? 0}. Refresh the marketplace or ask the seller to update inventory.`;
+      return;
+    }
 
     this.submitting = true;
     let created = 0;
     let pending = 0;
     let couponConsumed = false;
     try {
-      for (const line of this.lines) {
-        for (let unit = 0; unit < line.quantity; unit++) {
-          const order = await firstValueFrom(this.api.createOrder({
-            sellerId: line.product.sellerId,
-            productTitle: line.product.name,
-            productId: line.product.id,
-            amountEtb: line.product.priceEtb,
-            deliveryFeeEtb: this.deliveryFeeEtb!,
-            paymentRail: this.paymentRail,
-            deliveryCourier: 'BEU_DELIVERY',
-            deliveryAddress: this.address.trim(),
-            cityArea: this.cityArea.trim(),
-            ...(!couponConsumed && this.appliedCoupon && line.product.id === this.couponProductId ? { couponCode: this.appliedCoupon.code } : {})
-          }));
-          if (!couponConsumed && this.appliedCoupon && line.product.id === this.couponProductId) couponConsumed = true;
-          created++;
-          try {
-            await firstValueFrom(this.api.initiatePayment(order.id, order.totalAmountEtb, this.paymentRail));
-            pending++;
-            this.paymentReadyOrderIds.push(order.id);
-          } catch {
-            // The order remains saved; payment can be retried after gateway setup.
-          }
+      for (const line of [...this.lines]) {
+        const order = await firstValueFrom(this.api.createOrder({
+          sellerId: line.product.sellerId,
+          productTitle: line.product.name,
+          productId: line.product.id,
+          quantity: line.quantity,
+          amountEtb: line.product.priceEtb * line.quantity,
+          deliveryFeeEtb: this.deliveryFeeEtb!,
+          paymentRail: this.paymentRail,
+          deliveryCourier: 'BEU_DELIVERY',
+          deliveryAddress: this.address.trim(),
+          cityArea: this.cityArea.trim(),
+          ...(!couponConsumed && this.appliedCoupon && line.product.id === this.couponProductId ? { couponCode: this.appliedCoupon.code } : {})
+        }));
+        if (!couponConsumed && this.appliedCoupon && line.product.id === this.couponProductId) {
+          couponConsumed = true;
+          this.removeCoupon();
+        }
+        created++;
+        this.paymentReadyOrderIds.push(order.id);
+        this.lines = this.lines.filter(item => item.product.id !== line.product.id);
+        this.persist();
+        try {
+          await firstValueFrom(this.api.initiatePayment(order.id, order.totalAmountEtb, this.paymentRail));
+          pending++;
+        } catch {
+          // The order is saved; its payment details remain available from the order page.
         }
       }
-      sessionStorage.removeItem('merkato_cart');
       this.lines = [];
-      this.removeCoupon();
-      this.success = `${created} order(s) created. ${pending} payment(s) initiated. Upload a receipt for each order below; the seller must verify the transfer in their own account before delivery can proceed.`;
+      this.persist();
+      this.success = `${created} order(s) created. ${pending} payment request(s) initiated. Open each order below to view seller payment details and upload your transfer receipt; the seller must verify funds before delivery can proceed.`;
     } catch (err: any) {
       this.error = err?.error?.message || 'The order could not be completed. Some earlier orders may already have been saved; check order history before retrying.';
     } finally {
