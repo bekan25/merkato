@@ -140,3 +140,31 @@ test('registration PIN validation matches the API while legacy sign-in remains c
   assert.match(authPage, /this\.isRegister \? 'PIN must contain 6 to 8 digits\.' : 'PIN must contain 4 to 8 digits\.'/);
   assert.match(authApi, /dto\.Pin\.Length is < 6 or > 8/);
 });
+
+
+test('registration cannot self-assign privileged roles and admin login only accepts ADMIN accounts', async () => {
+  const auth = await read('../../backend/Merkato.Api/Controllers/AuthController.cs');
+
+  assert.match(auth, /dto\\.Role != UserRole\\.BUYER && dto\\.Role != UserRole\\.MERCHANT/);
+  assert.match(auth, /Choose either BUYER or MERCHANT/);
+  assert.match(auth, /x\\.Email == normalizedEmail && x\\.Role == UserRole\\.ADMIN/);
+  assert.match(auth, /\\[HttpPost\\("admin-login"\\)\\]/);
+  assert.match(auth, /\\[EnableRateLimiting\\("auth"\\)\\]/);
+  assert.match(auth, /new\\(ClaimTypes\\.Role, user\\.Role\\.ToString\\(\\)\\)/);
+});
+
+test('backend enforces buyer, merchant and admin permissions independently of Angular route guards', async () => {
+  const products = await read('../../backend/Merkato.Api/Controllers/ProductsController.cs');
+  const orders = await read('../../backend/Merkato.Api/Controllers/OrdersController.cs');
+  const auth = await read('../../backend/Merkato.Api/Controllers/AuthController.cs');
+  const program = await read('../../backend/Merkato.Api/Program.cs');
+
+  assert.match(products, /\\[Authorize\\(Roles = "MERCHANT,ADMIN"\\)\\]/);
+  assert.match(products, /!User\\.IsInRole\\("ADMIN"\\) && product\\.SellerId != userId/);
+  assert.match(orders, /\\[Authorize\\(Roles = "BUYER,ADMIN"\\)\\]/);
+  assert.match(orders, /\\[Authorize\\(Roles = "MERCHANT,ADMIN"\\)\\]/);
+  assert.match(orders, /order\\.BuyerId != userId/);
+  assert.match(auth, /user\\.TokenVersion\\+\\+/);
+  assert.match(program, /account\\.TokenVersion != tokenVersion/);
+  assert.match(program, /account\\.IsSuspended/);
+});
