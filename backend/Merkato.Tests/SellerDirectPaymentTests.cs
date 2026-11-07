@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Merkato.Api.Controllers;
+using Merkato.Application.Interfaces;
 using Merkato.Domain.Entities;
 using Merkato.Domain.Enums;
 using Merkato.Infrastructure.Persistence;
@@ -12,6 +13,11 @@ namespace Merkato.Tests;
 
 public sealed class SellerDirectPaymentTests
 {
+    private sealed class NoopAuditLogService : IAuditLogService
+    {
+        public Task LogAsync(long? actorId, string actorRole, string action, string entityType, string entityId,
+            string result, string? metadata = null, CancellationToken ct = default) => Task.CompletedTask;
+    }
     private static (MerkatoDbContext Db, SellerPaymentAccountsController Controller) Create(string name, long userId, string role)
     {
         var options = new DbContextOptionsBuilder<MerkatoDbContext>().UseInMemoryDatabase(name).Options;
@@ -21,7 +27,7 @@ public sealed class SellerDirectPaymentTests
             new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
             new Claim(ClaimTypes.Role, role)
         }, "test");
-        var controller = new SellerPaymentAccountsController(db)
+        var controller = new SellerPaymentAccountsController(db, new NoopAuditLogService())
         {
             ControllerContext = new ControllerContext
             {
@@ -82,7 +88,7 @@ public sealed class SellerDirectPaymentTests
             new Claim(ClaimTypes.NameIdentifier, "99"),
             new Claim(ClaimTypes.Role, "BUYER")
         }, "test");
-        var otherBuyerController = new SellerPaymentAccountsController(db)
+        var otherBuyerController = new SellerPaymentAccountsController(db, new NoopAuditLogService())
         {
             ControllerContext = new ControllerContext
             {
