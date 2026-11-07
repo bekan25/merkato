@@ -87,6 +87,65 @@ import { ApiService, MerkatoProduct, MerkatoOrder, MerkatoDispute, MerchantAnaly
     @media(max-width:480px){.buyer-shortcuts,.buyer-insights,.workspace-grid{grid-template-columns:1fr}.workspace-topbar{flex-direction:column}.workspace-date{align-self:flex-start}.workspace-section{padding:13px}.workspace-section-head .btn{width:100%;justify-content:center}.table-wrap table{min-width:620px}}
     @media(prefers-reduced-motion:reduce){.workspace-card,.buyer-shortcut{transition:none!important}.workspace-card:hover,.buyer-shortcut:hover{transform:none}}
 
+    /* Ultra glass workspace sidebar — visual-only override; dashboard actions stay unchanged. */
+    .workspace{display:grid!important;grid-template-columns:264px minmax(0,1fr)!important;align-items:stretch!important;min-height:calc(100vh - 78px);background:radial-gradient(ellipse at 12% 8%,rgba(26,150,94,.10),transparent 34%),linear-gradient(145deg,#f5f8f5 0%,#eef3ef 52%,#f8f7f1 100%)!important;gap:0!important}
+    .workspace-sidebar{position:sticky!important;top:12px!important;align-self:start!important;display:flex!important;flex-direction:column!important;gap:10px!important;width:auto!important;min-height:calc(100vh - 24px)!important;margin:12px!important;padding:18px 14px!important;border:1px solid rgba(255,255,255,.78)!important;border-radius:26px!important;background:linear-gradient(155deg,rgba(255,255,255,.78),rgba(235,246,238,.56) 48%,rgba(255,255,255,.48))!important;box-shadow:0 24px 65px rgba(22,61,41,.12),inset 0 1px 0 rgba(255,255,255,.95)!important;backdrop-filter:blur(26px) saturate(175%)!important;-webkit-backdrop-filter:blur(26px) saturate(175%)!important;overflow:hidden!important;z-index:5}
+    .workspace-sidebar:before{content:"";position:absolute;inset:0 0 auto;height:170px;background:radial-gradient(circle at 12% 0%,rgba(34,168,105,.20),transparent 68%);pointer-events:none;z-index:-1}
+    .workspace-sidebar>.brand{display:flex!important;align-items:center!important;gap:11px!important;padding:8px 9px 18px!important;border-bottom:1px solid rgba(26,83,53,.10)!important;color:#123d2d!important;font-weight:900!important;letter-spacing:-.4px}
+    .workspace-sidebar>.brand small{display:block!important;margin-top:4px!important;color:#789082!important;font-size:9px!important;letter-spacing:1.5px!important}
+    .workspace-sidebar .brand-mark{width:42px!important;height:42px!important;display:grid!important;place-items:center!important;border-radius:15px!important;background:linear-gradient(145deg,#0d9a61,#075036)!important;color:white!important;box-shadow:0 9px 22px rgba(8,113,68,.25)!important}
+    .workspace-user{display:flex!important;align-items:center!important;gap:11px!important;margin:5px 0 8px!important;padding:12px!important;border:1px solid rgba(255,255,255,.85)!important;border-radius:17px!important;background:rgba(255,255,255,.53)!important;box-shadow:inset 0 1px 0 #fff,0 8px 20px rgba(29,68,43,.045)!important;min-width:0!important}
+    .workspace-user .user-avatar{width:40px!important;height:40px!important;flex:0 0 40px!important;display:grid!important;place-items:center!important;border-radius:14px!important;background:linear-gradient(145deg,#0b8654,#174b37)!important;color:#fff!important;font-weight:900!important;box-shadow:0 7px 16px rgba(9,112,67,.20)!important}
+    .workspace-user strong{display:block!important;max-width:150px!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;color:#183c2b!important;font-size:12px!important}
+    .workspace-user small{display:block!important;margin-top:4px!important;color:#7b8e80!important;font-size:9px!important;font-weight:800!important;letter-spacing:1px!important}
+    .workspace-sidebar .side-label{padding:9px 12px 2px!important;color:#8b9d90!important;font-size:9px!important;font-weight:900!important;letter-spacing:1.8px!important}
+    .workspace-sidebar .side-link{position:relative!important;display:flex!important;align-items:center!important;gap:12px!important;min-height:45px!important;padding:0 13px!important;border:1px solid transparent!important;border-radius:14px!important;background:transparent!important;color:#526b5b!important;font-size:12px!important;font-weight:750!important;text-decoration:none!important;transition:background .2s ease,border-color .2s ease,color .2s ease,transform .2s ease!important}
+    .workspace-sidebar .side-link:hover{transform:translateX(2px)!important;border-color:rgba(21,125,74,.10)!important;background:rgba(255,255,255,.68)!important;color:#12643f!important}
+    .workspace-sidebar .side-link.active{border-color:rgba(24,139,82,.14)!important;background:linear-gradient(110deg,rgba(18,139,82,.15),rgba(255,255,255,.72))!important;color:#075b38!important;box-shadow:inset 3px 0 0 #0d9660,0 7px 18px rgba(18,105,63,.07)!important}
+    .workspace-sidebar .side-link:focus-visible{outline:3px solid rgba(17,143,82,.30)!important;outline-offset:3px!important}
+    .workspace-sidebar .sidebar-bottom{display:grid!important;gap:7px!important;margin-top:auto!important;padding-top:14px!important;border-top:1px solid rgba(26,83,53,.10)!important}
+    .workspace-sidebar .side-logout{width:100%!important;text-align:left!important;cursor:pointer!important;color:#a04c46!important}
+    .workspace-sidebar .side-logout:hover{background:rgba(181,70,60,.08)!important;color:#92372f!important}
+    .workspace-main{min-width:0!important;padding:30px clamp(18px,3vw,46px) 54px!important}
+    .workspace-topbar{display:flex!important;align-items:center!important;justify-content:space-between!important;margin-bottom:22px!important}
+    .workspace-topbar .eyebrow,.workspace .eyebrow{color:#188254!important;font-size:9px!important;font-weight:900!important;letter-spacing:1.8px!important}
+    .workspace-topbar h1{margin:7px 0 0!important;color:#163d2b!important;font-size:clamp(25px,3vw,36px)!important;font-weight:900!important}
+    .workspace-date{padding:10px 14px!important;border:1px solid rgba(255,255,255,.9)!important;border-radius:999px!important;background:rgba(255,255,255,.58)!important;color:#557263!important;font-size:10px!important;font-weight:800!important;box-shadow:0 8px 22px rgba(28,62,41,.05)!important;backdrop-filter:blur(14px)!important}
+    .welcome-panel{position:relative!important;overflow:hidden!important;padding:clamp(22px,3vw,34px)!important;border:1px solid rgba(255,255,255,.85)!important;border-radius:25px!important;background:linear-gradient(115deg,rgba(255,255,255,.86),rgba(225,245,231,.68) 58%,rgba(244,250,241,.82))!important;box-shadow:0 18px 45px rgba(24,64,40,.08),inset 0 1px 0 #fff!important;backdrop-filter:blur(22px) saturate(155%)!important}
+    .welcome-panel:after{content:"";position:absolute;right:-55px;top:-95px;width:260px;height:260px;border:1px solid rgba(15,133,78,.12);border-radius:50%;box-shadow:0 0 0 28px rgba(15,133,78,.035),0 0 0 58px rgba(15,133,78,.025);pointer-events:none}
+    .welcome-panel h2{color:#143d2c!important;font-size:clamp(23px,2.5vw,31px)!important;font-weight:900!important;letter-spacing:-.8px!important}
+    .welcome-panel p{max-width:600px!important;color:#65796b!important;line-height:1.7!important}
+    .welcome-symbol{color:#138052!important;text-shadow:0 8px 25px rgba(18,128,77,.16)!important}
+    .workspace-card,.workspace-section,.buyer-shortcut,.buyer-insights article{border:1px solid rgba(255,255,255,.82)!important;background:linear-gradient(145deg,rgba(255,255,255,.82),rgba(247,250,245,.67))!important;box-shadow:0 12px 30px rgba(30,63,41,.055),inset 0 1px 0 rgba(255,255,255,.9)!important;backdrop-filter:blur(16px) saturate(140%)!important}
+    .workspace-card{border-radius:20px!important;padding:21px!important}
+    .workspace-card .card-icon{display:grid!important;place-items:center!important;width:39px!important;height:39px!important;margin-bottom:13px!important;border-radius:13px!important;background:linear-gradient(145deg,#e4f6e9,#f7fbf5)!important;color:#0c8050!important}
+    .workspace-card .card-label{color:#809185!important;font-size:9px!important;font-weight:900!important;letter-spacing:1.3px!important}
+    .workspace-card>strong{display:block!important;margin:9px 0 5px!important;color:#173e2c!important;font-size:clamp(22px,2.4vw,29px)!important;font-weight:900!important;overflow-wrap:anywhere!important}
+    .workspace-card>small{color:#829187!important;font-size:10px!important;line-height:1.55!important}
+    .workspace-section{border-radius:22px!important}
+    @media(max-width:760px){
+      .workspace{display:block!important;min-height:0!important}
+      .workspace-sidebar{position:relative!important;top:auto!important;width:auto!important;min-height:0!important;margin:10px 10px 0!important;padding:12px!important;border-radius:20px!important;display:flex!important;flex-direction:row!important;align-items:center!important;gap:8px!important;overflow-x:auto!important;overflow-y:hidden!important;scrollbar-width:none!important;white-space:nowrap!important}
+      .workspace-sidebar::-webkit-scrollbar{display:none!important}
+      .workspace-sidebar:before{height:100%!important;width:190px!important}
+      .workspace-sidebar>.brand{flex:0 0 auto!important;padding:4px 10px 4px 2px!important;border:0!important;border-right:1px solid rgba(26,83,53,.12)!important}
+      .workspace-sidebar .brand-mark{width:36px!important;height:36px!important;border-radius:12px!important}
+      .workspace-sidebar>.brand small{display:none!important}
+      .workspace-user{flex:0 0 auto!important;margin:0!important;padding:5px 8px!important;border:0!important;background:rgba(255,255,255,.44)!important;box-shadow:none!important}
+      .workspace-user .user-avatar{width:31px!important;height:31px!important;flex-basis:31px!important;border-radius:11px!important}
+      .workspace-user strong{max-width:95px!important;font-size:10px!important}
+      .workspace-user small{font-size:8px!important}
+      .workspace-sidebar .side-label{display:none!important}
+      .workspace-sidebar .side-link{flex:0 0 auto!important;min-height:38px!important;padding:0 11px!important;border-radius:12px!important;font-size:10px!important;gap:7px!important}
+      .workspace-sidebar .sidebar-bottom{display:contents!important;margin:0!important;padding:0!important;border:0!important}
+      .workspace-sidebar .side-logout{width:auto!important}
+      .workspace-main{padding:19px 13px 38px!important}
+      .workspace-topbar{margin-bottom:15px!important}
+      .welcome-panel{border-radius:19px!important;padding:20px!important}
+    }
+    @media(prefers-reduced-motion:reduce){.workspace-sidebar .side-link{transition:none!important}.workspace-sidebar .side-link:hover{transform:none!important}}
+
+
   `],
   template: `
     <section class="workspace">
