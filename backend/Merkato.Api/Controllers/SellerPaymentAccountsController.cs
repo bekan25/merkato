@@ -102,6 +102,10 @@ public sealed class SellerPaymentAccountsController : ControllerBase
         var order = await _db.Orders.AsNoTracking().FirstOrDefaultAsync(x => x.Id == orderId, ct);
         if (order is null) return NotFound(new { error = "Order not found." });
         if (!User.IsInRole("ADMIN") && order.BuyerId != userId) return Forbid();
+        if (order.InventoryReservationState is InventoryReservationState.RELEASED or InventoryReservationState.EXPIRED ||
+            (order.InventoryReservationState == InventoryReservationState.RESERVED &&
+             order.InventoryReservationExpiresAt <= DateTime.UtcNow))
+            return Conflict(new { error = "This order's inventory reservation has expired. Place a new order before transferring money." });
 
         var account = await _db.SellerPaymentAccounts.AsNoTracking()
             .Where(x => x.SellerId == order.SellerId && x.PaymentRail == order.PaymentRail && x.IsActive)
