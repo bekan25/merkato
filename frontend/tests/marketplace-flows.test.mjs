@@ -63,6 +63,7 @@ test('checkout quotes and validates city-based delivery fees instead of submitti
   assert.match(api, /getDeliveryFeeQuote\(cityArea: string\)/);
   assert.match(cart, /getDeliveryFeeQuote\(this\.cityArea\)/);
   assert.match(cart, /deliveryFeeEtb: this\.deliveryFeeEtb!/);
+  assert.match(cart, /deliveryFeeEtb \* lines\.length/);
   assert.match(cart, /estimatedTotal/);
   assert.match(orders, /HttpGet\("delivery-fee"\)/);
   assert.match(orders, /MERKATO_ESTIMATE/);
@@ -169,3 +170,21 @@ test('backend enforces buyer, merchant and admin permissions independently of An
   assert.ok(program.includes('account.TokenVersion != tokenVersion'));
   assert.ok(program.includes('account.IsSuspended'));
 });
+
+test('checkout sends one quantity-aware order per product and validates live available stock', async () => {
+  const api = await read('../src/app/core/api.service.ts');
+  const cart = await read('../src/app/pages/cart.component.ts');
+  const program = await read('../../backend/Merkato.Api/Program.cs');
+  const orders = await read('../../backend/Merkato.Api/Controllers/OrdersController.cs');
+
+  assert.match(program, /stockQuantity = db\.ProductListingDetails[\s\S]*StockQuantity - detail\.ReservedQuantity/);
+  assert.match(api, /stockQuantity\?: number/);
+  assert.match(api, /quantity\?: number/);
+  assert.match(cart, /quantity: line\.quantity/);
+  assert.match(cart, /amountEtb: line\.product\.priceEtb \* line\.quantity/);
+  assert.doesNotMatch(cart, /for \(let unit = 0; unit < line\.quantity; unit\+\+\)/);
+  assert.match(cart, /line\.quantity > \(line\.product\.stockQuantity \?\? 0\)/);
+  assert.match(orders, /INVENTORY_NOT_CONFIGURED/);
+  assert.match(orders, /INSUFFICIENT_STOCK/);
+});
+
