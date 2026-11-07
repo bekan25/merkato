@@ -147,8 +147,10 @@ import { ApiService, MerkatoProduct, MerkatoOrder, MerkatoDispute, MerchantAnaly
                   <label>Category <select name="category" [(ngModel)]="draft.category" required><option *ngFor="let category of productCategories" [value]="category">{{category}}</option></select></label>
                   <label>Store city <select name="location" [(ngModel)]="draft.location" required><option *ngFor="let city of supportedCities" [value]="city">{{city}}</option></select></label>
                 </section>
-                <section class="editor-card"><div class="editor-card-title"><span class="editor-icon">◈</span><div><h4>Pricing & availability</h4><p>Set the selling price in Ethiopian birr.</p></div></div>
+                <section class="editor-card"><div class="editor-card-title"><span class="editor-icon">◈</span><div><h4>Pricing & availability</h4><p>Set the selling price and real on-hand stock.</p></div></div>
                   <label>Base price <div class="price-input"><span>ETB</span><input name="price" [(ngModel)]="draft.priceEtb" type="number" min="0.01" step="0.01" required placeholder="0.00"></div></label>
+                  <label>Available stock <input name="stockQuantity" [(ngModel)]="draft.stockQuantity" type="number" min="0" max="1000000" step="1" required placeholder="Enter units physically available"></label>
+                  <small>Enter the actual units you have. Reserved orders are protected and cannot be oversold.</small>
                   <div class="editor-note"><strong>Pricing tip</strong><span>Use a competitive, accurate price. Buyers complete payment through MERKATO's verified checkout flow.</span></div>
                 </section>
               </div>
@@ -162,7 +164,7 @@ import { ApiService, MerkatoProduct, MerkatoOrder, MerkatoDispute, MerchantAnaly
               </aside>
             </div>
           </form>
-          <div *ngIf="merchantProducts.length" class="table-wrap"><table><thead><tr><th>Product</th><th>Category</th><th>Price</th><th>Location</th><th>Status</th><th>Actions</th></tr></thead><tbody><tr *ngFor="let p of merchantProducts"><td class="catalogue-product"><img *ngIf="p.imageUrl" [src]="p.imageUrl" [alt]="p.name"><span *ngIf="!p.imageUrl" class="catalogue-placeholder">▧</span><strong>{{p.name}}</strong></td><td>{{p.category}}</td><td>{{p.priceEtb | number:'1.2-2'}} ETB</td><td>{{p.location}}</td><td><span class="status-pill">Active</span></td><td class="product-actions"><button type="button" (click)="editProduct(p)">Edit</button><button type="button" (click)="removeProduct(p)">Archive</button></td></tr></tbody></table></div>
+          <div *ngIf="merchantProducts.length" class="table-wrap"><table><thead><tr><th>Product</th><th>Category</th><th>Price</th><th>Stock</th><th>Location</th><th>Status</th><th>Actions</th></tr></thead><tbody><tr *ngFor="let p of merchantProducts"><td class="catalogue-product"><img *ngIf="p.imageUrl" [src]="p.imageUrl" [alt]="p.name"><span *ngIf="!p.imageUrl" class="catalogue-placeholder">▧</span><strong>{{p.name}}</strong></td><td>{{p.category}}</td><td>{{p.priceEtb | number:'1.2-2'}} ETB</td><td>{{p.stockQuantity ?? 0}}</td><td>{{p.location}}</td><td><span class="status-pill">Active</span></td><td class="product-actions"><button type="button" (click)="editProduct(p)">Edit</button><button type="button" (click)="removeProduct(p)">Archive</button></td></tr></tbody></table></div>
           <div class="empty-inline" *ngIf="!merchantProducts.length">No products are currently returned by the API. Add your first product when signed in as a merchant.</div>
         </section>
         <section class="workspace-section" *ngIf="user?.role === 'MERCHANT' || user?.role === 'ADMIN'"><span class="eyebrow">ORDER FULFILMENT</span><h2>Incoming orders</h2><div *ngIf="merchantOrders.length" class="table-wrap"><table><thead><tr><th>Order</th><th>Product</th><th>Buyer</th><th>Buyer total</th><th>MERKATO fees</th><th>Est. merchant settlement</th><th>Delivery</th></tr></thead><tbody><tr *ngFor="let order of merchantOrders"><td>{{order.orderNumber}}</td><td>{{order.productTitle}}</td><td>#{{order.buyerId}}</td><td>{{order.totalAmountEtb | number:'1.2-2'}} ETB</td><td>{{((order.merchantCommissionEtb || 0) + (order.buyerServiceFeeEtb || 0)) | number:'1.2-2'}} ETB</td><td>{{(order.totalAmountEtb - (order.merchantCommissionEtb || 0) - (order.buyerServiceFeeEtb || 0)) | number:'1.2-2'}} ETB</td><td>{{order.deliveryStatus}}</td></tr></tbody></table></div><div class="empty-inline" *ngIf="!merchantOrders.length">No incoming orders have been recorded yet.</div></section>
@@ -227,7 +229,7 @@ export class DashboardComponent implements OnInit {
   readonly businessTypes = ['Retail shop','Wholesale','Manufacturer','Farmer / producer','Service provider','Online store','Other'];
   readonly productCategories = ['Electronics','Fashion','Home & Living','Beauty & Personal Care','Food & Grocery','Agriculture','Automotive','Books & Education','Sports & Outdoors','Baby & Kids','Other'];
   verificationDraft = { businessName: '', businessType: '', city: 'Addis Ababa', contactPhone: '' };
-  draft = { name: '', priceEtb: 0, category: 'Other', location: 'Addis Ababa', emoji: '🛍️' };
+  draft = { name: '', priceEtb: 0, stockQuantity: 0, category: 'Other', location: 'Addis Ababa', emoji: '🛍️' };
   get hasExistingProductImage(): boolean {
     return this.editingProductId !== null &&
       !!this.merchantProducts.find(product => product.id === this.editingProductId)?.imageUrl;
@@ -370,7 +372,7 @@ export class DashboardComponent implements OnInit {
                 ? this.merchantProducts.map(item => item.id === product.id ? product : item)
                 : [product, ...this.merchantProducts];
               this.editingProductId = product.id;
-              this.draft = { name: product.name, priceEtb: product.priceEtb, category: product.category, location: product.location, emoji: product.emoji || '🛍️' };
+              this.draft = { name: product.name, priceEtb: product.priceEtb, stockQuantity: product.stockQuantity ?? 0, category: product.category, location: product.location, emoji: product.emoji || '🛍️' };
               this.showProductForm = true;
               this.saving = false;
               this.productError = err?.status === 413
@@ -388,7 +390,7 @@ export class DashboardComponent implements OnInit {
   toggleProductForm(): void { if (this.showProductForm) this.cancelEdit(); else this.showProductForm = true; }
   editProduct(product: MerkatoProduct): void {
     this.editingProductId = product.id;
-    this.draft = { name: product.name, priceEtb: product.priceEtb, category: product.category, location: product.location, emoji: product.emoji || '🛍️' };
+    this.draft = { name: product.name, priceEtb: product.priceEtb, stockQuantity: product.stockQuantity ?? 0, category: product.category, location: product.location, emoji: product.emoji || '🛍️' };
     this.showProductForm = true;
     this.clearSelectedImage();
     this.productError = '';
@@ -397,7 +399,7 @@ export class DashboardComponent implements OnInit {
     this.clearSelectedImage();
     this.editingProductId = null;
     this.showProductForm = false;
-    this.draft = { name: '', priceEtb: 0, category: 'Other', location: 'Addis Ababa', emoji: '🛍️' };
+    this.draft = { name: '', priceEtb: 0, stockQuantity: 0, category: 'Other', location: 'Addis Ababa', emoji: '🛍️' };
   }
   removeProduct(product: MerkatoProduct): void {
     if (!window.confirm('Archive ' + product.name + '? It will no longer appear in the public marketplace.')) return;

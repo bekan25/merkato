@@ -8,7 +8,8 @@ public record CreateProductRequest(
     decimal PriceEtb,
     string Location,
     string Category,
-    string Emoji
+    string Emoji,
+    int StockQuantity = 0
 );
 
 public record ProductResponse(
@@ -22,6 +23,7 @@ public record ProductResponse(
     string? ImageUrl,
     bool IsActive,
     DateTime CreatedAt,
+    int StockQuantity = 0,
     bool SellerVerified = false
 );
 
@@ -31,5 +33,6 @@ public record UpdateProductRequest(
     decimal PriceEtb,
     string Location,
     string Category,
-    string Emoji
+    string Emoji,
+    int StockQuantity = 0
 );
