@@ -112,6 +112,58 @@ public class PaymentsController : ControllerBase
             });
         }
 
+        if (order.PaymentMode == "SELLER_DIRECT")
+        {
+            if (request.PaymentRail != order.PaymentRail)
+                return BadRequest(new { error = "Payment method must match the seller's configured destination." });
+
+            var existingDirect = await _db.PaymentTransactions
+                .FirstOrDefaultAsync(x => x.IdempotencyKey == idempotencyKey, ct);
+            if (existingDirect is not null)
+            {
+                if (existingDirect.OrderId != order.Id || existingDirect.AmountEtb != expectedAmount)
+                    return Conflict(new { error = "Idempotency key was already used for another payment request." });
+                return Ok(new
+                {
+                    paymentTransactionId = existingDirect.Id,
+                    orderId = existingDirect.OrderId,
+                    amountEtb = existingDirect.AmountEtb,
+                    currency = existingDirect.Currency,
+                    paymentRail = existingDirect.PaymentRail.ToString(),
+                    status = existingDirect.Status.ToString(),
+                    idempotencyKey = existingDirect.IdempotencyKey,
+                    transferMode = "SELLER_DIRECT",
+                    message = "Transfer directly to the seller's account, then upload your receipt."
+                });
+            }
+
+            var directTransaction = new PaymentTransaction
+            {
+                OrderId = order.Id,
+                IdempotencyKey = idempotencyKey,
+                PaymentRail = order.PaymentRail,
+                AmountEtb = expectedAmount,
+                Currency = "ETB",
+                Status = PaymentStatus.PENDING,
+                WebhookVerified = false,
+                CreatedAt = DateTime.UtcNow
+            };
+            _db.PaymentTransactions.Add(directTransaction);
+            await _db.SaveChangesAsync(ct);
+            return Ok(new
+            {
+                paymentTransactionId = directTransaction.Id,
+                orderId = directTransaction.OrderId,
+                amountEtb = directTransaction.AmountEtb,
+                currency = directTransaction.Currency,
+                paymentRail = directTransaction.PaymentRail.ToString(),
+                status = directTransaction.Status.ToString(),
+                idempotencyKey = directTransaction.IdempotencyKey,
+                transferMode = "SELLER_DIRECT",
+                message = "Transfer directly to the seller's account, then upload your receipt."
+            });
+        }
+
         PaymentTransaction transaction;
         try
         {
