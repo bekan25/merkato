@@ -42,9 +42,9 @@ public class DeliveryService : IDeliveryService
             rawOtp.Length > 8 || rawOtp.Any(ch => !char.IsDigit(ch)))
             throw new ArgumentException("OTP must contain 4–8 digits.", nameof(rawOtp));
 
-        var orderExists = await _db.Orders.AnyAsync(x => x.Id == orderId, ct);
-        if (!orderExists)
-            throw new KeyNotFoundException($"Order {orderId} not found.");
+        var order = await _db.Orders.FirstOrDefaultAsync(x => x.Id == orderId, ct)
+            ?? throw new KeyNotFoundException($"Order {orderId} not found.");
+        await EnsureSellerDirectPaymentConfirmedAsync(order, ct);
 
         if (await _db.Deliveries.AnyAsync(x => x.OrderId == orderId, ct))
             throw new InvalidOperationException("A delivery already exists for this order.");
@@ -120,6 +120,10 @@ public class DeliveryService : IDeliveryService
                 ct)
             ?? throw new KeyNotFoundException(
                 $"OTP tracker for {deliveryId} not found");
+
+        var order = await _db.Orders.FirstOrDefaultAsync(x => x.Id == delivery.OrderId, ct)
+            ?? throw new KeyNotFoundException($"Order {delivery.OrderId} not found.");
+        await EnsureSellerDirectPaymentConfirmedAsync(order, ct);
 
         // ---------------------------------------------------------
         // 3. Check whether OTP was already consumed
@@ -246,15 +250,7 @@ public class DeliveryService : IDeliveryService
         // 9. Update Order delivery status
         // ---------------------------------------------------------
 
-        var order = await _db.Orders.FindAsync(
-            new object[] { delivery.OrderId },
-            ct);
-
-        if (order != null)
-        {
-            order.DeliveryStatus =
-                DeliveryStatus.DELIVERED;
-        }
+        order.DeliveryStatus = DeliveryStatus.DELIVERED;
 
         // ---------------------------------------------------------
         // 10. Start 48-hour inspection window
@@ -307,6 +303,10 @@ public class DeliveryService : IDeliveryService
             ?? throw new KeyNotFoundException(
                 $"Delivery {deliveryId} not found");
 
+        var order = await _db.Orders.FirstOrDefaultAsync(x => x.Id == delivery.OrderId, ct)
+            ?? throw new KeyNotFoundException($"Order {delivery.OrderId} not found.");
+        await EnsureSellerDirectPaymentConfirmedAsync(order, ct);
+
         // Validate state machine transition
         DeliveryStateMachine.ValidateTransition(
             delivery.Status,
@@ -321,16 +321,9 @@ public class DeliveryService : IDeliveryService
         {
             delivery.DeliveredAt = DateTime.UtcNow;
 
-            var order = await _db.Orders.FindAsync(
-                new object[] { delivery.OrderId },
-                ct);
-
-            if (order is not null)
-            {
-                order.DeliveryStatus = DeliveryStatus.DELIVERED;
-                if (order.PaymentMode != "SELLER_DIRECT")
-                    await _inspection.StartInspectionAsync(delivery.OrderId, ct);
-            }
+            order.DeliveryStatus = DeliveryStatus.DELIVERED;
+            if (order.PaymentMode != "SELLER_DIRECT")
+                await _inspection.StartInspectionAsync(delivery.OrderId, ct);
         }
 
         await _db.SaveChangesAsync(ct);
@@ -341,6 +334,30 @@ public class DeliveryService : IDeliveryService
     // -------------------------------------------------------------
     // OTP HASH
     // -------------------------------------------------------------
+
+    private async Task EnsureSellerDirectPaymentConfirmedAsync(Order order, CancellationToken ct)
+    {
+        if (order.PaymentMode != "SELLER_DIRECT")
+            return;
+
+        var confirmed = await (
+            from receipt in _db.PaymentReceipts.AsNoTracking()
+            join payment in _db.PaymentTransactions.AsNoTracking()
+                on receipt.PaymentTransactionId equals payment.Id
+            where receipt.OrderId == order.Id
+                && receipt.Status == "SELLER_CONFIRMED"
+                && receipt.ReviewedBy == order.SellerId
+                && payment.OrderId == order.Id
+                && payment.Status == PaymentStatus.VERIFIED
+                && !payment.WebhookVerified
+                && payment.AmountEtb == order.TotalAmountEtb
+            select receipt.Id
+        ).AnyAsync(ct);
+
+        if (!confirmed)
+            throw new InvalidOperationException(
+                "Delivery is blocked until the seller confirms the actual transfer in their own account.");
+    }
 
     private static string ComputeOtpHash(
         string rawOtp,
