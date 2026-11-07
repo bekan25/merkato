@@ -4,11 +4,12 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from './core/auth.service';
+import { MkBadgeComponent } from './shared/ui-primitives.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [CommonModule, FormsModule, RouterOutlet, RouterLink, RouterLinkActive, MkBadgeComponent],
   template: `
     <div class="app-shell">
       <div class="announcement">MERKATO ETHIOPIA <span>•</span> {{ t('announcement') }}</div>
@@ -25,8 +26,8 @@ import { AuthService } from './core/auth.service';
           <label class="language-picker" aria-label="Choose language"><span aria-hidden="true">◎</span><select [(ngModel)]="language" (ngModelChange)="changeLanguage($event)" name="siteLanguage" [attr.aria-label]="t('language')"><option value="en">EN</option><option value="om">OR</option><option value="am">አማ</option></select></label>
           <a class="delivery-link" routerLink="/" fragment="marketplace"><small>{{ t('delivering') }}</small><strong>🇪🇹 Ethiopia</strong></a>
           <a class="account-link" *ngIf="!auth.isAuthenticated" routerLink="/login"><small>{{ t('helloSignIn') }}</small><strong>{{ t('account') }}</strong></a>
-          <a class="account-link" *ngIf="auth.isAuthenticated" [routerLink]="auth.dashboardPath()"><small>Hello, {{auth.user?.fullName?.split(' ')?.[0]}}</small><strong>{{ t('myAccount') }}</strong></a>
-          <a class="cart-link" routerLink="/cart"><span class="cart-icon">🛒</span><strong>{{ t('cart') }}</strong><span class="cart-count">{{cartCount}}</span></a>
+          <details class="account-menu" *ngIf="auth.isAuthenticated"><summary class="account-link" [attr.aria-label]="t('openAccountMenu')"><small>Hello, {{auth.user?.fullName?.split(' ')?.[0]}}</small><strong>{{ t('myAccount') }} <span aria-hidden="true">⌄</span></strong></summary><div class="account-menu-panel"><a [routerLink]="auth.dashboardPath()">{{ t('dashboard') }}</a><a routerLink="/commerce">{{ t('commerceHub') }}</a></div></details>
+          <a class="cart-link" routerLink="/cart"><span class="cart-icon">🛒</span><strong>{{ t('cart') }}</strong><mk-badge class="cart-count" variant="gold" [ariaLabel]="cartCount + ' items in cart'">{{cartCount}}</mk-badge></a>
         </div>
       </header>
       <button class="mobile-menu-toggle" type="button" (click)="mobileNavOpen = !mobileNavOpen" [attr.aria-expanded]="mobileNavOpen" aria-controls="main-department-nav"><span>{{mobileNavOpen ? '×' : '☰'}}</span>{{mobileNavOpen ? 'Close menu' : 'Browse MERKATO'}}</button>
@@ -39,6 +40,12 @@ import { AuthService } from './core/auth.service';
         <a *ngIf="auth.isAuthenticated" [routerLink]="auth.dashboardPath()" (click)="closeMobileNav()">{{ t('workspace') }}</a>
       </nav>
       <main><router-outlet /></main>
+      <nav class="mobile-bottom-nav" aria-label="Mobile navigation">
+        <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}"><span aria-hidden="true">⌂</span><small>{{ t('home') }}</small></a>
+        <a routerLink="/" fragment="marketplace"><span aria-hidden="true">⌕</span><small>{{ t('finds') }}</small></a>
+        <a routerLink="/cart" routerLinkActive="active"><span aria-hidden="true">🛒</span><small>{{ t('cart') }}</small></a>
+        <a [routerLink]="auth.isAuthenticated ? auth.dashboardPath() : '/login'" routerLinkActive="active"><span aria-hidden="true">◎</span><small>{{ t('account') }}</small></a>
+      </nav>
       <footer class="site-footer"><a class="brand footer-brand" routerLink="/"><span class="brand-mark">M</span><span>merkato<small>ETHIOPIAN MARKETPLACE</small></span></a><span>Connecting Ethiopia, one marketplace.</span><span>© 2026 MERKATO</span></footer>
     </div>
   `,
@@ -59,6 +66,14 @@ import { AuthService } from './core/auth.service';
     .department-nav{height:40px;padding:0 clamp(18px,5vw,76px);display:flex;align-items:center;gap:27px;background:rgba(239,245,236,.88);color:#4b6354;font-size:10px;overflow-x:auto;white-space:nowrap;border-bottom:1px solid rgba(255,255,255,.9)}
     .department-nav a{font-weight:700;padding:9px 12px;border-radius:9px;transition:background .2s,color .2s}.department-nav a:hover,.department-nav a.active{color:#087b4d;background:#e5f1e6}
     .mobile-menu-toggle{display:none}
+    .account-menu{position:relative;display:flex;align-items:center}
+    .account-menu>summary{list-style:none;cursor:pointer}
+    .account-menu>summary::-webkit-details-marker{display:none}
+    .account-menu>summary strong span{color:#a17b43;margin-left:3px}
+    .account-menu-panel{position:absolute;top:calc(100% + 12px);right:0;z-index:50;min-width:190px;padding:8px;border:1px solid #e8e1d4;border-radius:14px;background:#fffefa;box-shadow:0 16px 42px rgba(25,45,34,.16)}
+    .account-menu-panel a{display:block;padding:11px 12px;border-radius:9px;color:#254a37;font-size:12px;font-weight:650}
+    .account-menu-panel a:hover,.account-menu-panel a:focus-visible{background:#f2eee4;color:#123b2f}
+    .mobile-bottom-nav{display:none}
 
     .language-picker{display:inline-flex;align-items:center;gap:5px;height:34px;padding:0 9px;border:1px solid #dce8dc;border-radius:22px;background:#fff;color:#087b4d;white-space:nowrap}
     .language-picker>span{font-size:17px;line-height:1}
@@ -89,7 +104,14 @@ import { AuthService } from './core/auth.service';
       .department-nav.mobile-open{display:flex}
       .department-nav a{padding:12px 9px;border-bottom:1px solid #edf1eb;font-size:12px}
       .department-nav a:last-child{border-bottom:0}
-      .site-footer{gap:12px}
+      .site-footer{gap:12px;padding-bottom:88px}
+      .account-menu{align-items:center}
+      .account-menu-panel{top:calc(100% + 8px);right:0}
+      .mobile-bottom-nav{position:fixed;left:0;right:0;bottom:0;z-index:40;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;padding:8px 10px calc(8px + env(safe-area-inset-bottom));background:rgba(255,254,250,.97);border-top:1px solid #e8e1d4;box-shadow:0 -8px 28px rgba(24,45,34,.09);backdrop-filter:blur(18px)}
+      .mobile-bottom-nav a{min-height:48px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border-radius:10px;color:#64736a;font-size:19px}
+      .mobile-bottom-nav a small{font-size:10px;font-weight:700;line-height:1.2}
+      .mobile-bottom-nav a.active,.mobile-bottom-nav a:focus-visible{color:#123b2f;background:#edf3ed}
+      main{padding-bottom:8px}
     }
   `]
 })
@@ -103,6 +125,7 @@ export class AppComponent implements OnInit {
   language: 'en' | 'om' | 'am' = this.restoreLanguage();
 
   ngOnInit(): void {
+    document.documentElement.lang = this.language;
     const code = new URLSearchParams(window.location.search).get('ref')?.trim().toUpperCase();
     if (!code || !/^[A-Z0-9-]{4,40}$/.test(code)) return;
     try {
@@ -117,9 +140,9 @@ export class AppComponent implements OnInit {
   }
 
   private readonly translations: Record<string, Record<string, string>> = {
-    en: { announcement: 'Discover local stores. Shop with confidence.', searchPlaceholder: 'Search MERKATO Ethiopia', delivering: 'Delivering across', helloSignIn: 'Hello, sign in', account: 'Account', myAccount: 'My account', cart: 'Cart', language: 'Choose language', departments: 'All departments', finds: "Today's finds", shopProducts: 'Shop products', sell: 'Sell on MERKATO', workspace: 'My workspace', commerceHub: 'Commerce Hub' },
-    om: { announcement: 'Daldaliittiwwan naannoo argadhaa. Ofitti amanamummaa waliin bitadhaa.', searchPlaceholder: 'Oomishaalee MERKATO keessatti barbaadi', delivering: 'Geejjibni', helloSignIn: 'Akkam, seeni', account: 'Herrega', myAccount: 'Herrega koo', cart: 'Gaarii bittaa', language: 'Afaan filadhu', departments: 'Ramaddiiwwan', finds: 'Har’a kan argaman', shopProducts: 'Oomishaalee bitadhu', sell: 'MERKATO irratti gurguri', workspace: 'Iddoo hojii koo', commerceHub: 'Gidduu Daldalaa' },
-    am: { announcement: 'የአካባቢ መደብሮችን ያግኙ። በመተማመን ይግዙ።', searchPlaceholder: 'በMERKATO ኢትዮጵያ ይፈልጉ', delivering: 'የሚያደርሰው', helloSignIn: 'ሰላም፣ ይግቡ', account: 'መለያ', myAccount: 'የእኔ መለያ', cart: 'ጋሪ', language: 'ቋንቋ ይምረጡ', departments: 'ሁሉም ዘርፎች', finds: 'የዛሬ ምርጦች', shopProducts: 'ምርቶችን ይግዙ', sell: 'በMERKATO ይሽጡ', workspace: 'የእኔ የሥራ ቦታ', commerceHub: 'የንግድ ማዕከል' }
+    en: { home: 'Home', dashboard: 'Dashboard', openAccountMenu: 'Open account menu', announcement: 'Discover local stores. Shop with confidence.', searchPlaceholder: 'Search MERKATO Ethiopia', delivering: 'Delivering across', helloSignIn: 'Hello, sign in', account: 'Account', myAccount: 'My account', cart: 'Cart', language: 'Choose language', departments: 'All departments', finds: "Today's finds", shopProducts: 'Shop products', sell: 'Sell on MERKATO', workspace: 'My workspace', commerceHub: 'Commerce Hub' },
+    om: { home: 'Mana', dashboard: 'Daashboordii', openAccountMenu: 'Menuu herregaa bani', announcement: 'Daldaliittiwwan naannoo argadhaa. Ofitti amanamummaa waliin bitadhaa.', searchPlaceholder: 'Oomishaalee MERKATO keessatti barbaadi', delivering: 'Geejjibni', helloSignIn: 'Akkam, seeni', account: 'Herrega', myAccount: 'Herrega koo', cart: 'Gaarii bittaa', language: 'Afaan filadhu', departments: 'Ramaddiiwwan', finds: 'Har’a kan argaman', shopProducts: 'Oomishaalee bitadhu', sell: 'MERKATO irratti gurguri', workspace: 'Iddoo hojii koo', commerceHub: 'Gidduu Daldalaa' },
+    am: { home: 'መነሻ', dashboard: 'ዳሽቦርድ', openAccountMenu: 'የመለያ ምናሌን ክፈት', announcement: 'የአካባቢ መደብሮችን ያግኙ። በመተማመን ይግዙ።', searchPlaceholder: 'በMERKATO ኢትዮጵያ ይፈልጉ', delivering: 'የሚያደርሰው', helloSignIn: 'ሰላም፣ ይግቡ', account: 'መለያ', myAccount: 'የእኔ መለያ', cart: 'ጋሪ', language: 'ቋንቋ ይምረጡ', departments: 'ሁሉም ዘርፎች', finds: 'የዛሬ ምርጦች', shopProducts: 'ምርቶችን ይግዙ', sell: 'በMERKATO ይሽጡ', workspace: 'የእኔ የሥራ ቦታ', commerceHub: 'የንግድ ማዕከል' }
   };
 
   private restoreLanguage(): 'en' | 'om' | 'am' {
@@ -134,6 +157,7 @@ export class AppComponent implements OnInit {
   changeLanguage(value: string): void {
     this.language = value === 'om' || value === 'am' ? value : 'en';
     try { localStorage.setItem('merkato_language', this.language); } catch { /* Storage may be unavailable. */ }
+    document.documentElement.lang = this.language;
     window.dispatchEvent(new CustomEvent('merkato-language-change', { detail: this.language }));
   }
 
