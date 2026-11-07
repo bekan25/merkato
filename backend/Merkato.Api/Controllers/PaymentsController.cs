@@ -230,6 +230,11 @@ public class PaymentsController : ControllerBase
         if (dto is null)
             return BadRequest(new { error = "Webhook payload is required." });
 
+        var directOrder = await _db.Orders.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.OrderNumber == dto.OrderNumber, ct);
+        if (directOrder?.PaymentMode == "SELLER_DIRECT")
+            return Conflict(new { error = "Seller-direct transfers are confirmed by the seller after checking their own account; provider webhook processing is not used for this payment mode." });
+
         try
         {
             var transaction =
