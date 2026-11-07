@@ -4,6 +4,7 @@ import { AccountComponent } from './pages/account.component';
 import { AuthComponent } from './pages/auth.component';
 import { DashboardComponent } from './pages/dashboard.component';
 import { AdminDashboardComponent } from './pages/admin-dashboard.component';
+import { AdminOperationsComponent } from './pages/admin-operations.component';
 import { CartComponent } from './pages/cart.component';
 import { WholesaleComponent } from './pages/wholesale.component';
 import { CommerceHubComponent } from './pages/commerce-hub.component';
@@ -28,6 +29,7 @@ export const routes: Routes = [
   { path: 'account', component: AccountComponent, canActivate: [authGuard], title: 'My Account | MERKATO' },
   { path: 'merchant', component: DashboardComponent, canActivate: [roleGuard], data: { roles: ['MERCHANT', 'ADMIN'] } },
   { path: 'admin', component: AdminDashboardComponent, canActivate: [roleGuard], data: { roles: ['ADMIN'] }, title: 'Admin Console | MERKATO' },
+  { path: 'admin/operations', component: AdminOperationsComponent, canActivate: [roleGuard], data: { roles: ['ADMIN'] }, title: 'Admin Operations | MERKATO' },
   { path: 'admin/payments', component: AdminPaymentReviewsComponent, canActivate: [roleGuard], data: { roles: ['ADMIN'] }, title: 'Payment review | MERKATO' },
   { path: '**', redirectTo: '' }
 ];

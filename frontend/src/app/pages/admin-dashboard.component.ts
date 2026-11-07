@@ -33,7 +33,7 @@ type FeeSettings = { merchantCommissionRatePercent:number; buyerServiceFeeRatePe
         <a routerLink="/" class="brand"><span class="mark">M</span><span>MERKATO<small>ADMIN CONSOLE</small></span></a>
         <div class="profile"><span class="avatar">{{user?.fullName?.slice(0,1) || 'A'}}</span><div><strong>{{user?.fullName || 'Administrator'}}</strong><small>Platform administrator</small></div></div>
         <span class="nav-label">CONTROL CENTER</span>
-        <nav class="nav"><a class="active" href="#overview">▦ &nbsp; Overview</a><a href="#orders">▤ &nbsp; Orders</a><a href="#merchants">♙ &nbsp; Merchants</a><a href="#disputes">⚑ &nbsp; Disputes</a><a routerLink="/admin/payments">▣ &nbsp; Payment receipts</a><a href="#fees">◈ &nbsp; Commission & fees</a></nav>
+        <nav class="nav"><a class="active" href="#overview">▦ &nbsp; Overview</a><a href="#orders">▤ &nbsp; Orders</a><a href="#merchants">♙ &nbsp; Merchants</a><a href="#disputes">⚑ &nbsp; Disputes</a><a routerLink="/admin/payments">▣ &nbsp; Payment receipts</a><a href="#fees">◈ &nbsp; Commission & fees</a><a routerLink="/admin/operations">⚙ &nbsp; Operations center</a></nav>
         <div class="bottom"><a routerLink="/" class="nav-link">↗ &nbsp; Open marketplace</a><button class="logout" (click)="logout()">⇥ &nbsp; Sign out</button></div>
       </aside>
       <main class="main" id="overview">
