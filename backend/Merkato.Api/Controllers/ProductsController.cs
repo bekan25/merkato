@@ -141,6 +141,10 @@ public class ProductsController : ControllerBase
 
         if (request.PriceEtb <= 0 || request.PriceEtb > 1000000000m)
             return BadRequest("Price must be greater than zero and within the supported ETB range.");
+        if (request.StockQuantity < 0 || request.StockQuantity > 10000000)
+            return BadRequest("Stock quantity must be between 0 and 10,000,000.");
+        if (request.StockQuantity < 0 || request.StockQuantity > 10000000)
+            return BadRequest("Stock quantity must be between 0 and 10,000,000.");
 
         if (string.IsNullOrWhiteSpace(request.Category) ||
             request.Category.Trim().Length > 100)
@@ -186,8 +190,18 @@ public class ProductsController : ControllerBase
             UpdatedAt = DateTime.UtcNow
         };
 
+        await using var inventoryTransaction = await _db.Database.BeginTransactionAsync();
         _db.Products.Add(product);
         await _db.SaveChangesAsync();
+        _db.ProductListingDetails.Add(new ProductListingDetail
+        {
+            ProductId = product.Id,
+            StockQuantity = request.StockQuantity,
+            ReservedQuantity = 0,
+            UpdatedAt = DateTime.UtcNow
+        });
+        await _db.SaveChangesAsync();
+        await inventoryTransaction.CommitAsync();
 
         return Ok(new ProductResponse(
             product.Id,
@@ -252,6 +266,27 @@ public class ProductsController : ControllerBase
             ? "??"
             : request.Emoji.Trim();
         product.UpdatedAt = DateTime.UtcNow;
+
+        var listingInventory = await _db.ProductListingDetails
+            .SingleOrDefaultAsync(x => x.ProductId == product.Id);
+        if (listingInventory is null)
+        {
+            listingInventory = new ProductListingDetail
+            {
+                ProductId = product.Id,
+                StockQuantity = request.StockQuantity,
+                ReservedQuantity = 0,
+                UpdatedAt = DateTime.UtcNow
+            };
+            _db.ProductListingDetails.Add(listingInventory);
+        }
+        else
+        {
+            if (request.StockQuantity < listingInventory.ReservedQuantity)
+                return Conflict(new { message = "Stock cannot be lower than units already reserved for active orders.", reservedQuantity = listingInventory.ReservedQuantity });
+            listingInventory.StockQuantity = request.StockQuantity;
+            listingInventory.UpdatedAt = DateTime.UtcNow;
+        }
 
         // Trigger each matching buyer alert exactly once in the same database save.
         if (request.PriceEtb < previousPriceEtb)
