@@ -209,6 +209,8 @@ public sealed class PaymentReceiptsController : ControllerBase
         var payment = await _db.PaymentTransactions.FirstOrDefaultAsync(x => x.Id == receipt.PaymentTransactionId, ct);
         var order = await _db.Orders.FirstOrDefaultAsync(x => x.Id == receipt.OrderId, ct);
         if (payment is null || order is null) return Conflict(new { error = "Linked payment or order is missing." });
+        if (order.PaymentMode == "SELLER_DIRECT")
+            return Conflict(new { error = "Seller-direct receipts must be reviewed by the seller, not funded through MERKATO escrow." });
 
         if (decision == "REJECT")
         {
@@ -334,6 +336,8 @@ public sealed class PaymentReceiptsController : ControllerBase
         var order = await _db.Orders.FirstOrDefaultAsync(x => x.Id == receipt.OrderId, ct);
         if (order is null) return Conflict(new { error = "Linked order is missing." });
         if (order.SellerId != sellerId) return Forbid();
+        if (order.PaymentMode != "SELLER_DIRECT")
+            return Conflict(new { error = "This receipt belongs to an escrow-mode order and must follow the existing admin review workflow." });
         if (order.EscrowState != EscrowState.AWAITING_PAYMENT)
             return Conflict(new { error = "This order is not awaiting seller payment confirmation." });
         if (receipt.Status != "PENDING_REVIEW")
