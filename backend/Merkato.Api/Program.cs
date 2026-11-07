@@ -14,6 +14,7 @@ using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.HttpOverrides;
+using System.Security.Cryptography.X509Certificates;
 
 // ============================================================
 // LOAD .ENV
@@ -62,6 +63,46 @@ builder.Services.AddDbContext<MerkatoDbContext>(options =>
 {
     options.UseNpgsql(connectionString);
 });
+
+// Keep the ASP.NET Core Data Protection key ring in PostgreSQL so Render restarts
+// do not invalidate protected payloads. Production keys are encrypted with a
+// private certificate supplied only through Render secret environment variables.
+var dataProtection = builder.Services
+    .AddDataProtection()
+    .SetApplicationName("MERKATO")
+    .PersistKeysToDbContext<MerkatoDbContext>();
+
+if (builder.Environment.IsProduction())
+{
+    var certificateBase64 = Environment.GetEnvironmentVariable("MERKATO_DP_CERT_PFX_BASE64");
+    var certificatePassword = Environment.GetEnvironmentVariable("MERKATO_DP_CERT_PASSWORD");
+    if (string.IsNullOrWhiteSpace(certificateBase64) || string.IsNullOrWhiteSpace(certificatePassword))
+    {
+        throw new InvalidOperationException(
+            "Production requires MERKATO_DP_CERT_PFX_BASE64 and MERKATO_DP_CERT_PASSWORD to encrypt the Data Protection key ring.");
+    }
+
+    X509Certificate2 certificate;
+    try
+    {
+        certificate = X509CertificateLoader.LoadPkcs12FromBytes(
+            Convert.FromBase64String(certificateBase64),
+            certificatePassword,
+            X509KeyStorageFlags.EphemeralKeySet);
+    }
+    catch (Exception exception) when (exception is FormatException or CryptographicException)
+    {
+        throw new InvalidOperationException("The MERKATO Data Protection certificate configuration is invalid.", exception);
+    }
+
+    if (!certificate.HasPrivateKey || certificate.NotAfter <= DateTime.UtcNow)
+    {
+        certificate.Dispose();
+        throw new InvalidOperationException("The MERKATO Data Protection certificate must have a valid private key and must not be expired.");
+    }
+
+    dataProtection.ProtectKeysWithCertificate(certificate);
+}
 
 // ============================================================
 // JWT
@@ -300,6 +341,20 @@ builder.Services.AddRateLimiter(options =>
 // ============================================================
 
 var app = builder.Build();
+
+// Create the EF Data Protection key table idempotently. This avoids relying on
+// an ephemeral container filesystem and is safe to execute on every startup.
+await using (var dataProtectionScope = app.Services.CreateAsyncScope())
+{
+    var dataProtectionDb = dataProtectionScope.ServiceProvider.GetRequiredService<MerkatoDbContext>();
+    await dataProtectionDb.Database.ExecuteSqlRawAsync("""
+        CREATE TABLE IF NOT EXISTS "DataProtectionKeys" (
+            "Id" SERIAL PRIMARY KEY,
+            "FriendlyName" TEXT NULL,
+            "Xml" TEXT NULL
+        );
+        """);
+}
 
 // ============================================================
 // GLOBAL ERROR HANDLING
