@@ -23,6 +23,19 @@ interface DiscoveryProductsResponse {
   limit: number;
 }
 
+export interface UserDeliveryAddress {
+  id: number;
+  label: string;
+  recipientName: string;
+  phoneNumber: string;
+  city: string;
+  subCity: string;
+  woreda?: string | null;
+  streetAddress?: string | null;
+  deliveryInstructions?: string | null;
+  isDefault: boolean;
+}
+
 export interface MerkatoOrder {
   id: number;
   orderNumber: string;
@@ -223,6 +236,10 @@ export class ApiService {
 
   deleteProduct(id: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/products/${id}`);
+  }
+
+  getMyDeliveryAddresses(): Observable<UserDeliveryAddress[]> {
+    return this.http.get<UserDeliveryAddress[]>(`${this.baseUrl}/account/addresses`);
   }
 
   createOrder(payload: { sellerId: number; productTitle: string; productId?: number; quantity?: number; amountEtb: number; deliveryFeeEtb: number; paymentRail: number; deliveryCourier: string; deliveryAddress: string; cityArea: string; couponCode?: string }): Observable<MerkatoOrder> {
