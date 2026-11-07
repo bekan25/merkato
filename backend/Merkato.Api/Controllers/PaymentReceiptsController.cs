@@ -275,6 +275,127 @@ public sealed class PaymentReceiptsController : ControllerBase
         });
     }
 
+    [HttpGet("seller/pending")]
+    [Authorize(Roles = "MERCHANT")]
+    public async Task<IActionResult> SellerPending(CancellationToken ct)
+    {
+        if (!long.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var sellerId))
+            return Unauthorized();
+
+        var records = await (
+            from receipt in _db.PaymentReceipts.AsNoTracking()
+            join order in _db.Orders.AsNoTracking() on receipt.OrderId equals order.Id
+            join payment in _db.PaymentTransactions.AsNoTracking() on receipt.PaymentTransactionId equals payment.Id
+            where order.SellerId == sellerId && receipt.Status == "PENDING_REVIEW"
+            orderby receipt.CreatedAt
+            select new
+            {
+                receipt.Id, receipt.OrderId, order.OrderNumber, receipt.BuyerId,
+                receipt.PaymentTransactionId, expectedAmountEtb = payment.AmountEtb,
+                receipt.TransactionReference, receipt.FileName, receipt.ContentType,
+                receipt.Sha256, receipt.Status, receipt.CreatedAt
+            }).Take(100).ToListAsync(ct);
+        return Ok(records);
+    }
+
+    [HttpGet("seller/{id:long}/file")]
+    [Authorize(Roles = "MERCHANT")]
+    public async Task<IActionResult> GetSellerFile(long id, CancellationToken ct)
+    {
+        if (!long.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var sellerId))
+            return Unauthorized();
+        var receipt = await (
+            from item in _db.PaymentReceipts.AsNoTracking()
+            join order in _db.Orders.AsNoTracking() on item.OrderId equals order.Id
+            where item.Id == id && order.SellerId == sellerId
+            select item).FirstOrDefaultAsync(ct);
+        if (receipt is null) return NotFound();
+        Response.Headers.CacheControl = "no-store, private";
+        Response.Headers["X-Content-Type-Options"] = "nosniff";
+        return File(receipt.Content, receipt.ContentType);
+    }
+
+    [HttpPost("seller/{id:long}/review")]
+    [Authorize(Roles = "MERCHANT")]
+    public async Task<IActionResult> SellerReview(long id, [FromBody] ReviewPaymentReceiptRequest request, CancellationToken ct)
+    {
+        if (!long.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var sellerId))
+            return Unauthorized();
+        var decision = request.Decision?.Trim().ToUpperInvariant();
+        var note = request.Note?.Trim();
+        if (decision is not "APPROVE" and not "REJECT")
+            return BadRequest(new { error = "Decision must be APPROVE or REJECT." });
+        if (string.IsNullOrWhiteSpace(note) || note.Length > 1000)
+            return BadRequest(new { error = "A review note of 1 to 1000 characters is required." });
+
+        await using var tx = await _db.Database.BeginTransactionAsync(ct);
+        var receipt = await _db.PaymentReceipts.FirstOrDefaultAsync(x => x.Id == id, ct);
+        if (receipt is null) return NotFound();
+        var order = await _db.Orders.FirstOrDefaultAsync(x => x.Id == receipt.OrderId, ct);
+        if (order is null) return Conflict(new { error = "Linked order is missing." });
+        if (order.SellerId != sellerId) return Forbid();
+        if (order.EscrowState != EscrowState.AWAITING_PAYMENT)
+            return Conflict(new { error = "This order is not awaiting seller payment confirmation." });
+        if (receipt.Status != "PENDING_REVIEW")
+            return Conflict(new { error = "This receipt has already been reviewed." });
+        var payment = await _db.PaymentTransactions.FirstOrDefaultAsync(x => x.Id == receipt.PaymentTransactionId, ct);
+        if (payment is null || payment.OrderId != order.Id ||
+            payment.Status is not PaymentStatus.PENDING and not PaymentStatus.INITIATED ||
+            payment.AmountEtb != order.TotalAmountEtb)
+            return Conflict(new { error = "Linked payment is no longer eligible for seller review." });
+
+        if (decision == "REJECT")
+        {
+            receipt.Status = "REJECTED";
+            receipt.ReviewNote = note;
+            receipt.ReviewedBy = sellerId;
+            receipt.ReviewedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync(ct);
+            await _audit.LogAsync(sellerId, "MERCHANT", "SELLER_PAYMENT_RECEIPT_REJECTED",
+                "PAYMENT_RECEIPT", receipt.Id.ToString(), "SUCCESS", note, ct: ct);
+            await tx.CommitAsync(ct);
+            return Ok(new { receiptId = receipt.Id, status = receipt.Status });
+        }
+
+        var reference = string.IsNullOrWhiteSpace(request.TransactionReference)
+            ? receipt.TransactionReference
+            : request.TransactionReference.Trim().ToUpperInvariant();
+        if (string.IsNullOrWhiteSpace(reference) || reference.Length > 150)
+            return BadRequest(new { error = "Enter the transaction reference after checking the actual credit in your bank/provider account." });
+        if (await _db.PaymentTransactions.AnyAsync(x => x.Id != payment.Id && x.RailTransactionId == reference, ct))
+            return Conflict(new { error = "That provider transaction reference is already linked to another payment." });
+        if (await _db.PaymentReceipts.AnyAsync(x => x.Id != receipt.Id && x.TransactionReference == reference, ct))
+            return Conflict(new { error = "That transaction reference has already been used on another receipt." });
+
+        receipt.TransactionReference = reference;
+        receipt.Status = "SELLER_CONFIRMED";
+        receipt.ReviewNote = note;
+        receipt.ReviewedBy = sellerId;
+        receipt.ReviewedAt = DateTime.UtcNow;
+        payment.RailTransactionId = reference;
+        payment.Status = PaymentStatus.VERIFIED;
+        payment.WebhookVerified = false;
+        payment.RawPayloadHash = receipt.Sha256;
+        payment.VerifiedAt = DateTime.UtcNow;
+        order.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync(ct);
+        await _audit.LogAsync(sellerId, "MERCHANT", "SELLER_DIRECT_PAYMENT_CONFIRMED",
+            "PAYMENT", payment.Id.ToString(), "SUCCESS",
+            $"Receipt {receipt.Id}; reference {reference}; {note}. Seller-confirmed; no platform escrow.", ct: ct);
+        await tx.CommitAsync(ct);
+
+        return Ok(new
+        {
+            receiptId = receipt.Id,
+            paymentTransactionId = payment.Id,
+            orderId = order.Id,
+            receiptStatus = receipt.Status,
+            paymentStatus = payment.Status.ToString(),
+            escrowState = order.EscrowState.ToString(),
+            message = "Seller confirmation recorded. MERKATO did not receive or hold the funds."
+        });
+    }
+
     private static bool HasValidImageSignature(byte[] bytes, string extension)
     {
         if (extension == ".png")
