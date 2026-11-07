@@ -43,7 +43,11 @@ public class OrdersController : ControllerBase
                 order.PaymentRail, order.DeliveryCourier, order.DeliveryAddress,
                 order.EscrowState, order.DeliveryStatus, order.CreatedAt,
                 order.ProductSubtotalEtb, order.DiscountEtb, order.MerchantCommissionRatePercent,
-                order.MerchantCommissionEtb, order.BuyerServiceFeeRatePercent, order.BuyerServiceFeeEtb))
+                order.MerchantCommissionEtb, order.BuyerServiceFeeRatePercent, order.BuyerServiceFeeEtb,
+                order.PaymentMode,
+                _db.PaymentTransactions.Where(payment => payment.OrderId == order.Id)
+                    .OrderByDescending(payment => payment.CreatedAt)
+                    .Select(payment => payment.Status.ToString()).FirstOrDefault() ?? "PENDING"))
             .ToListAsync(ct);
 
         return Ok(orders);
@@ -68,7 +72,11 @@ public class OrdersController : ControllerBase
                 order.PaymentRail, order.DeliveryCourier, order.DeliveryAddress,
                 order.EscrowState, order.DeliveryStatus, order.CreatedAt,
                 order.ProductSubtotalEtb, order.DiscountEtb, order.MerchantCommissionRatePercent,
-                order.MerchantCommissionEtb, order.BuyerServiceFeeRatePercent, order.BuyerServiceFeeEtb))
+                order.MerchantCommissionEtb, order.BuyerServiceFeeRatePercent, order.BuyerServiceFeeEtb,
+                order.PaymentMode,
+                _db.PaymentTransactions.Where(payment => payment.OrderId == order.Id)
+                    .OrderByDescending(payment => payment.CreatedAt)
+                    .Select(payment => payment.Status.ToString()).FirstOrDefault() ?? "PENDING"))
             .ToListAsync(ct);
 
         return Ok(orders);
@@ -247,7 +255,8 @@ public class OrdersController : ControllerBase
             order.PaymentRail, order.DeliveryCourier, order.DeliveryAddress,
             order.EscrowState, order.DeliveryStatus, order.CreatedAt,
             order.ProductSubtotalEtb, order.DiscountEtb, order.MerchantCommissionRatePercent,
-            order.MerchantCommissionEtb, order.BuyerServiceFeeRatePercent, order.BuyerServiceFeeEtb);
+            order.MerchantCommissionEtb, order.BuyerServiceFeeRatePercent, order.BuyerServiceFeeEtb,
+            order.PaymentMode, "PENDING");
 
         return Ok(response);
     }
