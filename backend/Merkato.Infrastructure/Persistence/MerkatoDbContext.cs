@@ -1,16 +1,14 @@
 using Merkato.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 
 namespace Merkato.Infrastructure.Persistence;
 
-public class MerkatoDbContext : DbContext, IDataProtectionKeyContext
+public class MerkatoDbContext : DbContext
 {
     public MerkatoDbContext(DbContextOptions<MerkatoDbContext> options) : base(options)
     {
     }
 
-    public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
     public DbSet<User> Users => Set<User>();
     public DbSet<UserAddress> UserAddresses => Set<UserAddress>();
     public DbSet<WishlistItem> WishlistItems => Set<WishlistItem>();
