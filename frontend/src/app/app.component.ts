@@ -45,7 +45,7 @@ import { MkBadgeComponent } from './shared/ui-primitives.component';
         <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg><small>{{ t('home') }}</small></a>
         <a routerLink="/" fragment="marketplace"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><small>{{ t('finds') }}</small></a>
         <a routerLink="/cart" routerLinkActive="active"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h2l2.4 12.2a2 2 0 0 0 2 1.6h8.8a2 2 0 0 0 2-1.6L22 8H6"/><circle cx="10" cy="20" r="1"/><circle cx="18" cy="20" r="1"/></svg><small>{{ t('cart') }}</small></a>
-        <a [routerLink]="auth.isAuthenticated ? auth.dashboardPath() : '/login'" routerLinkActive="active"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><small>{{ t('account') }}</small></a>
+        <a [routerLink]="auth.isAuthenticated ? '/account' : '/login'" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><small>{{ t('account') }}</small></a>
       </nav>
       <footer class="site-footer"><a class="brand footer-brand" routerLink="/"><span class="brand-mark">M</span><span>merkato<small>ETHIOPIAN MARKETPLACE</small></span></a><span>Connecting Ethiopia, one marketplace.</span><span>© 2026 MERKATO</span></footer>
     </div>
