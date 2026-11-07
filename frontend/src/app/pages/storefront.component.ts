@@ -29,8 +29,6 @@ import { ShoppingAssistantComponent } from '../components/shopping-assistant.com
       </div>
     </section>
 
-    <section class="public-promotion-strip"    </section>
-
     <section class="home-value-row" aria-label="MERKATO marketplace benefits">
       <div class="home-value-item"><span class="home-value-icon" aria-hidden="true">⌖</span><span><strong>{{ t('discoverLocal') }}</strong><small>{{ t('everydayEssentials') }}</small></span></div>
       <div class="home-value-item"><span class="home-value-icon" aria-hidden="true">↗</span><span><strong>{{ t('connectMerchants') }}</strong><small>{{ t('supportBusiness') }}</small></span></div>
