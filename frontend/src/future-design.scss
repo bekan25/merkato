@@ -404,3 +404,73 @@ a,button{-webkit-tap-highlight-color:transparent}
   .site-header,.department-nav,.mobile-category-nav,.mobile-bottom-nav,.product-card,.workspace-card,.workspace-section,
   .quick-view-dialog,.notification-panel,.compare-bar{background:#fffefa!important}
 }
+
+
+/* MERKATO neon-glass storefront accents — additive, presentation-only layer */
+:root{
+  --ng-grad-text:linear-gradient(110deg,#00b86b 0%,#14d1ff 42%,#7b5cff 72%,#ff3d8b 100%);
+  --ng-grad-brand:linear-gradient(135deg,#00c978 0%,#14d1ff 42%,#7b5cff 76%,#ff3d8b 100%);
+  --ng-glass-strong:rgba(255,255,255,.78);
+  --ng-glass-edge:rgba(255,255,255,.94);
+  --ng-ink:#1c2823;
+  --ng-shadow-card:0 14px 38px rgba(25,45,33,.09),inset 0 1px rgba(255,255,255,.92);
+  --ng-shadow-lift:0 24px 48px rgba(54,63,155,.16),inset 0 1px rgba(255,255,255,.98);
+}
+.trust-strip strong,.home-value-item strong{
+  background:var(--ng-grad-text);-webkit-background-clip:text;background-clip:text;color:transparent!important
+}
+.home-value-icon{
+  background:var(--ng-grad-brand)!important;color:#fff!important;border-radius:14px!important;
+  box-shadow:0 12px 26px -8px rgba(20,209,255,.7)!important
+}
+.public-promotion-strip{
+  background:linear-gradient(100deg,rgba(255,201,51,.18),rgba(255,61,139,.12),rgba(123,92,255,.14))!important;
+  border-color:rgba(255,90,60,.2)!important
+}
+.public-promotion-strip article{
+  border-radius:18px!important;border:1px solid rgba(255,255,255,.95)!important;background:rgba(255,255,255,.78)!important
+}
+
+/* Categories — each tile gets its own neon hue */
+.category-list button,.category-all-card,.category-image-grid>button{
+  border-radius:20px!important;background:var(--ng-glass-strong)!important;border:1px solid var(--ng-glass-edge)!important;
+  box-shadow:var(--ng-shadow-card)!important;color:var(--ng-ink)!important;font-weight:800
+}
+.category-list:not(.category-image-grid) button span{
+  color:#fff!important;border-radius:14px!important;box-shadow:0 10px 22px -8px currentColor
+}
+.category-list:not(.category-image-grid) button:nth-child(6n+1) span{background:linear-gradient(135deg,#00c978,#14d1ff)!important;box-shadow:0 10px 22px -8px #00c978}
+.category-list:not(.category-image-grid) button:nth-child(6n+2) span{background:linear-gradient(135deg,#ffc933,#ff7a3d)!important;box-shadow:0 10px 22px -8px #ff7a3d}
+.category-list:not(.category-image-grid) button:nth-child(6n+3) span{background:linear-gradient(135deg,#7b5cff,#ff3d8b)!important;box-shadow:0 10px 22px -8px #7b5cff}
+.category-list:not(.category-image-grid) button:nth-child(6n+4) span{background:linear-gradient(135deg,#14d1ff,#4f6bff)!important;box-shadow:0 10px 22px -8px #14d1ff}
+.category-list:not(.category-image-grid) button:nth-child(6n+5) span{background:linear-gradient(135deg,#ff5a3c,#ff3d8b)!important;box-shadow:0 10px 22px -8px #ff5a3c}
+.category-list:not(.category-image-grid) button:nth-child(6n+6) span{background:linear-gradient(135deg,#00b86b,#ffc933)!important;box-shadow:0 10px 22px -8px #00b86b}
+.category-list button:hover,.category-list button.selected,.category-image-grid>button:hover{
+  border-color:rgba(123,92,255,.55)!important;box-shadow:var(--ng-shadow-lift)!important;transform:translateY(-7px) scale(1.02)!important
+}
+.category-list button.selected{
+  background:linear-gradient(#fff,#fff) padding-box,var(--ng-grad-brand) border-box!important;border:1.5px solid transparent!important
+}
+
+/* Market and filters */
+.market-section{background:linear-gradient(180deg,rgba(236,240,255,.65),rgba(255,255,255,.35) 260px)!important}
+.market-filter-panel,.search-box,.market-controls select,.market-controls input,.price-filter-wrap{
+  border-radius:14px!important;background:rgba(255,255,255,.86)!important;border:1px solid rgba(123,92,255,.18)!important;
+  box-shadow:0 10px 26px -14px rgba(60,50,170,.35)!important
+}
+.search-box:focus-within,.market-controls select:focus,.market-controls input:focus{
+  border-color:#7b5cff!important;box-shadow:0 0 0 4px rgba(123,92,255,.18)!important
+}
+
+/* Product cards — preserve existing content and interactions */
+.product-card{
+  border-radius:22px!important;background:var(--ng-glass-strong)!important;border:1px solid var(--ng-glass-edge)!important;
+  box-shadow:var(--ng-shadow-card)!important;position:relative
+}
+.product-card:hover{
+  border-color:rgba(20,209,255,.48)!important;
+  box-shadow:0 25px 55px rgba(54,63,155,.17),inset 0 1px rgba(255,255,255,.98)!important
+}
+@media(prefers-reduced-motion:reduce){
+  .category-list button,.category-image-grid>button,.product-card{transition:none!important;transform:none!important}
+}
