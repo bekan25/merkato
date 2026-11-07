@@ -1,5 +1,7 @@
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
+using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 
 namespace Merkato.Api.Services;
@@ -9,7 +11,8 @@ public interface IReceiptOcrService
     Task<ReceiptOcrResult> ReadAsync(byte[] image, string extension, decimal expectedAmountEtb, CancellationToken ct);
 }
 
-public sealed record ReceiptOcrResult(string Status, string? Provider, string? TransactionReference, decimal? AmountEtb, DateTime? TransactionDate, string? Error);
+/// <param name="Text">Raw OCR text, kept in memory only so the receipt can be cross-checked; never persisted.</param>
+public sealed record ReceiptOcrResult(string Status, string? Provider, string? TransactionReference, decimal? AmountEtb, DateTime? TransactionDate, string? Error, string? Text = null);
 
 /// <summary>
 /// Parses receipt text conservatively. OCR output is evidence for manual review only;
@@ -96,12 +99,37 @@ public static class ReceiptOcrTextParser
         !Regex.IsMatch(value, @"^(?:COMPLETED|SUCCESSFUL|SUCCESS|TRANSACTION|TRANSFER)$", RegexOptions.IgnoreCase);
 }
 
+public static class ReceiptOcrLanguages
+{
+    public const string Default = "eng+amh";
+    public const string Fallback = "eng";
+
+    /// <summary>Accepts values such as "eng" or "eng+amh"; anything else falls back to the default.</summary>
+    public static string Normalize(string? configured)
+    {
+        if (string.IsNullOrWhiteSpace(configured)) return Default;
+        var parts = configured.Split('+', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (parts.Length is 0 or > 4 || parts.Any(p => !Regex.IsMatch(p, "^[a-z_]{3,12}$")))
+            return Default;
+        return string.Join('+', parts);
+    }
+}
+
 public sealed class TesseractReceiptOcrService : IReceiptOcrService
 {
+    private const int MaxCachedResults = 256;
+    private const int MaxTextLength = 8000;
     private static readonly SemaphoreSlim Gate = new(2, 2);
+    // Receipts are re-read when admin/seller pending lists load; cache avoids rerunning Tesseract.
+    private static readonly ConcurrentDictionary<string, ReceiptOcrResult> Cache = new();
+    private readonly string _languages =
+        ReceiptOcrLanguages.Normalize(Environment.GetEnvironmentVariable("MERKATO_OCR_LANGUAGES"));
 
     public async Task<ReceiptOcrResult> ReadAsync(byte[] image, string extension, decimal expectedAmountEtb, CancellationToken ct)
     {
+        var cacheKey = $"{Convert.ToHexString(SHA256.HashData(image))}|{expectedAmountEtb}|{_languages}";
+        if (Cache.TryGetValue(cacheKey, out var cached)) return cached;
+
         var temp = Path.Combine(Path.GetTempPath(), $"merkato-{Guid.NewGuid():N}{extension}");
         var entered = false;
         try
@@ -109,39 +137,27 @@ public sealed class TesseractReceiptOcrService : IReceiptOcrService
             await Gate.WaitAsync(ct);
             entered = true;
             await File.WriteAllBytesAsync(temp, image, ct);
-            using var process = new Process
-            {
-                StartInfo = new ProcessStartInfo
-                {
-                    FileName = "tesseract",
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                }
-            };
-            foreach (var arg in new[] { temp, "stdout", "-l", "eng", "--psm", "6" })
-                process.StartInfo.ArgumentList.Add(arg);
-
-            if (!process.Start()) return Unavailable("OCR process could not start.");
-            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
-            timeout.CancelAfter(TimeSpan.FromSeconds(20));
-            var output = process.StandardOutput.ReadToEndAsync(timeout.Token);
-            var error = process.StandardError.ReadToEndAsync(timeout.Token);
-            await process.WaitForExitAsync(timeout.Token);
-            var text = await output;
-            _ = await error;
-            if (process.ExitCode != 0 || string.IsNullOrWhiteSpace(text))
+            var run = await RunTesseractAsync(temp, _languages, ct);
+            // A missing language pack (for example amh) makes tesseract exit non-zero: retry English-only.
+            if (run.ExitCode != 0 && _languages != ReceiptOcrLanguages.Fallback)
+                run = await RunTesseractAsync(temp, ReceiptOcrLanguages.Fallback, ct);
+            if (run.ExitCode != 0 || string.IsNullOrWhiteSpace(run.Text))
                 return Unavailable("No readable text was found on the receipt.");
 
+            var text = run.Text;
             var reference = ReceiptOcrTextParser.ExtractReference(text);
             var amount = ReceiptOcrTextParser.ExtractAmount(text, expectedAmountEtb);
             var date = ReceiptOcrTextParser.ExtractDate(text);
             var provider = ReceiptOcrTextParser.DetectProvider(text);
             var matches = amount.HasValue && Math.Abs(amount.Value - expectedAmountEtb) <= 0.01m;
-            return new ReceiptOcrResult(
+            var result = new ReceiptOcrResult(
                 reference is not null && matches ? "MATCHED" : amount.HasValue && !matches ? "MISMATCH" : "NEEDS_REVIEW",
-                provider, reference, amount, date, null);
+                provider, reference, amount, date, null,
+                text.Length > MaxTextLength ? text[..MaxTextLength] : text);
+
+            if (Cache.Count >= MaxCachedResults) Cache.Clear();
+            Cache[cacheKey] = result;
+            return result;
         }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
         {
@@ -157,6 +173,41 @@ public sealed class TesseractReceiptOcrService : IReceiptOcrService
         {
             if (entered) Gate.Release();
             try { if (File.Exists(temp)) File.Delete(temp); } catch { }
+        }
+    }
+
+    private static async Task<(int ExitCode, string Text)> RunTesseractAsync(string path, string languages, CancellationToken ct)
+    {
+        using var process = new Process
+        {
+            StartInfo = new ProcessStartInfo
+            {
+                FileName = "tesseract",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            }
+        };
+        foreach (var arg in new[] { path, "stdout", "-l", languages, "--psm", "6" })
+            process.StartInfo.ArgumentList.Add(arg);
+
+        if (!process.Start()) throw new InvalidOperationException("OCR process could not start.");
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeout.CancelAfter(TimeSpan.FromSeconds(20));
+        try
+        {
+            var output = process.StandardOutput.ReadToEndAsync(timeout.Token);
+            var error = process.StandardError.ReadToEndAsync(timeout.Token);
+            await process.WaitForExitAsync(timeout.Token);
+            var text = await output;
+            _ = await error;
+            return (process.ExitCode, text);
+        }
+        finally
+        {
+            // A timed-out run must not leave tesseract running in the background.
+            try { if (!process.HasExited) process.Kill(entireProcessTree: true); } catch { }
         }
     }
 
