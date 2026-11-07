@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
-import { ApiService, MerkatoProduct } from '../core/api.service';
+import { ApiService, MerkatoProduct, UserDeliveryAddress } from '../core/api.service';
 import { AuthService } from '../core/auth.service';
 
 interface CartLine { product: MerkatoProduct; quantity: number; }
@@ -64,6 +64,15 @@ interface CartLine { product: MerkatoProduct; quantity: number; }
           <div class="summary-row" *ngIf="couponDiscountEtb > 0"><span>Coupon discount</span><strong>−{{couponDiscountEtb | number:'1.2-2'}} ETB</strong></div>
           <div class="summary-total"><span>{{ t('estimatedTotal') }}</span><strong>{{(subtotal - couponDiscountEtb + (deliveryFeeEtb || 0) * lines.length) | number:'1.2-2'}} ETB</strong></div>
           <form (ngSubmit)="checkout()">
+            <label *ngIf="savedAddresses.length">{{ t('savedAddress') }}
+              <select name="savedAddress" [(ngModel)]="selectedAddressId" (ngModelChange)="selectSavedAddress($event)">
+                <option [ngValue]="0">{{ t('enterAddressManually') }}</option>
+                <option *ngFor="let saved of savedAddresses" [ngValue]="saved.id">{{saved.label}} · {{saved.subCity}}, {{saved.city}} · {{saved.phoneNumber}}</option>
+              </select>
+            </label>
+            <small class="address-loading" *ngIf="addressesLoading">{{t('loadingAddresses')}}</small>
+            <small class="form-error" *ngIf="addressLoadError">{{addressLoadError}}</small>
+            <small class="address-hint" *ngIf="addressSelectionNotice">{{addressSelectionNotice}}</small>
             <label>{{ t('deliveryAddress') }}<textarea name="address" [(ngModel)]="address" required rows="3" placeholder="{{ t('addressPlaceholder') }}"></textarea></label>
             <label>{{ t('cityArea') }}<select name="city" [(ngModel)]="cityArea" (ngModelChange)="onCityChange()" required>
               <option *ngFor="let city of supportedCities" [value]="city">{{city}}</option>
@@ -163,6 +172,9 @@ interface CartLine { product: MerkatoProduct; quantity: number; }
     .checkout-panel form{display:grid;gap:15px}
     .checkout-panel label{display:grid;gap:7px;color:#43594a;font-size:11px;font-weight:750}
     .checkout-panel input,.checkout-panel select,.checkout-panel textarea{width:100%;min-height:44px;padding:11px 12px;border:1px solid #dfe8de;border-radius:10px;background:rgba(250,252,249,.94);color:#253c2e;font:12px 'DM Sans',sans-serif;outline:none;resize:vertical}
+    .address-loading,.address-hint{display:block;color:#738276;font-size:10px;line-height:1.5}
+    .address-hint{color:#80621f}
+    .checkout-panel .form-error{color:#a14e4e;font-size:11px;line-height:1.5}
     .checkout-panel input:focus,.checkout-panel select:focus,.checkout-panel textarea:focus{border-color:#94b499;box-shadow:0 0 0 4px rgba(148,180,153,.16)}
     .coupon-box{display:grid;gap:8px;padding:13px;border:1px dashed #d8c28c;border-radius:12px;background:#fffdf7}.coupon-box>label{color:#695323;font-weight:800}.coupon-input-row{display:flex;gap:8px}.coupon-product-label{display:grid;gap:5px;color:#7a6a45;font-size:10px}.coupon-product-label select{min-height:38px!important;padding:7px 9px!important}.coupon-input-row input{min-width:0;flex:1;text-transform:uppercase}.coupon-input-row button{border:0;border-radius:9px;padding:0 14px;background:#b58a25;color:#fff;font-size:11px;font-weight:800;cursor:pointer}.coupon-input-row button:disabled{opacity:.55;cursor:not-allowed}.coupon-box small{color:#887d67;font-size:9px;line-height:1.5}.coupon-success{margin:0;color:#267245;font-size:11px}.coupon-success button{margin-left:8px;border:0;background:none;color:#a14e4e;font-size:10px;font-weight:800;cursor:pointer}
     .checkout-note{padding:12px;border-radius:10px;background:#f7f5ee;color:#7d725f;font-size:10px;line-height:1.65}
@@ -220,6 +232,11 @@ export class CartComponent implements OnInit, OnDestroy {
   success = '';
   paymentReadyOrderIds: number[] = [];
   address = '';
+  savedAddresses: UserDeliveryAddress[] = [];
+  selectedAddressId = 0;
+  addressesLoading = false;
+  addressLoadError = '';
+  addressSelectionNotice = '';
   cityArea = 'Addis Ababa';
   readonly supportedCities = ['Addis Ababa','Adama','Hawassa','Bahir Dar','Dire Dawa','Jimma','Mekelle','Gondar','Dessie'];
   deliveryFeeEtb: number | null = null;
@@ -238,9 +255,9 @@ export class CartComponent implements OnInit, OnDestroy {
   language: 'en' | 'om' | 'am' = this.currentLanguage();
   private readonly languageListener = () => { this.language = this.currentLanguage(); };
   private readonly translations: Record<string, Record<string, string>> = {
-    en:{continueShopping:'Continue shopping',marketBag:'YOUR MARKET BAG',shoppingCart:'Shopping cart',reviewCart:'Review your selected products before placing an order.',signIn:'Sign in',loadingCart:'Loading your cart...',emptyCart:'Your cart is waiting for something good.',emptyCartHelp:'Explore local products and add your favourites.',explore:'Explore marketplace',remove:'Remove',orderSummary:'ORDER SUMMARY',almostYours:'Almost yours.',deliveryFee:'Delivery fee',calculatedPerOrder:'Calculated per order',orders:'orders',quoteRequired:'Select a supported city',subtotal:'Subtotal',estimatedTotal:'Estimated total',deliveryAddress:'Delivery address',addressPlaceholder:'House number, street, area...',cityArea:'City / area',paymentMethod:'Payment method',submitting:'Submitting order...',placeOrder:'Place order request'},
-    om:{continueShopping:'Bittaa itti fufi',marketBag:'GAARII BITTAA KEE',shoppingCart:'Gaarii bittaa',reviewCart:'Oomishaalee filatte osoo ajaja hin galchin ilaali.',signIn:'Seeni',loadingCart:'Gaarii bittaa fe’aa jira...',emptyCart:'Gaarri bittaa kee oomisha gaarii eeggataa jira.',emptyCartHelp:'Oomishaalee naannoo ilaaliitii warra jaallatte dabali.',explore:'Gabaa qoradhu',remove:'Haqi',orderSummary:'CUUNFAA AJAAJAA',almostYours:'Siif dhihaateera.',deliveryFee:'Kaffaltii geejjibaa',calculatedPerOrder:'Ajaja hundaaf shallagama',orders:'ajaja',quoteRequired:'Magaalaa tajaajilamu filadhu',subtotal:'Ida’ama xiqqaa',estimatedTotal:'Ida’ama waliigalaa tilmaamame',deliveryAddress:'Teessoo geejjibaa',addressPlaceholder:'Lakkoofsa mana, daandii, naannoo...',cityArea:'Magaalaa / naannoo',paymentMethod:'Mala kaffaltii',submitting:'Ajaja ergaa jira...',placeOrder:'Ajaja galchi'},
-    am:{continueShopping:'ግዢዎን ይቀጥሉ',marketBag:'የገበያ ቦርሳዎ',shoppingCart:'የግዢ ጋሪ',reviewCart:'ትዕዛዝ ከማስገባትዎ በፊት የመረጧቸውን ምርቶች ይመልከቱ።',signIn:'ይግቡ',loadingCart:'ጋሪዎን በመጫን ላይ...',emptyCart:'ጋሪዎ ጥሩ ምርት እየጠበቀ ነው።',emptyCartHelp:'አካባቢያዊ ምርቶችን ይመልከቱና የሚወዷቸውን ይጨምሩ።',explore:'ገበያውን ይመልከቱ',remove:'አስወግድ',orderSummary:'የትዕዛዝ ማጠቃለያ',almostYours:'ሊደርስዎ ተቃርቧል።',deliveryFee:'የማድረሻ ክፍያ',calculatedPerOrder:'በእያንዳንዱ ትዕዛዝ ይሰላል',orders:'ትዕዛዞች',quoteRequired:'የሚደገፍ ከተማ ይምረጡ',subtotal:'ንዑስ ድምር',estimatedTotal:'ጠቅላላ ግምት',deliveryAddress:'የማድረሻ አድራሻ',addressPlaceholder:'የቤት ቁጥር፣ መንገድ፣ አካባቢ...',cityArea:'ከተማ / አካባቢ',paymentMethod:'የክፍያ ዘዴ',submitting:'ትዕዛዝ በመላክ ላይ...',placeOrder:'ትዕዛዝ ያስገቡ'}
+    en:{continueShopping:'Continue shopping',marketBag:'YOUR MARKET BAG',shoppingCart:'Shopping cart',reviewCart:'Review your selected products before placing an order.',signIn:'Sign in',loadingCart:'Loading your cart...',emptyCart:'Your cart is waiting for something good.',emptyCartHelp:'Explore local products and add your favourites.',explore:'Explore marketplace',remove:'Remove',orderSummary:'ORDER SUMMARY',almostYours:'Almost yours.',deliveryFee:'Delivery fee',calculatedPerOrder:'Calculated per order',orders:'orders',quoteRequired:'Select a supported city',subtotal:'Subtotal',estimatedTotal:'Estimated total',deliveryAddress:'Delivery address',addressPlaceholder:'House number, street, area...',cityArea:'City / area',paymentMethod:'Payment method',submitting:'Submitting order...',placeOrder:'Place order request',savedAddress:'Saved delivery address',enterAddressManually:'Enter address manually',loadingAddresses:'Loading saved addresses...'},
+    om:{continueShopping:'Bittaa itti fufi',marketBag:'GAARII BITTAA KEE',shoppingCart:'Gaarii bittaa',reviewCart:'Oomishaalee filatte osoo ajaja hin galchin ilaali.',signIn:'Seeni',loadingCart:'Gaarii bittaa fe’aa jira...',emptyCart:'Gaarri bittaa kee oomisha gaarii eeggataa jira.',emptyCartHelp:'Oomishaalee naannoo ilaaliitii warra jaallatte dabali.',explore:'Gabaa qoradhu',remove:'Haqi',orderSummary:'CUUNFAA AJAAJAA',almostYours:'Siif dhihaateera.',deliveryFee:'Kaffaltii geejjibaa',calculatedPerOrder:'Ajaja hundaaf shallagama',orders:'ajaja',quoteRequired:'Magaalaa tajaajilamu filadhu',subtotal:'Ida’ama xiqqaa',estimatedTotal:'Ida’ama waliigalaa tilmaamame',deliveryAddress:'Teessoo geejjibaa',addressPlaceholder:'Lakkoofsa mana, daandii, naannoo...',cityArea:'Magaalaa / naannoo',paymentMethod:'Mala kaffaltii',submitting:'Ajaja ergaa jira...',placeOrder:'Ajaja galchi',savedAddress:'Teessoo kuufame',enterAddressManually:'Teessoo harkaan galchi',loadingAddresses:'Teessoo kuufaman fe’aa jira...'},
+    am:{continueShopping:'ግዢዎን ይቀጥሉ',marketBag:'የገበያ ቦርሳዎ',shoppingCart:'የግዢ ጋሪ',reviewCart:'ትዕዛዝ ከማስገባትዎ በፊት የመረጧቸውን ምርቶች ይመልከቱ።',signIn:'ይግቡ',loadingCart:'ጋሪዎን በመጫን ላይ...',emptyCart:'ጋሪዎ ጥሩ ምርት እየጠበቀ ነው።',emptyCartHelp:'አካባቢያዊ ምርቶችን ይመልከቱና የሚወዷቸውን ይጨምሩ።',explore:'ገበያውን ይመልከቱ',remove:'አስወግድ',orderSummary:'የትዕዛዝ ማጠቃለያ',almostYours:'ሊደርስዎ ተቃርቧል።',deliveryFee:'የማድረሻ ክፍያ',calculatedPerOrder:'በእያንዳንዱ ትዕዛዝ ይሰላል',orders:'ትዕዛዞች',quoteRequired:'የሚደገፍ ከተማ ይምረጡ',subtotal:'ንዑስ ድምር',estimatedTotal:'ጠቅላላ ግምት',deliveryAddress:'የማድረሻ አድራሻ',addressPlaceholder:'የቤት ቁጥር፣ መንገድ፣ አካባቢ...',cityArea:'ከተማ / አካባቢ',paymentMethod:'የክፍያ ዘዴ',submitting:'ትዕዛዝ በመላክ ላይ...',placeOrder:'ትዕዛዝ ያስገቡ',savedAddress:'የተከማቸ አድራሻ',enterAddressManually:'አድራሻ በእጅ ያስገቡ',loadingAddresses:'የተከማቹ አድራሻዎችን በመጫን ላይ...'}
   };
   private currentLanguage(): 'en' | 'om' | 'am' { try { const v=localStorage.getItem('merkato_language'); return v==='om'||v==='am'?v:'en'; } catch { return 'en'; } }
   t(key:string):string { return this.translations[this.language]?.[key] || this.translations['en'][key] || key; }
@@ -254,6 +271,8 @@ export class CartComponent implements OnInit, OnDestroy {
       this.error = 'Sign in as a buyer to place an order.';
       return;
     }
+
+    if (this.auth.user?.role === 'BUYER') this.loadSavedAddresses();
 
     let stored: Array<{ productId: number; quantity: number }> = [];
     try {
@@ -281,6 +300,51 @@ export class CartComponent implements OnInit, OnDestroy {
         this.error = 'Could not load products. Check the API connection.';
       }
     });
+  }
+
+  private loadSavedAddresses(): void {
+    this.addressesLoading = true;
+    this.addressLoadError = '';
+    this.api.getMyDeliveryAddresses().subscribe({
+      next: addresses => {
+        this.savedAddresses = (addresses || []).slice().sort((a, b) =>
+          Number(b.isDefault) - Number(a.isDefault)
+        );
+        const preferred = this.savedAddresses.find(x => x.isDefault) || this.savedAddresses[0];
+        if (preferred) this.selectSavedAddress(preferred.id);
+        this.addressesLoading = false;
+      },
+      error: err => {
+        this.addressesLoading = false;
+        this.addressLoadError = err?.status === 401
+          ? 'Your session expired. Sign in again to load saved delivery addresses; you can still enter one manually.'
+          : err?.status === 403
+            ? 'This account is not permitted to access buyer delivery addresses.'
+            : 'Saved addresses could not be loaded right now. You can retry from Account settings or enter the delivery address manually.';
+      }
+    });
+  }
+
+  selectSavedAddress(id: number): void {
+    this.addressSelectionNotice = '';
+    const saved = this.savedAddresses.find(x => x.id === Number(id));
+    if (!saved) return;
+    this.selectedAddressId = saved.id;
+    this.address = [
+      saved.recipientName,
+      saved.phoneNumber,
+      saved.streetAddress,
+      saved.subCity,
+      saved.woreda,
+      saved.city,
+      saved.deliveryInstructions
+    ].filter(value => !!value?.trim()).join(', ');
+    if (this.supportedCities.includes(saved.city)) {
+      this.cityArea = saved.city;
+      this.loadDeliveryQuote();
+    } else {
+      this.addressSelectionNotice = `Saved address city "${saved.city}" is not currently supported for checkout. Select a supported city and enter a matching delivery address.`;
+    }
   }
 
   onCityChange(): void { this.loadDeliveryQuote(); }
@@ -365,6 +429,7 @@ export class CartComponent implements OnInit, OnDestroy {
     this.paymentReadyOrderIds = [];
     if (!this.lines.length) { this.error = 'Your cart is empty.'; return; }
     if (!this.address.trim() || !this.cityArea.trim()) { this.error = 'Enter your delivery address and city / area.'; return; }
+    if (this.addressSelectionNotice) { this.error = this.addressSelectionNotice; return; }
     if (this.deliveryFeeEtb === null || this.deliveryQuoteLoading) { this.error = this.deliveryQuoteError || 'Wait for a valid delivery fee quote before placing the order.'; return; }
     if (!this.auth.isAuthenticated || this.auth.user?.role !== 'BUYER') {
       this.error = 'Please sign in with a buyer account to place orders.';
