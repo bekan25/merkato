@@ -265,9 +265,12 @@ public class DeliveryService : IDeliveryService
         // or the inspection expires.
         // ---------------------------------------------------------
 
-        await _inspection.StartInspectionAsync(
-            delivery.OrderId,
-            ct);
+        if (order?.PaymentMode != "SELLER_DIRECT")
+        {
+            await _inspection.StartInspectionAsync(
+                delivery.OrderId,
+                ct);
+        }
 
         // ---------------------------------------------------------
         // 11. Audit log
@@ -318,18 +321,15 @@ public class DeliveryService : IDeliveryService
         {
             delivery.DeliveredAt = DateTime.UtcNow;
 
-            await _inspection.StartInspectionAsync(
-                delivery.OrderId,
-                ct);
-
             var order = await _db.Orders.FindAsync(
                 new object[] { delivery.OrderId },
                 ct);
 
-            if (order != null)
+            if (order is not null)
             {
-                order.DeliveryStatus =
-                    DeliveryStatus.DELIVERED;
+                order.DeliveryStatus = DeliveryStatus.DELIVERED;
+                if (order.PaymentMode != "SELLER_DIRECT")
+                    await _inspection.StartInspectionAsync(delivery.OrderId, ct);
             }
         }
 
