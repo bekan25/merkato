@@ -18,6 +18,10 @@ import { ApiService, PaymentReceiptReview } from '../core/api.service';
       <article class="receipt" *ngFor="let item of receipts">
         <div class="receipt-head"><div><strong>{{item.orderNumber}}</strong><small>Receipt #{{item.id}} · {{item.createdAt | date:'medium'}}</small></div><span>{{item.expectedAmountEtb | number:'1.2-2'}} ETB</span></div>
         <div class="details"><div><small>BUYER ID</small><b>{{item.buyerId}}</b></div><div><small>TRANSFER REFERENCE</small><b>{{item.transactionReference || 'Not provided'}}</b></div></div>
+        <div class="checks" *ngIf="item.verificationNotes?.length">
+          <strong>Automatic checks need your attention</strong>
+          <ul><li *ngFor="let note of item.verificationNotes">{{note}}</li></ul>
+        </div>
         <button class="secondary" type="button" (click)="openReceipt(item)">View receipt image</button>
         <label>Review note
           <textarea [(ngModel)]="notes[item.id]" [name]="'note'+item.id" rows="2" maxlength="1000" placeholder="Record what you checked in your bank or provider app"></textarea>
@@ -40,6 +44,7 @@ import { ApiService, PaymentReceiptReview } from '../core/api.service';
     .receipt{margin:16px 0;padding:19px;border:1px solid #e2e9df;border-radius:15px;background:#fff;box-shadow:0 10px 30px #173d2d08}
     .receipt-head,.details,.actions{display:flex;justify-content:space-between;align-items:center;gap:12px}.receipt-head strong{display:block;color:#254a32}.receipt-head small{display:block;margin-top:5px;color:#87938a;font-size:10px}.receipt-head>span{color:#1f593a;font-weight:900}
     .details{justify-content:flex-start;flex-wrap:wrap;margin:16px 0}.details div{display:grid;gap:5px;min-width:140px}.details small{color:#87938a;font-size:9px}.details b{color:#405b47;font-size:11px}
+    .checks{margin:0 0 14px;padding:12px 14px;border:1px solid #efe2c3;border-radius:10px;background:#fffaf0;color:#78653b;font-size:11px;line-height:1.6}.checks ul{margin:6px 0 0;padding-left:18px}
     label{display:grid;gap:7px;margin:14px 0;color:#405b47;font-size:11px;font-weight:800}
     input,textarea{width:100%;box-sizing:border-box;padding:11px;border:1px solid #dce6db;border-radius:9px;background:#fbfcfa;color:#263e2e;font:12px Arial}
     button{min-height:40px;padding:0 13px;border:0;border-radius:9px;background:#1e563a;color:#fff;font-size:11px;font-weight:850;cursor:pointer}
