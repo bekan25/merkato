@@ -185,7 +185,21 @@ export class ApiService {
     return this.http.post(`${this.baseUrl}/payments/initiate`, { orderId, amountEtb, paymentRail }, { headers });
   }
 
-  uploadPaymentReceipt(orderId: number, receipt: File, transactionReference = ''): Observable<unknown> {
+  uploadPaymentReceipt(orderId: number, receipt: File, transactionReference = ''): Observable<{
+    receiptId: number;
+    orderId: number;
+    paymentTransactionId: number;
+    expectedAmountEtb: number;
+    transactionReference: string | null;
+    status: string;
+    ocrStatus: string;
+    ocrProvider: string | null;
+    ocrTransactionReference: string | null;
+    ocrAmountEtb: number | null;
+    ocrTransactionDate: string | null;
+    ocrError: string | null;
+    message: string;
+  }> {
     const form = new FormData();
     form.append('orderId', String(orderId));
     form.append('receipt', receipt, receipt.name);
