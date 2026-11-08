@@ -164,6 +164,9 @@ public class ProductsController : ControllerBase
             return BadRequest("Seller does not exist.");
 
         await using var transaction = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+        if (!await _db.Users.AsNoTracking().AnyAsync(u =>
+            u.Id == sellerId && u.Role == Merkato.Domain.Enums.UserRole.MERCHANT))
+            return BadRequest("Seller is no longer an active merchant account.");
 
         var product = new Product
         {
@@ -252,6 +255,12 @@ public class ProductsController : ControllerBase
             return BadRequest("Stock quantity must be between 0 and 1,000,000.");
 
         await using var transaction = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+        await _db.Entry(product).ReloadAsync();
+        if (_db.Entry(product).State == EntityState.Detached)
+            return NotFound("Product no longer exists.");
+        if (!User.IsInRole("ADMIN") && product.SellerId != userId)
+            return Forbid();
+
         var inventory = await _db.ProductListingDetails.FirstOrDefaultAsync(x => x.ProductId == product.Id);
         if (inventory != null && request.StockQuantity < inventory.ReservedQuantity)
             return Conflict(new { message = "Stock cannot be lower than units already reserved.", reservedQuantity = inventory.ReservedQuantity });
