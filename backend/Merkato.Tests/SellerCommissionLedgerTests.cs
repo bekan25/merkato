@@ -158,7 +158,7 @@ public sealed class SellerRefundHistoryTests
     [Fact]
     public void LegacySingleRefundJsonIsReadAsHistory()
     {
-        const string legacy = "{\\"refundStatus\\":\\"MERCHANT_REPORTED_SENT\\",\\"refundAmountEtb\\":25,\\"transactionReference\\":\\"OLD-REF\\",\\"confirmedByMerchantId\\":7}";
+        const string legacy = "{\"refundStatus\":\"MERCHANT_REPORTED_SENT\",\"refundAmountEtb\":25,\"transactionReference\":\"OLD-REF\",\"confirmedByMerchantId\":7}";
         var summary = SellerRefundHistory.Read(legacy, 100m, ReturnStatus.REFUNDED);
 
         Assert.Equal("PARTIALLY_REFUNDED", summary.RefundStatus);
