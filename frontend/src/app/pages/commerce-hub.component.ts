@@ -169,7 +169,7 @@ export class CommerceHubComponent implements OnInit {
   get tx():any{return this.dict[this.language];}
   get referralUrl():string{return window.location.origin+'/?ref='+encodeURIComponent(this.referral?.referralCode||'');}
   tabs:any[]=[];
-  ngOnInit(){this.language=(localStorage.getItem('merkato_language') as any)||'en';this.updateTabs();if(this.isCourier)this.loadCourierTasks();}
+  ngOnInit(){this.language=(localStorage.getItem('merkato_language') as any)||'en';this.updateTabs();if(this.isCourier){this.active='delivery';this.loadCourierTasks();}}
   setLanguage(){localStorage.setItem('merkato_language',this.language);this.updateTabs();}
   updateTabs(){const d=this.tx;this.tabs=[{key:'reviews',label:d.reviews},{key:'prices',label:d.priceCompare},{key:'groups',label:d.groupBuying},{key:'returns',label:d.returns},{key:'inventory',label:d.inventory},{key:'loyalty',label:d.loyalty},{key:'delivery',label:d.delivery},{key:'referral',label:d.referral}];if(this.canManagePromotions)this.tabs.push({key:'promotions',label:'Promotions'});}
   private call<T=any>(method:'get'|'post'|'put',url:string,body?:any,done?:(x:T)=>void){this.message='';this.isError=false;const req=method==='get'?this.http.get<T>(url):method==='put'?this.http.put<T>(url,body):this.http.post<T>(url,body);req.subscribe({next:x=>{done?.(x);this.message='Success';},error:e=>{this.isError=true;this.message=e?.error?.message||e?.error||'Request failed. Check permissions and inputs.';}});}
@@ -199,7 +199,7 @@ export class CommerceHubComponent implements OnInit {
     const otp=String(random[0]%1000000).padStart(6,'0');
     this.deliveryCreating=true;this.message='';this.isError=false;
     this.http.post<any>('/api/deliveries',{orderId:order.id,courierType:order.deliveryCourier||'BEU_DELIVERY',feeEtb:Number(order.deliveryFeeEtb),rawOtp:otp}).subscribe({
-      next:result=>{this.deliveryCreating=false;this.createdDeliveryOtp=otp;this.createdDeliveryOrderId=order.id;this.http.get<any>('/api/commerce/orders/'+order.id+'/delivery').subscribe({next:info=>{this.deliveryInfo=info;this.message='Delivery request created. Waiting for MERKATO operations to assign a courier.';},error:()=>{this.message='Delivery request created. Your handover code is shown below; refresh tracking to see courier assignment.';}});},
+      next:()=>{this.deliveryCreating=false;this.createdDeliveryOtp=otp;this.createdDeliveryOrderId=order.id;this.http.get<any>('/api/commerce/orders/'+order.id+'/delivery').subscribe({next:info=>{this.deliveryInfo=info;this.message='Delivery request created. Waiting for MERKATO operations to assign a courier.';},error:()=>{this.message='Delivery request created. Your handover code is shown below; refresh tracking to see courier assignment.';}});},
       error:e=>{this.deliveryCreating=false;this.isError=true;this.message=e?.error?.message||e?.error?.error||'Could not create delivery request. Confirm payment and order status first.';}
     });
   }
