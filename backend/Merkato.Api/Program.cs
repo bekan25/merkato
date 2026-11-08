@@ -272,7 +272,13 @@ if (builder.Environment.IsProduction() && string.IsNullOrWhiteSpace(configuredOr
 
 var allowedOrigins = (configuredOrigins ??
     "http://localhost:4200")
-    .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+    // The production storefront is served from this custom domain. Keep it
+    // explicitly allowed even when the hosting environment's origin list
+    // contains only the Render service hostname.
+    .Append("https://merkato.aclclouds.online")
+    .Distinct(StringComparer.OrdinalIgnoreCase)
+    .ToArray();
 
 if (allowedOrigins.Any(origin => !Uri.TryCreate(origin, UriKind.Absolute, out var parsed) ||
     (parsed.Scheme != Uri.UriSchemeHttps && !builder.Environment.IsDevelopment())))
