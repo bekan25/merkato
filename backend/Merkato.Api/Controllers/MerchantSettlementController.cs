@@ -1,3 +1,4 @@
+using System.Data;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
@@ -55,9 +56,9 @@ public sealed class MerchantSettlementController(MerkatoDbContext db) : Controll
     {
         if (!long.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var adminId)) return Unauthorized();
         var reference = request.PaymentReference?.Trim().ToUpperInvariant();
-        if (request.MerchantId <= 0 || request.AmountEtb <= 0m || request.AmountEtb > 100000000m || string.IsNullOrWhiteSpace(reference) || reference.Length > 150)
-            return BadRequest(new { error = "Merchant, positive ETB amount and payment reference are required." });
-        await using var transaction = await db.Database.BeginTransactionAsync(ct);
+        if (request.MerchantId <= 0 || request.AmountEtb <= 0m || request.AmountEtb > 100000000m || string.IsNullOrWhiteSpace(reference) || reference.Length > 150 || !request.ConfirmedProviderCredit)
+            return BadRequest(new { error = "Merchant, positive ETB amount, payment reference, and explicit confirmation of verified provider credit are required." });
+        await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
         var key = $"merchant-commission-settlement:{reference}";
         if (await db.IdempotencyRecords.AnyAsync(x => x.Key == key, ct)) return Conflict(new { error = "This payment reference has already been recorded." });
         if (!await db.Users.AnyAsync(x => x.Id == request.MerchantId && x.Role == UserRole.MERCHANT, ct)) return NotFound(new { error = "Merchant account was not found." });
@@ -77,13 +78,24 @@ public sealed class MerchantSettlementController(MerkatoDbContext db) : Controll
             ResponseJson = JsonSerializer.Serialize(new { status = "RECORDED", request.MerchantId, request.AmountEtb, reference }), StatusCode = 200, CreatedAt = DateTime.UtcNow });
         db.AuditLogs.Add(new AuditLog { ActorId = adminId, ActorRole = "ADMIN", Action = "MERCHANT_COMMISSION_PAYMENT_RECORDED", EntityType = "MERCHANT_SETTLEMENT", EntityId = reference,
             Result = "SUCCESS", MetadataJson = JsonSerializer.Serialize(new { request.MerchantId, request.AmountEtb, reference }), CreatedAt = DateTime.UtcNow });
-        await db.SaveChangesAsync(ct); await transaction.CommitAsync(ct);
+        try
+        {
+            await db.SaveChangesAsync(ct);
+            await transaction.CommitAsync(ct);
+        }
+        catch (DbUpdateException)
+        {
+            await transaction.RollbackAsync(ct);
+            if (await db.IdempotencyRecords.AsNoTracking().AnyAsync(x => x.Key == key, ct))
+                return Conflict(new { error = "This payment reference has already been recorded." });
+            throw;
+        }
         return Ok(new { status = "RECORDED", merchantId = request.MerchantId, amountEtb = request.AmountEtb, paymentReference = reference,
             remainingOutstandingEtb = outstanding - request.AmountEtb, message = "Record only after independently verifying the bank/provider credit." });
     }
 }
 
-public sealed record RecordMerchantCommissionPaymentRequest(long MerchantId, decimal AmountEtb, string PaymentReference);
+public sealed record RecordMerchantCommissionPaymentRequest(long MerchantId, decimal AmountEtb, string PaymentReference, bool ConfirmedProviderCredit);
 
 public static class SellerCommissionLedger
 {
