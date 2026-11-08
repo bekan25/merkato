@@ -431,6 +431,18 @@ public sealed class PaymentReceiptsController : ControllerBase
         payment.RawPayloadHash = receipt.Sha256;
         payment.VerifiedAt = DateTime.UtcNow;
         order.UpdatedAt = DateTime.UtcNow;
+        // Seller-direct commission is a merchant receivable, not escrowed buyer money.
+        if (order.MerchantCommissionEtb > 0m)
+        {
+            var commissionKey = $"seller-direct-commission:{order.Id}";
+            if (!await _db.IdempotencyRecords.AnyAsync(x => x.Key == commissionKey, ct))
+            {
+                _db.LedgerTransactions.Add(SellerCommissionLedger.CreateAccrual(order.Id, sellerId, order.MerchantCommissionEtb, reference));
+                _db.IdempotencyRecords.Add(new IdempotencyRecord { Key = commissionKey,
+                    RequestHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes($"{order.Id}:{order.MerchantCommissionEtb}:{reference}"))),
+                    ResponseJson = "{\\"status\\":\\"ACCRUED\\"}", StatusCode = 200, CreatedAt = DateTime.UtcNow });
+            }
+        }
         await AffiliateRewardProcessor.RecordVerifiedPurchaseAsync(_db, order, _configuration, ct);
         await _db.SaveChangesAsync(ct);
         await _audit.LogAsync(sellerId, "MERCHANT", "SELLER_DIRECT_PAYMENT_CONFIRMED",
