@@ -306,6 +306,6 @@ test('mobile dashboard and payment review layouts define narrow-screen behavior'
   assert.match(dashboard, /overflow-x:auto/);
   assert.match(dashboard, /workspace-mobile-bar/);
   assert.match(adminPayments, /@media\(max-width:520px\)/);
-  assert.match(sellerPayments, /@media\(max-width:520px\)/);
-  assert.match(cart, /@media\(max-width:720px\)/);
+  assert.match(sellerPayments, /@media\(max-width:560px\)/);
+  assert.match(cart, /@media\(max-width:680px\)/);
 });
