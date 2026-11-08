@@ -202,8 +202,8 @@ public sealed class ReturnsController(MerkatoDbContext db) : ControllerBase
         var request = await db.ReturnRequests.FirstOrDefaultAsync(
             x => x.Id == id && x.SellerId == CurrentUserId, ct);
         if (request is null) return NotFound();
-        if (request.Status != ReturnStatus.RECEIVED)
-            return Conflict(new { message = "The returned item must be received and must not already be fully refunded." });
+        if (request.Status is not (ReturnStatus.RECEIVED or ReturnStatus.REFUNDED))
+            return Conflict(new { message = "The returned item must be received before a refund can be recorded." });
 
         var order = await db.Orders.FirstOrDefaultAsync(x => x.Id == request.OrderId, ct);
         if (order is null) return NotFound(new { message = "The linked order no longer exists." });
@@ -211,6 +211,8 @@ public sealed class ReturnsController(MerkatoDbContext db) : ControllerBase
             return Conflict(new { message = "This order uses escrow. Resolve its refund through the existing MERKATO dispute and escrow workflow." });
 
         var history = SellerRefundHistory.Read(request.ResolutionNote, order.TotalAmountEtb, request.Status);
+        if (history.RefundStatus == "FULLY_REFUNDED")
+            return Conflict(new { message = "This order has already been fully refunded." });
         if (input.RefundAmountEtb > history.RemainingRefundEtb)
             return BadRequest(new
             {
