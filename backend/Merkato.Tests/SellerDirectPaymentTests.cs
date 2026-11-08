@@ -194,6 +194,7 @@ public sealed class SellerDirectPaymentTests
         db.Orders.Add(new Order
         {
             Id = 801, SellerId = 22, BuyerId = 33, PaymentMode = "SELLER_DIRECT",
+            ProductId = 901, UnitPriceEtb = 250m, Quantity = 1, ProductSubtotalEtb = 250m,
             PaymentRail = PaymentRail.TELEBIRR, TotalAmountEtb = 250m,
             EscrowState = EscrowState.AWAITING_PAYMENT
         });
@@ -212,6 +213,16 @@ public sealed class SellerDirectPaymentTests
         {
             Id = 804, SellerId = 22, PaymentRail = PaymentRail.TELEBIRR,
             AccountHolderName = "Test Seller", AccountIdentifier = "0911223344", IsActive = true
+        });
+        db.AffiliateProfiles.Add(new AffiliateProfile
+        {
+            Id = 805, UserId = 99, ReferralCode = "MKREFERRAL99", IsActive = true
+        });
+        db.AffiliateReferrals.Add(new AffiliateReferral
+        {
+            Id = 806, AffiliateUserId = 99, ReferralCode = "MKREFERRAL99",
+            VisitorKeyHash = new string('C', 64), ReferredUserId = 33,
+            ClickedAt = DateTime.UtcNow, RegisteredAt = DateTime.UtcNow
         });
         await db.SaveChangesAsync();
 
@@ -238,6 +249,13 @@ public sealed class SellerDirectPaymentTests
         Assert.Equal(PaymentStatus.VERIFIED, (await db.PaymentTransactions.SingleAsync()).Status);
         Assert.Equal("TXN123456", (await db.PaymentTransactions.SingleAsync()).RailTransactionId);
         Assert.False((await db.PaymentTransactions.SingleAsync()).WebhookVerified);
+        var affiliateCommission = await db.AffiliateCommissions.SingleAsync();
+        Assert.Equal(99L, affiliateCommission.AffiliateUserId);
+        Assert.Equal(5m, affiliateCommission.CommissionEtb);
+        Assert.Equal("HELD", affiliateCommission.Status);
+        var referrerReward = await db.PromotionCoupons.SingleAsync(x => x.SourceReferralId == 806);
+        Assert.Equal(99L, referrerReward.AssignedUserId);
+        Assert.Equal(50m, referrerReward.DiscountValue);
     }
 
     [Fact]
