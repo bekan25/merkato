@@ -252,6 +252,11 @@ public class DeliveryService : IDeliveryService
 
         order.DeliveryStatus = DeliveryStatus.DELIVERED;
 
+        // Seller-direct orders do not use MERKATO escrow. Finalize the
+        // affiliate commission and referrer coupon only after delivery OTP handover.
+        if (order.PaymentMode == "SELLER_DIRECT")
+            await AffiliateRewardSettlement.FinalizeAsync(_db, order, ct);
+
         // ---------------------------------------------------------
         // 10. Start 48-hour inspection window
         //

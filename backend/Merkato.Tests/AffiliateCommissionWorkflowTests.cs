@@ -1,5 +1,8 @@
 using System.Security.Claims;
 using Merkato.Api.Controllers;
+using Merkato.Api.Services;
+using Merkato.Infrastructure.Services;
+using Merkato.Domain.Enums;
 using Merkato.Domain.Entities;
 using Merkato.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Http;
@@ -72,5 +75,93 @@ public sealed class AffiliateCommissionWorkflowTests
         Assert.Equal(25L, profile.UserId);
         Assert.StartsWith("MK", profile.ReferralCode);
         Assert.Equal(12, profile.ReferralCode.Length);
+    }
+
+    [Fact]
+    public async Task FirstVerifiedReferralPurchaseCreatesHeldCommissionAndReferrerCoupon()
+    {
+        var options = new DbContextOptionsBuilder<MerkatoDbContext>()
+            .UseInMemoryDatabase(nameof(FirstVerifiedReferralPurchaseCreatesHeldCommissionAndReferrerCoupon)).Options;
+        await using var db = new MerkatoDbContext(options);
+        var order = new Order
+        {
+            Id = 701, BuyerId = 202, SellerId = 303, ProductId = 404,
+            UnitPriceEtb = 500m, Quantity = 1, ProductSubtotalEtb = 500m, DiscountEtb = 50m
+        };
+        db.AffiliateProfiles.Add(new AffiliateProfile { Id = 501, UserId = 101, ReferralCode = "MKREF101", IsActive = true });
+        db.AffiliateReferrals.Add(new AffiliateReferral
+        {
+            Id = 601, AffiliateUserId = 101, ReferralCode = "MKREF101",
+            VisitorKeyHash = new string('D', 64), ReferredUserId = 202,
+            ClickedAt = DateTime.UtcNow, RegisteredAt = DateTime.UtcNow
+        });
+        db.Orders.Add(order);
+        db.PaymentTransactions.Add(new PaymentTransaction
+        {
+            Id = 801, OrderId = 701, AmountEtb = 500m, PaymentRail = PaymentRail.TELEBIRR,
+            Status = PaymentStatus.VERIFIED, VerifiedAt = DateTime.UtcNow
+        });
+        await db.SaveChangesAsync();
+
+        await AffiliateRewardProcessor.RecordVerifiedPurchaseAsync(db, order, null, CancellationToken.None);
+
+        var commission = await db.AffiliateCommissions.SingleAsync();
+        Assert.Equal(101L, commission.AffiliateUserId);
+        Assert.Equal(601L, commission.AffiliateReferralId);
+        Assert.Equal(450m, commission.EligibleAmountEtb);
+        Assert.Equal(9m, commission.CommissionEtb);
+        Assert.Equal("HELD", commission.Status);
+        Assert.Empty(await db.PromotionCoupons.Where(x => x.SourceReferralId == 601).ToListAsync());
+
+        await AffiliateRewardSettlement.FinalizeAsync(db, order, CancellationToken.None);
+        await db.SaveChangesAsync();
+
+        Assert.Equal("AVAILABLE", (await db.AffiliateCommissions.SingleAsync()).Status);
+        var coupon = await db.PromotionCoupons.SingleAsync(x => x.SourceReferralId == 601);
+        Assert.Equal(101L, coupon.AssignedUserId);
+        Assert.Equal(50m, coupon.DiscountValue);
+        Assert.Equal(200m, coupon.MinimumOrderEtb);
+    }
+
+    [Fact]
+    public async Task RepeatPurchaseDoesNotCreateAnotherInviteAndEarnCommission()
+    {
+        var options = new DbContextOptionsBuilder<MerkatoDbContext>()
+            .UseInMemoryDatabase(nameof(RepeatPurchaseDoesNotCreateAnotherInviteAndEarnCommission)).Options;
+        await using var db = new MerkatoDbContext(options);
+        db.AffiliateProfiles.Add(new AffiliateProfile { Id = 502, UserId = 102, ReferralCode = "MKREF102", IsActive = true });
+        db.AffiliateReferrals.Add(new AffiliateReferral
+        {
+            Id = 602, AffiliateUserId = 102, ReferralCode = "MKREF102",
+            VisitorKeyHash = new string('E', 64), ReferredUserId = 203,
+            ClickedAt = DateTime.UtcNow, RegisteredAt = DateTime.UtcNow
+        });
+        db.Orders.AddRange(
+            new Order { Id = 702, BuyerId = 203, SellerId = 304, ProductId = 405, UnitPriceEtb = 300m, Quantity = 1, ProductSubtotalEtb = 300m },
+            new Order { Id = 703, BuyerId = 203, SellerId = 304, ProductId = 405, UnitPriceEtb = 300m, Quantity = 1, ProductSubtotalEtb = 300m });
+        db.PaymentTransactions.AddRange(
+            new PaymentTransaction { Id = 802, OrderId = 702, AmountEtb = 300m, PaymentRail = PaymentRail.TELEBIRR, Status = PaymentStatus.VERIFIED },
+            new PaymentTransaction { Id = 803, OrderId = 703, AmountEtb = 300m, PaymentRail = PaymentRail.TELEBIRR, Status = PaymentStatus.VERIFIED });
+        await db.SaveChangesAsync();
+
+        var secondOrder = await db.Orders.SingleAsync(x => x.Id == 703);
+        await AffiliateRewardProcessor.RecordVerifiedPurchaseAsync(db, secondOrder, null, CancellationToken.None);
+
+        Assert.Empty(await db.AffiliateCommissions.ToListAsync());
+        Assert.Empty(await db.PromotionCoupons.Where(x => x.SourceReferralId == 602).ToListAsync());
+    }
+
+    [Fact]
+    public void AffiliateCommissionModelEnforcesOneCommissionPerReferral()
+    {
+        var options = new DbContextOptionsBuilder<MerkatoDbContext>()
+            .UseNpgsql("Host=localhost;Database=merkato_model_test;Username=merkato_model_test;Password=not-used")
+            .Options;
+        using var db = new MerkatoDbContext(options);
+        var entity = db.Model.FindEntityType(typeof(AffiliateCommission));
+        Assert.NotNull(entity);
+        Assert.Contains(entity!.GetIndexes(), index => index.IsUnique &&
+            index.Properties.Select(p => p.Name).SequenceEqual(new[] { nameof(AffiliateCommission.AffiliateReferralId) }) &&
+            index.GetFilter() == "\"AffiliateReferralId\" IS NOT NULL");
     }
 }

@@ -191,9 +191,11 @@ public sealed class SellerDirectPaymentTests
             .UseInMemoryDatabase(nameof(SellerDirectReceiptConfirmationRequiresActiveSellerAccountAndVerifiedReference))
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning)).Options;
         await using var db = new MerkatoDbContext(options);
+        db.Products.Add(new Product { Id = 901, SellerId = 22, Name = "Test Product", PriceEtb = 250m });
         db.Orders.Add(new Order
         {
             Id = 801, SellerId = 22, BuyerId = 33, PaymentMode = "SELLER_DIRECT",
+            ProductId = 901, UnitPriceEtb = 250m, Quantity = 1, ProductSubtotalEtb = 250m,
             PaymentRail = PaymentRail.TELEBIRR, TotalAmountEtb = 250m,
             EscrowState = EscrowState.AWAITING_PAYMENT
         });
@@ -212,6 +214,16 @@ public sealed class SellerDirectPaymentTests
         {
             Id = 804, SellerId = 22, PaymentRail = PaymentRail.TELEBIRR,
             AccountHolderName = "Test Seller", AccountIdentifier = "0911223344", IsActive = true
+        });
+        db.AffiliateProfiles.Add(new AffiliateProfile
+        {
+            Id = 805, UserId = 99, ReferralCode = "MKREFERRAL99", IsActive = true
+        });
+        db.AffiliateReferrals.Add(new AffiliateReferral
+        {
+            Id = 806, AffiliateUserId = 99, ReferralCode = "MKREFERRAL99",
+            VisitorKeyHash = new string('C', 64), ReferredUserId = 33,
+            ClickedAt = DateTime.UtcNow, RegisteredAt = DateTime.UtcNow
         });
         await db.SaveChangesAsync();
 
@@ -238,6 +250,12 @@ public sealed class SellerDirectPaymentTests
         Assert.Equal(PaymentStatus.VERIFIED, (await db.PaymentTransactions.SingleAsync()).Status);
         Assert.Equal("TXN123456", (await db.PaymentTransactions.SingleAsync()).RailTransactionId);
         Assert.False((await db.PaymentTransactions.SingleAsync()).WebhookVerified);
+        var affiliateCommission = await db.AffiliateCommissions.SingleAsync();
+        Assert.Equal(99L, affiliateCommission.AffiliateUserId);
+        Assert.Equal(806L, affiliateCommission.AffiliateReferralId);
+        Assert.Equal(5m, affiliateCommission.CommissionEtb);
+        Assert.Equal("HELD", affiliateCommission.Status);
+        Assert.Empty(await db.PromotionCoupons.Where(x => x.SourceReferralId == 806).ToListAsync());
     }
 
     [Fact]
@@ -287,5 +305,58 @@ public sealed class SellerDirectPaymentTests
         Assert.IsType<ConflictObjectResult>(result);
         Assert.Equal("PENDING_REVIEW", (await db.PaymentReceipts.SingleAsync()).Status);
         Assert.Equal(PaymentStatus.PENDING, (await db.PaymentTransactions.SingleAsync()).Status);
+    }
+
+    [Fact]
+    public async Task SellerDirectAffiliateCommissionBecomesAvailableOnlyAfterDeliveryOtp()
+    {
+        var options = new DbContextOptionsBuilder<MerkatoDbContext>()
+            .UseInMemoryDatabase(nameof(SellerDirectAffiliateCommissionBecomesAvailableOnlyAfterDeliveryOtp))
+            .Options;
+        await using var db = new MerkatoDbContext(options);
+        db.Orders.Add(new Order
+        {
+            Id = 901, SellerId = 22, BuyerId = 33, PaymentMode = "SELLER_DIRECT",
+            TotalAmountEtb = 250m, DeliveryStatus = DeliveryStatus.CREATED
+        });
+        db.PaymentTransactions.Add(new PaymentTransaction
+        {
+            Id = 902, OrderId = 901, AmountEtb = 250m, PaymentRail = PaymentRail.TELEBIRR,
+            Status = PaymentStatus.VERIFIED, WebhookVerified = false
+        });
+        db.PaymentReceipts.Add(new PaymentReceipt
+        {
+            Id = 903, OrderId = 901, BuyerId = 33, PaymentTransactionId = 902,
+            FileName = "receipt.jpg", ContentType = "image/jpeg", Content = new byte[] { 1, 2, 3 },
+            Sha256 = new string('F', 64), Status = "SELLER_CONFIRMED", ReviewedBy = 22
+        });
+        db.AffiliateProfiles.Add(new AffiliateProfile
+        {
+            Id = 905, UserId = 99, ReferralCode = "MKOTPREF99", IsActive = true
+        });
+        db.AffiliateReferrals.Add(new AffiliateReferral
+        {
+            Id = 906, AffiliateUserId = 99, ReferralCode = "MKOTPREF99",
+            VisitorKeyHash = new string('G', 64), ReferredUserId = 33,
+            ClickedAt = DateTime.UtcNow, RegisteredAt = DateTime.UtcNow
+        });
+        db.AffiliateCommissions.Add(new AffiliateCommission
+        {
+            Id = 904, AffiliateUserId = 99, AffiliateReferralId = 906, OrderId = 901, EligibleAmountEtb = 250m,
+            RatePercent = 2m, CommissionEtb = 5m, Status = "HELD"
+        });
+        await db.SaveChangesAsync();
+
+        var deliveryService = new DeliveryService(db, new NoopInspectionService(), new NoopAuditLogService());
+        var delivery = await deliveryService.CreateDeliveryAsync(901, "BEU_DELIVERY", 0m, "123456");
+        Assert.Equal("HELD", (await db.AffiliateCommissions.SingleAsync()).Status);
+
+        await deliveryService.VerifyOtpAndCompleteHandoverAsync(delivery.DeliveryId, 33, "123456");
+
+        Assert.Equal(DeliveryStatus.DELIVERED, (await db.Orders.SingleAsync()).DeliveryStatus);
+        Assert.Equal("AVAILABLE", (await db.AffiliateCommissions.SingleAsync()).Status);
+        var referrerReward = await db.PromotionCoupons.SingleAsync(x => x.SourceReferralId == 906);
+        Assert.Equal(99L, referrerReward.AssignedUserId);
+        Assert.Equal(50m, referrerReward.DiscountValue);
     }
 }

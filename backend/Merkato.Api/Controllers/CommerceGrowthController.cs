@@ -549,6 +549,14 @@ public sealed class CommerceGrowthController(MerkatoDbContext db, IEscrowService
         if (profile is null) return NotFound("Referral code not found.");
         if (profile.UserId == CurrentUserId) return BadRequest("You cannot claim your own referral code.");
         if (await db.AffiliateReferrals.AnyAsync(x => x.ReferredUserId == CurrentUserId, ct)) return Conflict("This account has already used a referral code.");
+        var hasVerifiedPurchase = await (
+            from payment in db.PaymentTransactions.AsNoTracking()
+            join order in db.Orders.AsNoTracking() on payment.OrderId equals order.Id
+            where order.BuyerId == CurrentUserId && payment.Status == Merkato.Domain.Enums.PaymentStatus.VERIFIED
+            select payment.Id
+        ).AnyAsync(ct);
+        if (hasVerifiedPurchase)
+            return Conflict("Referral links can only be claimed before your first verified purchase.");
         if (string.IsNullOrWhiteSpace(input.VisitorKey) || input.VisitorKey.Length > 200) return BadRequest("Valid visitor key required.");
         var visitorHash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(input.VisitorKey)));
         var pending = await db.AffiliateReferrals.FirstOrDefaultAsync(x => x.AffiliateUserId == profile.UserId && x.VisitorKeyHash == visitorHash && x.ReferredUserId == null, ct);

@@ -153,6 +153,7 @@ modelBuilder.Entity<UserAddress>(e =>
         });
         modelBuilder.Entity<AffiliateCommission>(e => {
             e.HasIndex(x => x.OrderId).IsUnique();
+            e.HasIndex(x => x.AffiliateReferralId).IsUnique().HasFilter("\"AffiliateReferralId\" IS NOT NULL");
             e.Property(x => x.EligibleAmountEtb).HasColumnType("numeric(18,4)");
             e.Property(x => x.RatePercent).HasColumnType("numeric(7,4)");
             e.Property(x => x.CommissionEtb).HasColumnType("numeric(18,4)");

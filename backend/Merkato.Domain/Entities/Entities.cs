@@ -315,6 +315,7 @@ public class AffiliateCommission
 {
     public long Id { get; set; }
     public long AffiliateUserId { get; set; }
+    public long? AffiliateReferralId { get; set; }
     public long OrderId { get; set; }
     [Column(TypeName = "numeric(18,4)")]
     public decimal EligibleAmountEtb { get; set; }
