@@ -1,4 +1,5 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -122,7 +123,7 @@ import { ApiService, MerkatoProduct, MerkatoOrder, MerkatoDispute, MerchantAnaly
     .workspace-card .card-label{color:#809185!important;font-size:9px!important;font-weight:900!important;letter-spacing:1.3px!important}
     .workspace-card>strong{display:block!important;margin:9px 0 5px!important;color:#173e2c!important;font-size:clamp(22px,2.4vw,29px)!important;font-weight:900!important;overflow-wrap:anywhere!important}
     .workspace-card>small{color:#829187!important;font-size:10px!important;line-height:1.55!important}
-    .workspace-section{border-radius:22px!important}
+    .workspace-section{border-radius:22px!important}.workspace-section[id]{scroll-margin-top:24px}
     @media(max-width:760px){
       .workspace{display:block!important;min-height:0!important}
       .workspace-sidebar{position:relative!important;top:auto!important;width:auto!important;min-height:0!important;margin:10px 10px 0!important;padding:12px!important;border-radius:20px!important;display:flex!important;flex-direction:row!important;align-items:center!important;gap:8px!important;overflow-x:auto!important;overflow-y:hidden!important;scrollbar-width:none!important;white-space:nowrap!important}
@@ -243,7 +244,7 @@ import { ApiService, MerkatoProduct, MerkatoOrder, MerkatoDispute, MerchantAnaly
   `],
   template: `
     <section class="workspace">
-      <button type="button" class="workspace-nav-backdrop" *ngIf="mobileNavOpen" aria-label="Close navigation" (click)="mobileNavOpen = false"></button><aside class="workspace-sidebar" [class.mobile-open]="mobileNavOpen" [class.merchant-sidebar]="user?.role === 'MERCHANT'"><a routerLink="/" class="brand"><span class="brand-mark">M</span><span>merkato<small>WORKSPACE</small></span></a><div class="workspace-user"><span class="user-avatar">{{user?.fullName?.slice(0,1)}}</span><div><strong>{{user?.fullName}}</strong><small>{{user?.role}}</small></div></div><span class="side-label">WORKSPACE</span><a routerLink="/dashboard" class="side-link active" (click)="mobileNavOpen = false">▦ <span>Overview</span></a><a routerLink="/" class="side-link" (click)="mobileNavOpen = false">⌕ <span>Marketplace</span></a><a routerLink="/account" class="side-link" (click)="mobileNavOpen = false">◎ <span>Profile</span></a><a [routerLink]="user?.role === 'ADMIN' ? '/admin/operations' : '/account'" class="side-link" (click)="mobileNavOpen = false">⚙ <span>Settings</span></a><a *ngIf="user?.role === 'MERCHANT' || user?.role === 'ADMIN'" href="#products" class="side-link" (click)="mobileNavOpen = false">▤ <span>Products</span></a><a *ngIf="user?.role === 'MERCHANT'" href="#merchant-orders" class="side-link" (click)="mobileNavOpen = false">▣ <span>Incoming orders</span></a><a *ngIf="user?.role === 'MERCHANT'" href="#merchant-analytics" class="side-link" (click)="mobileNavOpen = false">▥ <span>Store analytics</span></a><a *ngIf="user?.role === 'MERCHANT'" routerLink="/merchant/payment-settings" class="side-link" (click)="mobileNavOpen = false">◈ <span>Payment accounts</span></a><a *ngIf="user?.role === 'MERCHANT'" routerLink="/merchant/payment-reviews" class="side-link" (click)="mobileNavOpen = false">✓ <span>Payment receipts</span></a><a *ngIf="user?.role === 'ADMIN'" href="#marketplace-fees" class="side-link" (click)="mobileNavOpen = false">⚙ <span>Administration</span></a><div class="sidebar-bottom"><a routerLink="/" class="side-link" (click)="mobileNavOpen = false">↗ <span>View marketplace</span></a><button class="side-link side-logout" (click)="logout()">⇥ <span>Sign out</span></button></div></aside>
+      <button type="button" class="workspace-nav-backdrop" *ngIf="mobileNavOpen" aria-label="Close navigation" (click)="mobileNavOpen = false"></button><aside class="workspace-sidebar" [class.mobile-open]="mobileNavOpen" [class.merchant-sidebar]="user?.role === 'MERCHANT'"><a routerLink="/" class="brand"><span class="brand-mark">M</span><span>merkato<small>WORKSPACE</small></span></a><div class="workspace-user"><span class="user-avatar"><img *ngIf="workspacePhotoUrl; else workspaceAvatarFallback" [src]="workspacePhotoUrl" [alt]="(user?.fullName || 'User') + ' profile photo'"><ng-template #workspaceAvatarFallback><span class="avatar-fallback" aria-label="User profile">👤</span></ng-template></span><div><strong>{{user?.fullName}}</strong><small>{{user?.role}}</small></div></div><span class="side-label">WORKSPACE</span><a routerLink="/dashboard" class="side-link active" (click)="mobileNavOpen = false">▦ <span>Overview</span></a><a routerLink="/" class="side-link" (click)="mobileNavOpen = false">⌕ <span>Marketplace</span></a><a routerLink="/account" class="side-link" (click)="mobileNavOpen = false">◎ <span>Profile</span></a><a [routerLink]="user?.role === 'ADMIN' ? '/admin/operations' : '/account'" class="side-link" (click)="mobileNavOpen = false">⚙ <span>Settings</span></a><a *ngIf="user?.role === 'MERCHANT' || user?.role === 'ADMIN'" href="#products" class="side-link" (click)="navigateToSection($event, 'products')">▤ <span>Products</span></a><a *ngIf="user?.role === 'MERCHANT'" href="#merchant-orders" class="side-link" (click)="navigateToSection($event, 'merchant-orders')">▣ <span>Incoming orders</span></a><a *ngIf="user?.role === 'MERCHANT'" href="#merchant-analytics" class="side-link" (click)="navigateToSection($event, 'merchant-analytics')">▥ <span>Store analytics</span></a><a *ngIf="user?.role === 'MERCHANT'" routerLink="/merchant/payment-settings" class="side-link" (click)="mobileNavOpen = false">◈ <span>Payment accounts</span></a><a *ngIf="user?.role === 'MERCHANT'" routerLink="/merchant/payment-reviews" class="side-link" (click)="mobileNavOpen = false">✓ <span>Payment receipts</span></a><a *ngIf="user?.role === 'ADMIN'" href="#marketplace-fees" class="side-link" (click)="mobileNavOpen = false">⚙ <span>Administration</span></a><div class="sidebar-bottom"><a routerLink="/" class="side-link" (click)="mobileNavOpen = false">↗ <span>View marketplace</span></a><button class="side-link side-logout" (click)="logout()">⇥ <span>Sign out</span></button></div></aside>
       <div class="workspace-main"><div class="workspace-mobile-bar"><div class="workspace-mobile-brand"><span class="brand-mark">M</span><span>merkato</span></div><button type="button" aria-label="Open navigation" [attr.aria-expanded]="mobileNavOpen" (click)="mobileNavOpen = !mobileNavOpen">☰</button></div><header class="workspace-topbar"><div><span class="eyebrow">MERKATO WORKSPACE</span><h1>{{heading}}</h1></div><span class="workspace-date">Ethiopia · ETB</span></header>
         <section class="welcome-panel" [class.buyer-welcome]="hasRichWorkspace"><div class="buyer-welcome-copy"><span class="buyer-welcome-kicker" *ngIf="hasRichWorkspace">{{user?.role === 'MERCHANT' ? 'YOUR STORE WORKSPACE' : 'YOUR PERSONAL SHOPPING SPACE'}}</span><span class="eyebrow" *ngIf="!hasRichWorkspace">GOOD TO SEE YOU</span><h2>Welcome, {{user?.fullName?.split(' ')?.[0]}}.</h2><p>{{welcomeText}}</p><div class="buyer-welcome-actions" *ngIf="user?.role === 'BUYER'"><a routerLink="/">⌕ &nbsp; Discover products <span>↗</span></a><a routerLink="/account" class="secondary">◎ &nbsp; Manage account</a></div><div class="buyer-welcome-actions" *ngIf="user?.role === 'MERCHANT'"><a href="#products">▤ &nbsp; Manage products <span>↗</span></a><a routerLink="/merchant/payment-reviews" class="secondary">✓ &nbsp; Confirm payments</a></div></div><div class="buyer-welcome-art" *ngIf="hasRichWorkspace" aria-hidden="true"><span>M</span></div><div class="welcome-symbol" *ngIf="!hasRichWorkspace">✳</div></section>
         <div class="buyer-section-label" *ngIf="hasRichWorkspace">QUICK ACCESS</div>
@@ -308,7 +309,7 @@ import { ApiService, MerkatoProduct, MerkatoOrder, MerkatoDispute, MerchantAnaly
             <article class="workspace-card"><span class="card-icon">⚑</span><span class="card-label">OPEN DISPUTES</span><strong>{{openDisputes}}</strong><small>{{disputes.length}} total disputes returned by API</small></article>
           </ng-container>
         </div>
-        <section class="workspace-section analytics-panel" id="merchant-analytics" *ngIf="user?.role === 'MERCHANT' && merchantAnalytics as stats"><span class="eyebrow">BUSINESS INTELLIGENCE</span><h2>Store performance</h2><div class="workspace-grid"><article class="workspace-card"><span class="card-label">ACTIVE LISTINGS</span><strong>{{stats.activeProductCount}}</strong><small>{{stats.productCount}} total products</small></article><article class="workspace-card"><span class="card-label">THIS MONTH</span><strong>{{stats.monthlyOrderCount}}</strong><small>Orders received</small></article><article class="workspace-card"><span class="card-label">MONTHLY ORDER VALUE</span><strong>{{stats.monthlyGrossOrderValueEtb | number:'1.2-2'}} <small>ETB</small></strong><small>Gross recorded order value, not payout</small></article><article class="workspace-card"><span class="card-label">ALL-TIME ORDER VALUE</span><strong>{{stats.grossOrderValueEtb | number:'1.2-2'}} <small>ETB</small></strong><small>Before refunds or settlement</small></article></div></section>
+        <section class="workspace-section analytics-panel" id="merchant-analytics" *ngIf="user?.role === 'MERCHANT'"><ng-container *ngIf="merchantAnalytics as stats"><span class="eyebrow">BUSINESS INTELLIGENCE</span><h2>Store performance</h2><div class="workspace-grid"><article class="workspace-card"><span class="card-label">ACTIVE LISTINGS</span><strong>{{stats.activeProductCount}}</strong><small>{{stats.productCount}} total products</small></article><article class="workspace-card"><span class="card-label">THIS MONTH</span><strong>{{stats.monthlyOrderCount}}</strong><small>Orders received</small></article><article class="workspace-card"><span class="card-label">MONTHLY ORDER VALUE</span><strong>{{stats.monthlyGrossOrderValueEtb | number:'1.2-2'}} <small>ETB</small></strong><small>Gross recorded order value, not payout</small></article><article class="workspace-card"><span class="card-label">ALL-TIME ORDER VALUE</span><strong>{{stats.grossOrderValueEtb | number:'1.2-2'}} <small>ETB</small></strong><small>Before refunds or settlement</small></article></div></ng-container><div class="empty-inline" *ngIf="analyticsLoading">Loading store analytics from your merchant account…</div><div class="empty-inline" *ngIf="analyticsError">{{analyticsError}}</div></section>
         <section class="workspace-section trust-panel" *ngIf="user?.role === 'MERCHANT'">
           <span class="eyebrow">SELLER TRUST</span><h2>Merchant verification</h2>
           <p>Submit your business profile for a manual review by MERKATO administrators.</p>
@@ -384,7 +385,11 @@ import { ApiService, MerkatoProduct, MerkatoOrder, MerkatoDispute, MerchantAnaly
     </section>
   `
 })
-export class DashboardComponent implements OnInit {
+export class DashboardComponent implements OnInit, OnDestroy {
+  private http = inject(HttpClient);
+  workspacePhotoUrl: string | null = null;
+  analyticsLoading = true;
+  analyticsError = '';
   auth = inject(AuthService);
   private api = inject(ApiService);
   user = this.auth.user;
@@ -446,12 +451,19 @@ export class DashboardComponent implements OnInit {
   get platformVolume(): number { return this.merchantSales; }
   get openDisputes(): number { return this.disputes.filter(item => item.status === 'OPEN' || item.status === 'UNDER_REVIEW').length; }
 
+  navigateToSection(event: MouseEvent, sectionId: string): void {
+    event.preventDefault();
+    this.mobileNavOpen = false;
+    document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
   ngOnInit(): void {
+    this.loadWorkspacePhoto();
     if (this.user?.role === 'MERCHANT') this.api.getMySellerVerification().subscribe({ next: item => this.sellerVerification = item, error: () => this.loadError = 'Could not load seller verification status.' });
     if (this.user?.role === 'ADMIN') this.reloadSellerVerifications();
     if (this.user?.role === 'ADMIN') this.reloadMarketplaceFees();
     if (this.user?.role === 'BUYER') this.api.getMyOrders().subscribe({ next: items => this.buyerOrders = items || [], error: () => this.loadError = 'Could not load order history.' });
-    if (this.user?.role === 'MERCHANT') this.api.getMerchantAnalytics().subscribe({ next: stats => this.merchantAnalytics = stats, error: () => this.loadError = 'Could not load merchant performance analytics.' });
+    if (this.user?.role === 'MERCHANT') this.api.getMerchantAnalytics().subscribe({ next: stats => { this.merchantAnalytics = stats; this.analyticsLoading = false; this.analyticsError = ''; }, error: () => { this.analyticsLoading = false; this.analyticsError = 'Could not load store analytics. Please refresh and try again.'; } });
     if (this.user?.role === 'ADMIN') this.api.getAdminAnalytics().subscribe({ next: stats => this.adminAnalytics = stats, error: () => this.loadError = 'Could not load platform analytics.' });
     if (this.user?.role === 'MERCHANT' || this.user?.role === 'ADMIN') {
       this.api.getProducts().subscribe({ next: items => this.merchantProducts = (items || []).filter(p => this.user?.role === 'ADMIN' || p.sellerId === this.user?.userId), error: () => this.loadError = 'Could not load catalogue. Check the API connection.' });
@@ -459,6 +471,26 @@ export class DashboardComponent implements OnInit {
     }
     if (this.user?.role === 'ADMIN') this.api.getDisputes().subscribe({ next: items => this.disputes = items || [], error: () => this.loadError = 'Could not load dispute records.' });
   }
+  ngOnDestroy(): void {
+    if (this.workspacePhotoUrl) URL.revokeObjectURL(this.workspacePhotoUrl);
+  }
+
+  private loadWorkspacePhoto(): void {
+    this.http.get<{ hasProfilePhoto: boolean }>('/api/account/profile').subscribe({
+      next: profile => {
+        if (!profile.hasProfilePhoto) return;
+        this.http.get('/api/account/profile/photo', { responseType: 'blob' }).subscribe({
+          next: blob => {
+            if (this.workspacePhotoUrl) URL.revokeObjectURL(this.workspacePhotoUrl);
+            this.workspacePhotoUrl = URL.createObjectURL(blob);
+          },
+          error: () => this.workspacePhotoUrl = null
+        });
+      },
+      error: () => this.workspacePhotoUrl = null
+    });
+  }
+
   reloadMarketplaceFees(): void {
     this.api.getMarketplaceFees().subscribe({
       next: fees => {
