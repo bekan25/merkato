@@ -26,7 +26,7 @@ public sealed class ReturnsController(MerkatoDbContext db) : ControllerBase
             .OrderByDescending(x => x.CreatedAt)
             .Select(x => new
             {
-                x.Id, x.OrderId, x.Reason, x.Status, x.ResolutionNote,
+                x.Id, x.OrderId, x.Reason, status = x.Status.ToString(), x.ResolutionNote,
                 x.CreatedAt, x.UpdatedAt
             })
             .ToListAsync(ct);
@@ -48,6 +48,12 @@ public sealed class ReturnsController(MerkatoDbContext db) : ControllerBase
         if (order.DeliveryStatus != DeliveryStatus.DELIVERED ||
             order.EscrowState is EscrowState.CANCELLED or EscrowState.REFUNDED)
             return Conflict(new { message = "A return can only be requested for a delivered, non-cancelled order." });
+        if (order.EscrowState == EscrowState.RELEASED)
+            return Conflict(new { message = "The escrow inspection period has ended. Contact MERKATO support to request a dispute review." });
+        var delivery = await db.Deliveries.AsNoTracking().FirstOrDefaultAsync(x => x.OrderId == order.Id, ct);
+        var deliveredAt = delivery?.DeliveredAt ?? order.CreatedAt;
+        if (deliveredAt < DateTime.UtcNow.AddDays(-7))
+            return Conflict(new { message = "Returns must be requested within 7 days of delivery." });
 
         if (await db.ReturnRequests.AnyAsync(x => x.OrderId == order.Id, ct))
             return Conflict(new { message = "A return request already exists for this order." });
@@ -89,7 +95,7 @@ public sealed class ReturnsController(MerkatoDbContext db) : ControllerBase
             select new
             {
                 request.Id, request.OrderId, order.OrderNumber, request.BuyerId,
-                request.Reason, request.Status, request.ResolutionNote,
+                request.Reason, status = request.Status.ToString(), request.ResolutionNote,
                 order.ProductTitle, order.Quantity, order.TotalAmountEtb,
                 order.PaymentMode, request.CreatedAt, request.UpdatedAt
             }).ToListAsync(ct);
