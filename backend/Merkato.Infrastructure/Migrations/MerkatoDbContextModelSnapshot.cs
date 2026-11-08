@@ -943,6 +943,7 @@ b.Property<long>("SellerId")
                     b.Property<long>("Id").ValueGeneratedOnAdd().HasColumnType("bigint");
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
                     b.Property<long>("AffiliateUserId").HasColumnType("bigint");
+                    b.Property<long?>("AffiliateReferralId").HasColumnType("bigint");
                     b.Property<DateTime>("ClickedAt").HasColumnType("timestamp with time zone");
                     b.Property<string>("ReferralCode").IsRequired().HasColumnType("text");
                     b.Property<long?>("ReferredUserId").HasColumnType("bigint");
@@ -968,6 +969,7 @@ b.Property<long>("SellerId")
                     b.Property<decimal>("RatePercent").HasColumnType("numeric(7,4)");
                     b.Property<string>("Status").IsRequired().HasColumnType("text");
                     b.HasKey("Id");
+                    b.HasIndex("AffiliateReferralId").IsUnique().HasFilter("\"AffiliateReferralId\" IS NOT NULL");
                     b.HasIndex("OrderId").IsUnique();
                     b.ToTable("AffiliateCommissions");
                 });
