@@ -16,7 +16,7 @@ interface ReturnRequestItem { id:number; orderId:number; reason:string; status:s
 @Component({
  selector:'app-account', standalone:true, imports:[CommonModule,FormsModule,RouterLink],
  template:`
- <main class="account-shell">
+ <div class="account-shell">
   <nav class="breadcrumb" aria-label="Breadcrumb"><a routerLink="/">Home</a><span aria-hidden="true">›</span><span aria-current="page">My account</span></nav>
   <header class="hero">
    <div class="avatar-wrap">
@@ -91,7 +91,7 @@ interface ReturnRequestItem { id:number; orderId:number; reason:string; status:s
   <div class="security-option"><div><strong>Two-factor authentication</strong><p>Extra sign-in verification is not yet available for buyer and merchant accounts.</p></div><label class="switch-label"><input type="checkbox" disabled aria-label="Two-factor authentication unavailable"><span class="switch"></span><span class="sr-only">Unavailable</span></label></div>
   <div class="security panel security-logout"><div><h3>Active session</h3><p>Logging out invalidates this device session. Changing your PIN revokes existing tokens.</p></div><button class="danger" type="button" (click)="logout()">Log out</button></div>
   </div></div>
- </main>
+ </div>
  `,
  styles:[`
  :host{display:block;min-height:100vh;color:#18372c;background:#f7f7f1;font-family:Inter,ui-sans-serif,system-ui,sans-serif}
