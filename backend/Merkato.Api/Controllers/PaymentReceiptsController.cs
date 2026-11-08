@@ -23,13 +23,15 @@ public sealed class PaymentReceiptsController : ControllerBase
     private readonly IEscrowService _escrow;
     private readonly IAuditLogService _audit;
     private readonly IReceiptOcrService _ocr;
+    private readonly IConfiguration? _configuration;
 
-    public PaymentReceiptsController(MerkatoDbContext db, IEscrowService escrow, IAuditLogService audit, IReceiptOcrService ocr)
+    public PaymentReceiptsController(MerkatoDbContext db, IEscrowService escrow, IAuditLogService audit, IReceiptOcrService ocr, IConfiguration? configuration = null)
     {
         _db = db;
         _escrow = escrow;
         _audit = audit;
         _ocr = ocr;
+        _configuration = configuration;
     }
 
     [HttpPost]
@@ -429,7 +431,7 @@ public sealed class PaymentReceiptsController : ControllerBase
         payment.RawPayloadHash = receipt.Sha256;
         payment.VerifiedAt = DateTime.UtcNow;
         order.UpdatedAt = DateTime.UtcNow;
-        await AffiliateRewardProcessor.RecordVerifiedPurchaseAsync(_db, order, null, ct);
+        await AffiliateRewardProcessor.RecordVerifiedPurchaseAsync(_db, order, _configuration, ct);
         await _db.SaveChangesAsync(ct);
         await _audit.LogAsync(sellerId, "MERCHANT", "SELLER_DIRECT_PAYMENT_CONFIRMED",
             "PAYMENT", payment.Id.ToString(), "SUCCESS",
