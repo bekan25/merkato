@@ -211,8 +211,8 @@ export class AccountComponent implements OnInit {
  }
  removeSaved(item:SavedProduct){this.http.delete('/api/engagement/wishlist/'+item.productId).subscribe({next:()=>{this.wishlist=this.wishlist.filter(x=>x.productId!==item.productId);this.message='Item removed from wishlist.';},error:()=>this.error='Could not remove this saved item.'});}
  loadNotifications(){
-  this.http.get<{unreadCount:number;notifications:AccountNotification[]}>('/api/engagement/notifications').subscribe({next:x=>{this.notifications=x.notifications||[];this.unreadCount=x.unreadCount||0;},error:()=>this.error='Could not load notifications.'});
-  this.http.get<NotificationPrefs>('/api/engagement/notification-preferences').subscribe({next:x=>this.prefs=x,error:()=>this.error='Could not load notification preferences.'});
+  this.http.get<{unreadCount:number;notifications:AccountNotification[]}>('/api/engagement/notifications').subscribe({next:x=>{this.notifications=x.notifications||[];this.unreadCount=x.unreadCount||0;},error:e=>this.error=e?.status===401?'Your session expired. Sign in again to view notifications.':'Could not load notifications. Please try again.'});
+  this.http.get<NotificationPrefs>('/api/engagement/notification-preferences').subscribe({next:x=>this.prefs=x,error:e=>this.error=e?.status===401?'Your session expired. Sign in again to view notification preferences.':'Could not load notification preferences. Please try again.'});
  }
  markRead(n:AccountNotification){this.http.post('/api/engagement/notifications/'+n.id+'/read',{}).subscribe({next:()=>{n.isRead=true;this.unreadCount=Math.max(0,this.unreadCount-1);},error:()=>this.error='Could not mark notification as read.'});}
  deleteNotification(n:AccountNotification){this.http.delete('/api/engagement/notifications/'+n.id).subscribe({next:()=>{this.notifications=this.notifications.filter(x=>x.id!==n.id);if(!n.isRead)this.unreadCount=Math.max(0,this.unreadCount-1);},error:()=>this.error='Could not delete notification.'});}
