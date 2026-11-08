@@ -97,4 +97,24 @@ public static class SellerCommissionLedger
                 new() { AccountType = LedgerAccountType.PLATFORM_FEE, EntryType = LedgerEntryType.CREDIT, AmountEtb = amountEtb }
             }};
     }
+
+    public static decimal CalculateRefundReversal(decimal accruedCommissionEtb, decimal orderTotalEtb, decimal refundAmountEtb, decimal alreadyReversedEtb)
+    {
+        if (accruedCommissionEtb < 0m || orderTotalEtb <= 0m || refundAmountEtb <= 0m || alreadyReversedEtb < 0m)
+            throw new ArgumentOutOfRangeException(nameof(refundAmountEtb));
+        var remaining = Math.Max(0m, accruedCommissionEtb - alreadyReversedEtb);
+        var refundableShare = decimal.Round(accruedCommissionEtb * Math.Min(refundAmountEtb, orderTotalEtb) / orderTotalEtb, 4, MidpointRounding.AwayFromZero);
+        return Math.Min(remaining, refundableShare);
+    }
+
+    public static LedgerTransaction CreateReversal(long orderId, long merchantId, decimal amountEtb, string refundReference)
+    {
+        if (orderId <= 0 || merchantId <= 0 || amountEtb <= 0m) throw new ArgumentOutOfRangeException(nameof(amountEtb));
+        return new LedgerTransaction { OrderId = orderId, TransactionType = "SELLER_DIRECT_COMMISSION_REVERSAL",
+            ReferenceId = $"ORDER-{orderId}:REFUND:{refundReference}", Description = "Proportional reversal of seller-direct commission after merchant-reported refund",
+            CreatedAt = DateTime.UtcNow, Entries = new List<LedgerEntry> {
+                new() { AccountType = LedgerAccountType.PLATFORM_FEE, EntryType = LedgerEntryType.DEBIT, AmountEtb = amountEtb },
+                new() { AccountType = LedgerAccountType.MERCHANT_RECEIVABLE, UserId = merchantId, EntryType = LedgerEntryType.CREDIT, AmountEtb = amountEtb }
+            }};
+    }
 }

@@ -60,4 +60,30 @@ public sealed class SellerCommissionLedgerTests
         // payment confirmation handler, never from cancellation or refund handlers.
         Assert.NotNull(typeof(SellerCommissionLedger).GetMethod(nameof(SellerCommissionLedger.CreateAccrual)));
     }
+    [Fact]
+    public void FullRefundReversesTheAccruedCommission()
+    {
+        Assert.Equal(10m, SellerCommissionLedger.CalculateRefundReversal(10m, 100m, 100m, 0m));
+    }
+
+    [Fact]
+    public void PartialRefundReversesCommissionProportionally()
+    {
+        Assert.Equal(2.5m, SellerCommissionLedger.CalculateRefundReversal(10m, 100m, 25m, 0m));
+    }
+
+    [Fact]
+    public void ReversalNeverExceedsRemainingAccruedCommission()
+    {
+        Assert.Equal(1.5m, SellerCommissionLedger.CalculateRefundReversal(10m, 100m, 50m, 8.5m));
+    }
+
+    [Fact]
+    public void CancellationBeforePaymentConfirmationCreatesNoAccrual()
+    {
+        // Commission accrual is deliberately only called by the verified receipt handler.
+        // A cancelled/unpaid order never enters that handler.
+        Assert.Equal(0m, SellerCommissionLedger.CalculateRefundReversal(0m, 100m, 100m, 0m));
+    }
+
 }

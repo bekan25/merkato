@@ -190,6 +190,35 @@ public sealed class ReturnsController(MerkatoDbContext db) : ControllerBase
         if (duplicateReference)
             return Conflict(new { message = "This transaction reference is already used by a payment receipt." });
 
+        // Reverse the proportional platform commission only when this order had a verified seller-direct accrual.
+        // The refund itself remains merchant-reported and is not provider-verified by MERKATO.
+        var refundKey = $"seller-direct-commission-refund:{request.Id}";
+        if (order.MerchantCommissionEtb > 0m &&
+            await db.IdempotencyRecords.AnyAsync(x => x.Key == $"seller-direct-commission:{order.Id}", ct) &&
+            !await db.IdempotencyRecords.AnyAsync(x => x.Key == refundKey, ct))
+        {
+            var alreadyReversed = await (from tx in db.LedgerTransactions.AsNoTracking()
+                join entry in db.LedgerEntries.AsNoTracking() on tx.Id equals entry.LedgerTransactionId
+                where tx.TransactionType == "SELLER_DIRECT_COMMISSION_REVERSAL" && tx.OrderId == order.Id &&
+                      entry.AccountType == LedgerAccountType.MERCHANT_RECEIVABLE && entry.UserId == request.SellerId &&
+                      entry.EntryType == LedgerEntryType.CREDIT
+                select (decimal?)entry.AmountEtb).SumAsync(ct) ?? 0m;
+            var reversalAmount = SellerCommissionLedger.CalculateRefundReversal(
+                order.MerchantCommissionEtb, order.TotalAmountEtb, input.RefundAmountEtb, alreadyReversed);
+            if (reversalAmount > 0m)
+            {
+                db.LedgerTransactions.Add(SellerCommissionLedger.CreateReversal(order.Id, request.SellerId, reversalAmount, reference));
+                db.IdempotencyRecords.Add(new IdempotencyRecord
+                {
+                    Key = refundKey,
+                    RequestHash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes($"{request.Id}:{input.RefundAmountEtb}:{reference}"))),
+                    ResponseJson = JsonSerializer.Serialize(new { status = "COMMISSION_REVERSED", amountEtb = reversalAmount }),
+                    StatusCode = 200,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+        }
+
         request.Status = ReturnStatus.REFUNDED;
         request.ResolutionNote = JsonSerializer.Serialize(new
         {
