@@ -227,13 +227,9 @@ public class EscrowService : IEscrowService
             creatorCommission.ReleasedAt = DateTime.UtcNow;
         }
 
-        // Affiliate earnings become withdrawable only after escrow is released.
-        var affiliateCommission = await _db.AffiliateCommissions
-            .FirstOrDefaultAsync(x => x.OrderId == orderId, ct);
-        if (affiliateCommission is not null && affiliateCommission.Status == "HELD")
-        {
-            affiliateCommission.Status = "AVAILABLE";
-        }
+        // Affiliate commission and the referrer's coupon are finalized only
+        // after escrow release, never at payment verification time.
+        await AffiliateRewardSettlement.FinalizeAsync(_db, order, ct);
 
         // Award one loyalty point per 100 ETB only after escrow is successfully released.
         var earnedPoints = (int)Math.Floor(releaseAmount / 100m);
