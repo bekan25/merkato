@@ -331,6 +331,11 @@ test('Ethiopian marketplace redesign loads after legacy styles and preserves the
   assert.match(storefront, /merchantCtaTitle:'Be among the first sellers'/);
   assert.match(storefront, /merchantCtaTitle:'Daldaltoota jalqabaa keessaa tokko ta’i'/);
   assert.match(storefront, /merchantCtaTitle:'ከመጀመሪያዎቹ ሻጮች አንዱ ይሁኑ'/);
+  assert.match(storefront, /class="why-merkato section-wrap"/);
+  assert.match(storefront, /verifiedTitle:'Verified merchants'/);
+  assert.match(storefront, /verifiedTitle:'Daldaltoota mirkanaa’an'/);
+  assert.match(storefront, /verifiedTitle:'የተረጋገጡ ነጋዴዎች'/);
+  assert.match(storefront, /sellerBenefit3/);
 });
 
 test('shopping assistant has working multilingual suggestion chips and a clear disabled reason', async () => {

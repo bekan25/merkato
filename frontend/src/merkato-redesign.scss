@@ -283,3 +283,17 @@ app-admin-payment-reviews,app-seller-payment-reviews{--mk-primary:#12805C}
 .app-shell.admin-route app-admin-operations .notice.error{background:#48242b!important;color:#ffc4c8!important}
 .app-shell.admin-route app-admin-operations .notice.success{background:#0e3b31!important;color:#b7f0d4!important}
 .app-shell.admin-route app-admin-operations footer{color:#B0BFD4!important}
+
+/* Distinct trust proof points and seller growth benefits. */
+.why-merkato{padding-top:clamp(34px,5vw,60px)!important;padding-bottom:clamp(34px,5vw,60px)!important}
+.why-merkato-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.why-merkato-grid article{display:flex;min-width:0;flex-direction:column;align-items:flex-start;gap:10px;padding:20px;border:1px solid var(--mk-line);border-radius:var(--mk-radius);background:#fff;box-shadow:var(--mk-shadow-soft)}
+.why-merkato-grid strong{color:var(--mk-primary);font:750 15px/1.4 var(--mk-display);overflow-wrap:anywhere}
+.why-merkato-grid p{margin:0;color:var(--mk-muted);font-size:13px;line-height:1.65;overflow-wrap:anywhere}
+.why-icon{display:grid;place-items:center;width:46px;height:46px;border-radius:14px;background:#eaf3eb;color:var(--mk-primary)}
+.why-icon svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.seller-cta-benefits{display:grid;gap:8px;margin:16px 0 20px;padding:0;list-style:none}
+.seller-cta-benefits li{display:flex;align-items:flex-start;gap:10px;color:#e0eee5;font-size:13px;line-height:1.55}
+.seller-cta-benefits li:before{content:"✓";display:grid;place-items:center;flex:none;width:20px;height:20px;border-radius:50%;background:#ffffff1b;color:#f2cf83;font-size:12px;font-weight:900}
+@media(max-width:900px){.why-merkato-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:520px){.why-merkato-grid{grid-template-columns:1fr}.why-merkato-grid article{padding:17px}}
