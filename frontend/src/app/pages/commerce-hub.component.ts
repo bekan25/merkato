@@ -74,7 +74,32 @@ import { RouterLink } from '@angular/router';
         <h2>{{ tx.loyalty }}</h2><button class="gold" (click)="loadLoyalty()">{{ tx.refresh }}</button><div class="metric" *ngIf="loyalty"><strong>{{ loyalty.pointsBalance }}</strong><span>{{ tx.points }}</span></div><p class="muted">{{ tx.pointsNote }}</p><article class="review" *ngFor="let x of loyalty?.history"><b>{{ x.points > 0 ? '+' : '' }}{{ x.points }} {{ tx.points }}</b><p>{{ x.reason }}</p><small>{{ x.createdAt | date:'medium' }}</small></article>
       </section>
       <section class="panel" *ngIf="active==='delivery'">
-        <h2>{{ tx.delivery }}</h2><p>{{ tx.deliveryIntro }}</p><button class="gold" (click)="loadOrders()">{{ tx.loadOrders }}</button><label>{{ tx.orderId }}<select [(ngModel)]="trackOrderId"><option [ngValue]="0">Select an order</option><option *ngFor="let order of orders" [ngValue]="order.id">{{order.orderNumber}} · {{order.productTitle}}</option></select></label><button [disabled]="!trackOrderId" (click)="trackDelivery()">{{ tx.trackDelivery }}</button><article class="review delivery-card" *ngIf="deliveryInfo"><div class="row"><b>{{ deliveryInfo.deliveryId }}</b><strong class="delivery-status">{{ deliveryInfo.status }}</strong></div><p>{{ deliveryInfo.courierType }} · {{ deliveryInfo.feeEtb | number:'1.2-2' }} ETB</p><p class="muted" *ngIf="deliveryInfo.deliveryAssigned === false">{{tx.awaitingCourier}}</p><p *ngIf="deliveryInfo.riderName || deliveryInfo.riderPhone">{{ deliveryInfo.riderName || 'Courier assigned' }} · {{ deliveryInfo.riderPhone }}</p><div class="delivery-timeline"><div class="delivery-step" *ngFor="let stage of deliveryStages; let i = index" [class.complete]="i < deliveryStageIndex" [class.current]="i === deliveryStageIndex"><span class="step-dot">{{i < deliveryStageIndex ? '✓' : i + 1}}</span><span>{{stage}}</span></div></div><p *ngIf="deliveryInfo.dispatchedAt">{{ tx.dispatched }}: {{ deliveryInfo.dispatchedAt | date:'medium' }}</p><p *ngIf="deliveryInfo.deliveredAt">{{ tx.delivered }}: {{ deliveryInfo.deliveredAt | date:'medium' }}</p><small>{{ tx.lastUpdated }}: {{ deliveryInfo.updatedAt | date:'medium' }}</small></article><p class="muted" *ngIf="deliveryInfo && deliveryInfo.status === 'FAILED_DELIVERY'">{{tx.deliveryFailed}}</p><div class="courier-tools" *ngIf="canUpdateDelivery"><label>{{ tx.courierDeliveryId }}<input [(ngModel)]="courierDeliveryId"></label><label>{{ tx.nextStatus }}<select [(ngModel)]="courierStatus"><option>ASSIGNED_COURIER</option><option>PICKED_UP</option><option>IN_TRANSIT</option><option>OUT_FOR_DELIVERY</option><option>DELIVERED</option><option>FAILED_DELIVERY</option><option>RETURNED_TO_MERCHANT</option></select></label><button (click)="updateDelivery()">{{ tx.updateStatus }}</button></div><article class="review" *ngFor="let o of orders"><b>{{ o.orderNumber }} · {{ o.productTitle }}</b><p>{{ tx.deliveryStatus }}: <strong>{{ o.deliveryStatus }}</strong></p><small>{{ o.createdAt | date:'medium' }} · {{ o.totalAmountEtb }} ETB</small></article>
+        <h2>{{ tx.delivery }}</h2><p>{{ tx.deliveryIntro }}</p>
+        <section class="courier-workspace" *ngIf="isCourier">
+          <div class="row"><h3>My assigned deliveries</h3><button type="button" (click)="loadCourierTasks()">Refresh tasks</button></div>
+          <article class="review courier-task" *ngFor="let task of courierTasks">
+            <div class="row"><b>{{task.deliveryId}} · {{task.orderNumber}}</b><strong>{{task.status}}</strong></div>
+            <p>{{task.productTitle}} · {{task.feeEtb | number:'1.2-2'}} ETB</p>
+            <p><b>{{task.buyerName}}</b> · {{task.buyerPhone}}</p>
+            <p>{{task.deliveryAddress}}, {{task.cityArea}}</p>
+            <div class="grid two"><label>Next status<select [(ngModel)]="courierTaskStatuses[task.deliveryId]"><option>ASSIGNED_COURIER</option><option>PICKED_UP</option><option>IN_TRANSIT</option><option>OUT_FOR_DELIVERY</option><option>FAILED_DELIVERY</option><option>RETURNED_TO_MERCHANT</option></select></label><button type="button" class="gold" (click)="updateCourierTask(task)">Update status</button></div>
+            <div class="grid two"><label>Buyer handover OTP<input inputmode="numeric" maxlength="8" [(ngModel)]="courierOtps[task.deliveryId]" placeholder="Enter code from buyer"></label><button type="button" class="gold" (click)="completeCourierTask(task)" [disabled]="!courierOtps[task.deliveryId]">Confirm handover</button></div>
+          </article>
+          <p class="muted" *ngIf="!courierTasks.length">No active deliveries are assigned to your courier account.</p>
+        </section>
+        <ng-container *ngIf="!isCourier">
+          <button class="gold" (click)="loadOrders()">{{ tx.loadOrders }}</button><label>{{ tx.orderId }}<select [(ngModel)]="trackOrderId"><option [ngValue]="0">Select an order</option><option *ngFor="let order of orders" [ngValue]="order.id">{{order.orderNumber}} · {{order.productTitle}}</option></select></label><button [disabled]="!trackOrderId" (click)="trackDelivery()">{{ tx.trackDelivery }}</button>
+          <div class="delivery-create" *ngIf="isBuyer && selectedOrder && isOrderPaid(selectedOrder) && deliveryInfo?.deliveryAssigned === false">
+            <h3>Request delivery dispatch</h3>
+            <p class="muted">A courier is assigned manually by MERKATO operations. A one-time handover code is created for you; show it to the courier only when you receive the parcel.</p>
+            <button type="button" class="gold" (click)="createDeliveryRequest()" [disabled]="deliveryCreating"> {{deliveryCreating ? 'Creating…' : 'Create delivery request'}}</button>
+          </div>
+          <div class="delivery-otp" *ngIf="createdDeliveryOtp && createdDeliveryOrderId === trackOrderId">
+            <b>Your delivery handover code: {{createdDeliveryOtp}}</b>
+            <p>Keep this code private. Share it with the assigned courier only after the parcel is physically handed to you.</p>
+          </div>
+        </ng-container>
+        <article class="review delivery-card" *ngIf="deliveryInfo"><div class="row"><b>{{ deliveryInfo.deliveryId }}</b><strong class="delivery-status">{{ deliveryInfo.status }}</strong></div><p>{{ deliveryInfo.courierType }} · {{ deliveryInfo.feeEtb | number:'1.2-2' }} ETB</p><p class="muted" *ngIf="deliveryInfo.deliveryAssigned === false">{{tx.awaitingCourier}}</p><p *ngIf="deliveryInfo.riderName || deliveryInfo.riderPhone">{{ deliveryInfo.riderName || 'Courier assigned' }} · {{ deliveryInfo.riderPhone }}</p><div class="delivery-timeline"><div class="delivery-step" *ngFor="let stage of deliveryStages; let i = index" [class.complete]="i < deliveryStageIndex" [class.current]="i === deliveryStageIndex"><span class="step-dot">{{i < deliveryStageIndex ? '✓' : i + 1}}</span><span>{{stage}}</span></div></div><p *ngIf="deliveryInfo.dispatchedAt">{{ tx.dispatched }}: {{ deliveryInfo.dispatchedAt | date:'medium' }}</p><p *ngIf="deliveryInfo.deliveredAt">{{ tx.delivered }}: {{ deliveryInfo.deliveredAt | date:'medium' }}</p><small>{{ tx.lastUpdated }}: {{ deliveryInfo.updatedAt | date:'medium' }}</small></article><p class="muted" *ngIf="deliveryInfo && deliveryInfo.status === 'FAILED_DELIVERY'">{{tx.deliveryFailed}}</p><div class="courier-tools" *ngIf="canUpdateDelivery"><label>{{ tx.courierDeliveryId }}<input [(ngModel)]="courierDeliveryId"></label><label>{{ tx.nextStatus }}<select [(ngModel)]="courierStatus"><option>ASSIGNED_COURIER</option><option>PICKED_UP</option><option>IN_TRANSIT</option><option>OUT_FOR_DELIVERY</option><option>DELIVERED</option><option>FAILED_DELIVERY</option><option>RETURNED_TO_MERCHANT</option></select></label><button (click)="updateDelivery()">{{ tx.updateStatus }}</button></div><article class="review" *ngFor="let o of orders"><b>{{ o.orderNumber }} · {{ o.productTitle }}</b><p>{{ tx.deliveryStatus }}: <strong>{{ o.deliveryStatus }}</strong></p><small>{{ o.createdAt | date:'medium' }} · {{ o.totalAmountEtb }} ETB</small></article>
       </section>
       <section class="panel" *ngIf="active==='promotions' && canManagePromotions">
         <h2>Merchant promotions & coupons</h2>
@@ -104,6 +129,7 @@ import { RouterLink } from '@angular/router';
     </section>
   `,
   styles: [`
+    .courier-workspace,.delivery-create,.delivery-otp{display:grid;gap:12px;margin:16px 0;padding:16px;border:1px solid #e5ddca;border-radius:14px;background:#fffdf7}.courier-task{display:grid;gap:10px}.delivery-otp{background:#edf7ee;border-color:#b7d8bd;color:#1c5c35}.delivery-otp b{font-size:18px;letter-spacing:1px}.delivery-otp p,.delivery-create p{margin:0;line-height:1.55}
     .delivery-card{display:grid;gap:9px}.delivery-status{padding:5px 9px;border-radius:20px;background:#f5edda;color:#84621d;font-size:11px}.delivery-timeline{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:14px 0}.delivery-step{display:flex;align-items:center;gap:7px;color:#879187;font-size:10px}.step-dot{display:grid;place-items:center;width:25px;height:25px;flex:0 0 25px;border:1px solid #dfe5dc;border-radius:50%;background:#fff;font-weight:800}.delivery-step.complete .step-dot{border-color:#27834f;background:#e7f5eb;color:#187343}.delivery-step.current{color:#84621d;font-weight:800}.delivery-step.current .step-dot{border-color:#c49a36;background:#fff7e5;color:#84621d}.courier-tools{display:grid;gap:10px;padding:14px;border:1px solid #e8e0ce;border-radius:12px;background:#fffdf8}.courier-tools label{display:grid;gap:6px}.courier-tools input,.courier-tools select{padding:10px;border:1px solid #e3e7e1;border-radius:9px;background:#fff}
     .reward-list{display:grid;gap:8px;margin:14px 0}.reward-list article{display:flex;justify-content:space-between;gap:12px;padding:11px;border:1px solid #e9e0cd;border-radius:10px;background:#fffdf7}.reward-list span{color:#7c715c;font-size:11px}.panel .grid label{display:grid;gap:6px}
     .referral-share{display:grid;gap:10px;margin:14px 0;padding:14px;border:1px solid #eee8da;border-radius:12px;background:#fcfaf5}.referral-share a{overflow-wrap:anywhere;color:#80611d;font-weight:700}.referral-share small{color:#827b6c;font-size:11px}
@@ -116,6 +142,10 @@ export class CommerceHubComponent implements OnInit {
   private http=inject(HttpClient);
   private auth=inject(AuthService);
   get canUpdateDelivery():boolean{return this.auth.hasRole(['COURIER','ADMIN']);}
+  get isCourier():boolean{return this.auth.hasRole(['COURIER']);}
+  get isBuyer():boolean{return this.auth.hasRole(['BUYER']);}
+  get selectedOrder():any{return this.orders.find(order=>Number(order.id)===Number(this.trackOrderId))||null;}
+  isOrderPaid(order:any):boolean{return String(order?.paymentStatus||'').toUpperCase()==='VERIFIED'||String(order?.escrowState||'').toUpperCase()==='HELD';}
   get canManagePromotions():boolean{return this.auth.hasRole(['MERCHANT','ADMIN']);}
   get canJoinGroup():boolean{return this.auth.hasRole(['BUYER']);}
   get deliveryStages():string[]{return this.language==='om'?['Uumame','Geejjibaan ramadame','Fudhatame','Daandii irra','Maamilaa bira ga’aa jira','Geessifame']:this.language==='am'?['ተፈጥሯል','አጓጓዥ ተመድቧል','ተወስዷል','በመንገድ ላይ','ሊደርስ ነው','ደርሷል']:['Created','Courier assigned','Picked up','In transit','Out for delivery','Delivered'];}
@@ -128,7 +158,7 @@ export class CommerceHubComponent implements OnInit {
   language:'en'|'om'|'am'='en'; active='reviews'; message=''; isError=false;
   productId=0; reviewOrderId=0; rating=5; comment=''; reviewData:any=null; priceHistory:any[]=[]; sellerPrices:any[]=[]; conditionData:any=null; priceIntelligence:any=null;
   groups:any[]=[]; joinQuantities:Record<number,number>={}; group:any={productId:0,targetQuantity:10,regularUnitPriceEtb:100,discountUnitPriceEtb:90,expiresAt:''};
-  returnOrderId=0; returnReason=''; returns:any[]=[]; stock:any={quantity:0,lowStockThreshold:5,condition:'NEW'}; inventory:any[]=[]; loyalty:any=null; orders:any[]=[]; trackOrderId=0; deliveryInfo:any=null; courierDeliveryId=""; courierStatus="IN_TRANSIT"; referral:any=null; referralCode="";
+  returnOrderId=0; returnReason=''; returns:any[]=[]; stock:any={quantity:0,lowStockThreshold:5,condition:'NEW'}; inventory:any[]=[]; loyalty:any=null; orders:any[]=[]; trackOrderId=0; deliveryInfo:any=null; courierDeliveryId=""; courierStatus="IN_TRANSIT"; courierTasks:any[]=[]; courierTaskStatuses:Record<string,string>={}; courierOtps:Record<string,string>={}; deliveryCreating=false; createdDeliveryOtp=''; createdDeliveryOrderId=0; referral:any=null; referralCode="";
   promotions:any[]=[];
   promotion:any={code:'',title:'',discountType:'PERCENT',discountValue:10,minimumOrderEtb:0,maximumDiscountEtb:null,usageLimit:null,perUserLimit:1,startsAt:new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,16),expiresAt:new Date(Date.now()+7*86400000-new Date().getTimezoneOffset()*60000).toISOString().slice(0,16)};
   private dict:any={
@@ -139,7 +169,7 @@ export class CommerceHubComponent implements OnInit {
   get tx():any{return this.dict[this.language];}
   get referralUrl():string{return window.location.origin+'/?ref='+encodeURIComponent(this.referral?.referralCode||'');}
   tabs:any[]=[];
-  ngOnInit(){this.language=(localStorage.getItem('merkato_language') as any)||'en';this.updateTabs();}
+  ngOnInit(){this.language=(localStorage.getItem('merkato_language') as any)||'en';this.updateTabs();if(this.isCourier)this.loadCourierTasks();}
   setLanguage(){localStorage.setItem('merkato_language',this.language);this.updateTabs();}
   updateTabs(){const d=this.tx;this.tabs=[{key:'reviews',label:d.reviews},{key:'prices',label:d.priceCompare},{key:'groups',label:d.groupBuying},{key:'returns',label:d.returns},{key:'inventory',label:d.inventory},{key:'loyalty',label:d.loyalty},{key:'delivery',label:d.delivery},{key:'referral',label:d.referral}];if(this.canManagePromotions)this.tabs.push({key:'promotions',label:'Promotions'});}
   private call<T=any>(method:'get'|'post'|'put',url:string,body?:any,done?:(x:T)=>void){this.message='';this.isError=false;const req=method==='get'?this.http.get<T>(url):method==='put'?this.http.put<T>(url,body):this.http.post<T>(url,body);req.subscribe({next:x=>{done?.(x);this.message='Success';},error:e=>{this.isError=true;this.message=e?.error?.message||e?.error||'Request failed. Check permissions and inputs.';}});}
@@ -162,6 +192,20 @@ export class CommerceHubComponent implements OnInit {
   loadLoyalty(){this.call('get','/api/commerce/loyalty/me',null,x=>this.loyalty=x);}
   loadOrders(){const endpoint=this.auth.hasRole(['MERCHANT'])?'/api/orders/merchant':'/api/orders/mine';this.call('get',endpoint,null,x=>this.orders=x);}
   trackDelivery(){this.call('get',`/api/commerce/orders/${this.trackOrderId}/delivery`,null,x=>this.deliveryInfo=x);}
+  createDeliveryRequest(){
+    const order=this.selectedOrder;
+    if(!order||!this.isOrderPaid(order)||!this.isBuyer){this.isError=true;this.message='Only the buyer can request delivery after payment is verified.';return;}
+    const random=new Uint32Array(1);crypto.getRandomValues(random);
+    const otp=String(random[0]%1000000).padStart(6,'0');
+    this.deliveryCreating=true;this.message='';this.isError=false;
+    this.http.post<any>('/api/deliveries',{orderId:order.id,courierType:order.deliveryCourier||'BEU_DELIVERY',feeEtb:Number(order.deliveryFeeEtb),rawOtp:otp}).subscribe({
+      next:result=>{this.deliveryCreating=false;this.createdDeliveryOtp=otp;this.createdDeliveryOrderId=order.id;this.message='Delivery request created. Waiting for MERKATO operations to assign a courier.';this.trackDelivery();},
+      error:e=>{this.deliveryCreating=false;this.isError=true;this.message=e?.error?.message||e?.error?.error||'Could not create delivery request. Confirm payment and order status first.';}
+    });
+  }
+  loadCourierTasks(){this.http.get<any[]>('/api/deliveries/courier/mine').subscribe({next:rows=>{this.courierTasks=rows||[];for(const row of this.courierTasks)this.courierTaskStatuses[row.deliveryId]=row.status==='ASSIGNED_COURIER'?'PICKED_UP':row.status==='PICKED_UP'?'IN_TRANSIT':row.status==='IN_TRANSIT'?'OUT_FOR_DELIVERY':'IN_TRANSIT';},error:e=>{this.isError=true;this.message=e?.error?.message||'Could not load assigned courier tasks.';}});}
+  updateCourierTask(task:any){const status=this.courierTaskStatuses[task.deliveryId];if(!status)return;this.http.post('/api/deliveries/'+encodeURIComponent(task.deliveryId)+'/status',status).subscribe({next:()=>{this.message='Delivery status updated.';this.isError=false;this.loadCourierTasks();},error:e=>{this.message=e?.error?.message||'Could not update delivery status.';this.isError=true;}});}
+  completeCourierTask(task:any){const otp=String(this.courierOtps[task.deliveryId]||'').trim();if(!/^\\d{4,8}$/.test(otp)){this.isError=true;this.message='Enter the 4–8 digit handover code supplied by the buyer.';return;}this.http.post('/api/deliveries/'+encodeURIComponent(task.deliveryId)+'/verify-otp',{deliveryId:task.deliveryId,otpCode:otp}).subscribe({next:()=>{this.courierOtps[task.deliveryId]='';this.message='Handover verified and delivery completed.';this.isError=false;this.loadCourierTasks();},error:e=>{this.message=e?.error?.message||'Could not verify the buyer handover code.';this.isError=true;}});}
   updateDelivery(){this.call('post',`/api/deliveries/${this.courierDeliveryId}/status`,this.courierStatus,()=>{this.call('get',`/api/deliveries/${this.courierDeliveryId}`,null,x=>this.deliveryInfo=x);});}
   loadPromotions(){this.call('get','/api/promotions/mine',null,x=>this.promotions=x||[]);}
   createPromotion(){
