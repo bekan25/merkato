@@ -100,6 +100,12 @@ type FeeSettings = { merchantCommissionRatePercent:number; buyerServiceFeeRatePe
     @media(prefers-reduced-motion:reduce){.skeleton{animation:none}.sidebar,.quick a{transition:none}.quick a:hover{transform:none}}
 
 
+    .profile strong,.user-meta strong,.rank-info strong{font-size:14px}.profile small,.user-meta small,.rank-info small{font-size:12px}
+    .eyebrow,.metric-head,.hero-status,.status,.action,.chart-label,.chart-value,.rank-total{font-size:12px}
+    th{font-size:12px!important}td{font-size:13px!important}.action{padding:8px 10px}
+    .metric small,.sub,.note,.fee-helper,.breadcrumb,.account-panel small{font-size:12px}
+    .nav a,.logout{font-size:14px}.panel h3{font-size:17px}
+    .account-trigger,.language-select,.admin-search{font-size:13px}
   `],
   template:`
     <div class="shell">
