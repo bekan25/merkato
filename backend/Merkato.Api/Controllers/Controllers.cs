@@ -122,6 +122,90 @@ public class DeliveriesController : ControllerBase
             riderName = delivery.RiderName, riderPhone = delivery.RiderPhone, status = delivery.Status.ToString() });
     }
 
+    // Dispatch queue for administrators. Only unassigned deliveries are returned.
+    [HttpGet("admin/queue")]
+    [Authorize(Roles = "ADMIN")]
+    public async Task<IActionResult> AdminDispatchQueue(CancellationToken ct)
+    {
+        var rows = await (
+            from delivery in _db.Deliveries.AsNoTracking()
+            join order in _db.Orders.AsNoTracking() on delivery.OrderId equals order.Id
+            join buyer in _db.Users.AsNoTracking() on order.BuyerId equals buyer.Id
+            where delivery.Status == DeliveryStatus.CREATED && delivery.RiderPhone == null
+            orderby delivery.CreatedAt
+            select new
+            {
+                delivery.DeliveryId,
+                delivery.OrderId,
+                order.OrderNumber,
+                order.ProductTitle,
+                buyerName = buyer.FullName,
+                buyerPhone = buyer.PhoneNumber,
+                order.DeliveryAddress,
+                order.CityArea,
+                delivery.CourierType,
+                delivery.FeeEtb,
+                delivery.CreatedAt
+            })
+            .Take(100)
+            .ToListAsync(ct);
+        return Ok(rows);
+    }
+
+    // Only active courier accounts are selectable for dispatch.
+    [HttpGet("admin/couriers")]
+    [Authorize(Roles = "ADMIN")]
+    public async Task<IActionResult> ActiveCouriers(CancellationToken ct)
+    {
+        var couriers = await _db.Users.AsNoTracking()
+            .Where(x => x.Role == UserRole.COURIER && !x.IsSuspended)
+            .OrderBy(x => x.FullName)
+            .Select(x => new { x.Id, x.FullName, x.PhoneNumber })
+            .ToListAsync(ct);
+        return Ok(couriers);
+    }
+
+    // Courier workspace: return only active deliveries assigned to the authenticated courier phone.
+    [HttpGet("courier/mine")]
+    [Authorize(Roles = "COURIER")]
+    public async Task<IActionResult> MyCourierDeliveries(CancellationToken ct)
+    {
+        if (!long.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var courierId))
+            return Unauthorized();
+        var courier = await _db.Users.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == courierId && x.Role == UserRole.COURIER && !x.IsSuspended, ct);
+        if (courier is null || string.IsNullOrWhiteSpace(courier.PhoneNumber))
+            return Forbid();
+
+        var rows = await (
+            from delivery in _db.Deliveries.AsNoTracking()
+            join order in _db.Orders.AsNoTracking() on delivery.OrderId equals order.Id
+            join buyer in _db.Users.AsNoTracking() on order.BuyerId equals buyer.Id
+            where delivery.RiderPhone == courier.PhoneNumber &&
+                  delivery.Status != DeliveryStatus.DELIVERED &&
+                  delivery.Status != DeliveryStatus.RETURNED_TO_MERCHANT
+            orderby delivery.UpdatedAt descending
+            select new
+            {
+                delivery.DeliveryId,
+                delivery.OrderId,
+                order.OrderNumber,
+                order.ProductTitle,
+                buyerName = buyer.FullName,
+                buyerPhone = buyer.PhoneNumber,
+                order.DeliveryAddress,
+                order.CityArea,
+                delivery.CourierType,
+                delivery.FeeEtb,
+                status = delivery.Status.ToString(),
+                delivery.CreatedAt,
+                delivery.UpdatedAt
+            })
+            .Take(100)
+            .ToListAsync(ct);
+        return Ok(rows);
+    }
+
     // Buyer/merchant can see only their own delivery. A courier must be the assigned rider.
     [HttpGet("{id}")]
     [Authorize(Roles = "BUYER,MERCHANT,COURIER,ADMIN")]
