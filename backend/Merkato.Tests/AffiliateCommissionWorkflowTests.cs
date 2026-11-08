@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Merkato.Api.Controllers;
 using Merkato.Api.Services;
+using Merkato.Infrastructure.Services;
 using Merkato.Domain.Enums;
 using Merkato.Domain.Entities;
 using Merkato.Infrastructure.Persistence;
@@ -109,6 +110,12 @@ public sealed class AffiliateCommissionWorkflowTests
         Assert.Equal(450m, commission.EligibleAmountEtb);
         Assert.Equal(9m, commission.CommissionEtb);
         Assert.Equal("HELD", commission.Status);
+        Assert.Empty(await db.PromotionCoupons.Where(x => x.SourceReferralId == 601).ToListAsync());
+
+        await AffiliateRewardSettlement.FinalizeAsync(db, order, CancellationToken.None);
+        await db.SaveChangesAsync();
+
+        Assert.Equal("AVAILABLE", (await db.AffiliateCommissions.SingleAsync()).Status);
         var coupon = await db.PromotionCoupons.SingleAsync(x => x.SourceReferralId == 601);
         Assert.Equal(101L, coupon.AssignedUserId);
         Assert.Equal(50m, coupon.DiscountValue);
