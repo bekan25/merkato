@@ -33,7 +33,8 @@
             ],
             "styles": [
               "src/styles.scss",
-              "src/next-gen-design.scss"
+              "src/next-gen-design.scss",
+              "src/merkato-redesign.scss"
             ],
             "scripts": []
           },
