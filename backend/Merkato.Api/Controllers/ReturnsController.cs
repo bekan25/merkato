@@ -386,7 +386,11 @@ public static class SellerRefundHistory
             }
         }
 
+        // Legacy records may only carry ReturnStatus.REFUNDED without a structured
+        // refund history; treat that terminal status as a full refund for balance display.
         var refunded = entries.Sum(x => x.RefundAmountEtb);
+        if (entries.Count == 0 && status == ReturnStatus.REFUNDED)
+            refunded = Math.Max(0m, orderTotalEtb);
         var remaining = Math.Max(0m, orderTotalEtb - refunded);
         var refundStatus = refunded >= orderTotalEtb && orderTotalEtb > 0m
             ? "FULLY_REFUNDED"
