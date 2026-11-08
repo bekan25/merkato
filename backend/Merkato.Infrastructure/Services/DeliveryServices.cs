@@ -317,16 +317,24 @@ public class DeliveryService : IDeliveryService
             delivery.Status,
             nextStatus);
 
+        var now = DateTime.UtcNow;
         delivery.Status = nextStatus;
-        delivery.UpdatedAt = DateTime.UtcNow;
+        delivery.UpdatedAt = now;
 
-        // If delivery becomes DELIVERED,
-        // start inspection window.
+        // Keep the buyer/merchant order timeline in lockstep with the
+        // courier record. Previously only DELIVERED was copied to Order,
+        // leaving PICKED_UP / IN_TRANSIT / OUT_FOR_DELIVERY invisible in
+        // the order APIs and dashboards.
+        order.DeliveryStatus = nextStatus;
+        order.UpdatedAt = now;
+
+        if (nextStatus == DeliveryStatus.PICKED_UP && !delivery.DispatchedAt.HasValue)
+            delivery.DispatchedAt = now;
+
+        // If delivery becomes DELIVERED, start the inspection window.
         if (nextStatus == DeliveryStatus.DELIVERED)
         {
-            delivery.DeliveredAt = DateTime.UtcNow;
-
-            order.DeliveryStatus = DeliveryStatus.DELIVERED;
+            delivery.DeliveredAt = now;
             if (order.PaymentMode != "SELLER_DIRECT")
                 await _inspection.StartInspectionAsync(delivery.OrderId, ct);
         }
