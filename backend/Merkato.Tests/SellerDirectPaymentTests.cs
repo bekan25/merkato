@@ -254,9 +254,7 @@ public sealed class SellerDirectPaymentTests
         Assert.Equal(99L, affiliateCommission.AffiliateUserId);
         Assert.Equal(5m, affiliateCommission.CommissionEtb);
         Assert.Equal("HELD", affiliateCommission.Status);
-        var referrerReward = await db.PromotionCoupons.SingleAsync(x => x.SourceReferralId == 806);
-        Assert.Equal(99L, referrerReward.AssignedUserId);
-        Assert.Equal(50m, referrerReward.DiscountValue);
+        Assert.Empty(await db.PromotionCoupons.Where(x => x.SourceReferralId == 806).ToListAsync());
     }
 
     [Fact]
@@ -331,6 +329,16 @@ public sealed class SellerDirectPaymentTests
             FileName = "receipt.jpg", ContentType = "image/jpeg", Content = new byte[] { 1, 2, 3 },
             Sha256 = new string('F', 64), Status = "SELLER_CONFIRMED", ReviewedBy = 22
         });
+        db.AffiliateProfiles.Add(new AffiliateProfile
+        {
+            Id = 905, UserId = 99, ReferralCode = "MKOTPREF99", IsActive = true
+        });
+        db.AffiliateReferrals.Add(new AffiliateReferral
+        {
+            Id = 906, AffiliateUserId = 99, ReferralCode = "MKOTPREF99",
+            VisitorKeyHash = new string('G', 64), ReferredUserId = 33,
+            ClickedAt = DateTime.UtcNow, RegisteredAt = DateTime.UtcNow
+        });
         db.AffiliateCommissions.Add(new AffiliateCommission
         {
             Id = 904, AffiliateUserId = 99, OrderId = 901, EligibleAmountEtb = 250m,
@@ -346,5 +354,8 @@ public sealed class SellerDirectPaymentTests
 
         Assert.Equal(DeliveryStatus.DELIVERED, (await db.Orders.SingleAsync()).DeliveryStatus);
         Assert.Equal("AVAILABLE", (await db.AffiliateCommissions.SingleAsync()).Status);
+        var referrerReward = await db.PromotionCoupons.SingleAsync(x => x.SourceReferralId == 906);
+        Assert.Equal(99L, referrerReward.AssignedUserId);
+        Assert.Equal(50m, referrerReward.DiscountValue);
     }
 }
