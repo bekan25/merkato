@@ -5,11 +5,12 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from './core/auth.service';
 import { MkBadgeComponent } from './shared/ui-primitives.component';
+import { AccountMenuComponent } from './shared/account-menu.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterOutlet, RouterLink, RouterLinkActive, MkBadgeComponent],
+  imports: [CommonModule, FormsModule, RouterOutlet, RouterLink, RouterLinkActive, MkBadgeComponent, AccountMenuComponent],
   template: `
     <div class="app-shell" [class.admin-route]="isAdminRoute">
       <div class="announcement" *ngIf="announcementVisible">MERKATO ETHIOPIA <span>•</span> {{ t('announcement') }}<button type="button" class="announcement-dismiss" aria-label="Dismiss announcement" (click)="announcementVisible = false">×</button></div>
@@ -25,8 +26,7 @@ import { MkBadgeComponent } from './shared/ui-primitives.component';
         <div class="header-actions">
           <label class="language-picker" aria-label="Choose language"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg><select [(ngModel)]="language" (ngModelChange)="changeLanguage($event)" name="siteLanguage" [attr.aria-label]="t('language')"><option value="en">EN</option><option value="om">OR</option><option value="am">አማ</option></select></label>
           <a class="delivery-link" routerLink="/" fragment="marketplace"><small>{{ t('delivering') }}</small><strong>🇪🇹 Ethiopia</strong></a>
-          <a class="account-link" *ngIf="!auth.isAuthenticated" routerLink="/login"><small>{{ t('helloSignIn') }}</small><strong>{{ t('account') }}</strong></a>
-          <details class="account-menu" *ngIf="auth.isAuthenticated"><summary class="account-link" [attr.aria-label]="t('openAccountMenu')"><small>Hello, {{auth.user?.fullName?.split(' ')?.[0]}}</small><strong>{{ t('myAccount') }} <span aria-hidden="true">⌄</span></strong></summary><div class="account-menu-panel"><a [routerLink]="auth.dashboardPath()">{{ t('dashboard') }}</a><a routerLink="/commerce">{{ t('commerceHub') }}</a></div></details>
+          <app-account-menu />
           <a class="cart-link" routerLink="/cart"><span class="cart-icon">🛒</span><strong>{{ t('cart') }}</strong><mk-badge class="cart-count" variant="gold" [ariaLabel]="cartCount + ' items in cart'">{{cartCount}}</mk-badge></a>
         </div>
       </header>
