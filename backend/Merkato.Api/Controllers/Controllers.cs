@@ -114,8 +114,13 @@ public class DeliveriesController : ControllerBase
         DeliveryStateMachine.ValidateTransition(delivery.Status, DeliveryStatus.ASSIGNED_COURIER);
         delivery.RiderName = courier.FullName;
         delivery.RiderPhone = courier.PhoneNumber;
+        var now = DateTime.UtcNow;
         delivery.Status = DeliveryStatus.ASSIGNED_COURIER;
-        delivery.UpdatedAt = DateTime.UtcNow;
+        delivery.UpdatedAt = now;
+        var order = await _db.Orders.FirstOrDefaultAsync(x => x.Id == delivery.OrderId, ct);
+        if (order is null) return NotFound(new { message = "The delivery's order no longer exists." });
+        order.DeliveryStatus = DeliveryStatus.ASSIGNED_COURIER;
+        order.UpdatedAt = now;
         await _db.SaveChangesAsync(ct);
 
         return Ok(new { deliveryId = delivery.DeliveryId, courierUserId = courier.Id,

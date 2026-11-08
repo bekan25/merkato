@@ -243,6 +243,7 @@ public class DeliveryService : IDeliveryService
             DeliveryStatus.DELIVERED);
 
         delivery.Status = DeliveryStatus.DELIVERED;
+        if (!delivery.DispatchedAt.HasValue) delivery.DispatchedAt = now;
         delivery.DeliveredAt = now;
         delivery.UpdatedAt = now;
 
@@ -251,6 +252,7 @@ public class DeliveryService : IDeliveryService
         // ---------------------------------------------------------
 
         order.DeliveryStatus = DeliveryStatus.DELIVERED;
+        order.UpdatedAt = now;
 
         // Seller-direct orders do not use MERKATO escrow. Finalize the
         // affiliate commission and referrer coupon only after delivery OTP handover.

@@ -60,6 +60,19 @@ export interface MerkatoOrder {
   createdAt: string;
 }
 
+export interface BuyerReturnRequest {
+  id: number; orderId: number; reason: string;
+  status: 'REQUESTED' | 'APPROVED' | 'REJECTED' | 'RECEIVED' | 'REFUNDED' | string;
+  resolutionNote?: string | null; createdAt: string; updatedAt: string;
+}
+
+export interface OrderDeliveryTracking {
+  deliveryId?: string | null; orderId: number; status: string;
+  courierType?: string | null; riderName?: string | null; riderPhone?: string | null;
+  feeEtb?: number; dispatchedAt?: string | null; deliveredAt?: string | null;
+  createdAt?: string | null; updatedAt?: string | null; deliveryAssigned: boolean;
+}
+
 export interface PaymentReceiptUploadResult {
   receiptId: number;
   orderId: number;
@@ -284,6 +297,18 @@ export class ApiService {
 
   getMyOrders(): Observable<MerkatoOrder[]> {
     return this.http.get<MerkatoOrder[]>(`${this.baseUrl}/orders/mine`);
+  }
+
+  getMyReturns(): Observable<BuyerReturnRequest[]> {
+    return this.http.get<BuyerReturnRequest[]>(`${this.baseUrl}/returns/mine`);
+  }
+
+  requestReturn(orderId: number, reason: string): Observable<BuyerReturnRequest> {
+    return this.http.post<BuyerReturnRequest>(`${this.baseUrl}/returns`, { orderId, reason });
+  }
+
+  getOrderDelivery(orderId: number): Observable<OrderDeliveryTracking> {
+    return this.http.get<OrderDeliveryTracking>(`${this.baseUrl}/commerce/orders/${orderId}/delivery`);
   }
 
   getMerchantOrders(): Observable<MerkatoOrder[]> {
