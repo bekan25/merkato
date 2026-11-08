@@ -143,6 +143,57 @@ import { ApiService, MerkatoProduct, MerkatoOrder, MerkatoDispute, MerchantAnaly
       .workspace-topbar{margin-bottom:15px!important}
       .welcome-panel{border-radius:19px!important;padding:20px!important}
     }
+
+    /* Premium buyer shopping workspace */
+    .buyer-welcome{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;align-items:center!important;gap:24px!important}
+    .buyer-welcome-copy{position:relative;z-index:1;max-width:680px}
+    .buyer-welcome-kicker{display:inline-flex;align-items:center;gap:7px;padding:7px 11px;border:1px solid rgba(21,132,78,.13);border-radius:999px;background:rgba(255,255,255,.62);color:#18794e;font-size:9px;font-weight:900;letter-spacing:1.1px}
+    .buyer-welcome-kicker:before{content:"";width:7px;height:7px;border-radius:50%;background:#16a36b;box-shadow:0 0 0 4px rgba(22,163,107,.12)}
+    .buyer-welcome-actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:17px}
+    .buyer-welcome-actions a{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:41px;padding:0 15px;border:1px solid rgba(22,121,75,.16);border-radius:12px;background:linear-gradient(120deg,#087b4b,#0c9b63);color:#fff;font-size:11px;font-weight:850;text-decoration:none;box-shadow:0 9px 20px rgba(13,123,74,.16);transition:transform .2s,box-shadow .2s}
+    .buyer-welcome-actions a.secondary{background:rgba(255,255,255,.68);color:#176b47;box-shadow:none}
+    .buyer-welcome-actions a:hover{transform:translateY(-2px);box-shadow:0 13px 25px rgba(13,123,74,.18)}
+    .buyer-welcome-art{position:relative;display:grid;place-items:center;width:132px;height:132px;border:1px solid rgba(255,255,255,.86);border-radius:38px;background:linear-gradient(145deg,rgba(255,255,255,.78),rgba(205,239,215,.72));box-shadow:0 18px 35px rgba(24,102,63,.10),inset 0 1px #fff;transform:rotate(5deg)}
+    .buyer-welcome-art:before,.buyer-welcome-art:after{content:"";position:absolute;border:1px solid rgba(20,133,78,.15);border-radius:50%;inset:13px}
+    .buyer-welcome-art:after{inset:-12px;border-style:dashed;opacity:.7}
+    .buyer-welcome-art span{display:grid;place-items:center;width:68px;height:68px;border-radius:23px;background:linear-gradient(145deg,#0a9a60,#07543a);color:white;font-size:34px;font-weight:900;box-shadow:0 13px 25px rgba(7,99,58,.24)}
+    .buyer-section-label{display:flex;align-items:center;gap:10px;margin:22px 0 11px;color:#6f8778;font-size:9px;font-weight:900;letter-spacing:1.7px}
+    .buyer-section-label:after{content:"";height:1px;flex:1;background:linear-gradient(90deg,rgba(32,122,76,.18),transparent)}
+    .buyer-shortcuts{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:12px!important;margin:15px 0 20px!important}
+    .buyer-shortcut{position:relative;min-height:118px;padding:17px!important;border:1px solid rgba(255,255,255,.9)!important;border-radius:19px!important;background:linear-gradient(145deg,rgba(255,255,255,.9),rgba(241,249,241,.76))!important;box-shadow:0 11px 25px rgba(31,76,47,.055),inset 0 1px #fff!important;backdrop-filter:blur(16px)!important}
+    .buyer-shortcut:after{content:"↗";position:absolute;right:15px;top:14px;color:#8da797;font-size:13px;font-weight:900}
+    .buyer-shortcut>span{width:39px!important;height:39px!important;border-radius:13px!important;background:linear-gradient(145deg,#e2f6e8,#f4f9ee)!important;color:#0b8050!important;font-size:19px!important}
+    .buyer-shortcut strong{color:#1a4831!important;font-size:12px!important}
+    .buyer-shortcut small{max-width:23ch;color:#829287!important;font-size:9px!important;line-height:1.5!important}
+    .buyer-insights{gap:12px!important;margin-bottom:18px!important}
+    .buyer-insights article{position:relative;overflow:hidden;min-height:80px;border-radius:17px!important;padding:16px 18px!important}
+    .buyer-insights article:after{content:"";position:absolute;right:-20px;bottom:-35px;width:90px;height:90px;border-radius:50%;background:radial-gradient(circle,rgba(26,151,91,.10),transparent 70%)}
+    .buyer-insights span{font-size:8px!important;letter-spacing:1.3px!important;color:#819488!important}
+    .buyer-insights strong{font-size:22px!important;color:#17452f!important}
+    .buyer-orders-preview{margin:5px 0 20px;padding:clamp(16px,2vw,22px);border:1px solid rgba(255,255,255,.88);border-radius:22px;background:linear-gradient(145deg,rgba(255,255,255,.84),rgba(239,248,239,.70));box-shadow:0 13px 32px rgba(30,68,43,.055),inset 0 1px #fff;backdrop-filter:blur(18px) saturate(145%)}
+    .buyer-preview-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+    .buyer-preview-head h2{margin:5px 0 0;color:#173d2d;font-size:17px;letter-spacing:-.4px}
+    .buyer-preview-head a{padding:8px 11px;border:1px solid rgba(21,125,74,.14);border-radius:10px;background:rgba(255,255,255,.7);color:#176b47;font-size:10px;font-weight:850;text-decoration:none}
+    .buyer-preview-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+    .buyer-preview-item{display:grid;gap:9px;min-width:0;padding:13px;border:1px solid rgba(220,232,219,.85);border-radius:15px;background:rgba(255,255,255,.66)}
+    .buyer-preview-item-top{display:flex;justify-content:space-between;align-items:center;gap:7px}
+    .buyer-preview-item-top small{color:#829287;font-size:9px}
+    .buyer-preview-item strong{overflow:hidden;color:#244a35;font-size:11px;text-overflow:ellipsis;white-space:nowrap}
+    .buyer-preview-item .amount{color:#16764a;font-size:12px;font-weight:900}
+    .buyer-preview-status{display:inline-flex;justify-self:start;max-width:100%;padding:5px 8px;border-radius:999px;background:#e9f5eb;color:#26704a;font-size:8px;font-weight:900;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .buyer-preview-status.waiting{background:#fff4dc;color:#936313}
+    .buyer-preview-empty{padding:18px;border:1px dashed #cbdccf;border-radius:14px;color:#7d8d82;font-size:11px;line-height:1.6}
+    .buyer-orders-section{scroll-margin-top:22px}
+    .buyer-orders-section .workspace-section-head{margin-bottom:16px}
+    .buyer-orders-section .workspace-section-head h2{font-size:20px}
+    .buyer-orders-section .table-wrap{border-color:#e5eee5;border-radius:15px}
+    .buyer-orders-section .table-wrap th{background:#f0f7f0;color:#607768}
+    .buyer-orders-section .table-wrap tbody tr:hover{background:#f5faf5}
+    @media(max-width:980px){.buyer-shortcuts{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+    @media(max-width:760px){.buyer-welcome{grid-template-columns:minmax(0,1fr) auto!important;gap:12px!important}.buyer-welcome-art{width:84px;height:84px;border-radius:25px}.buyer-welcome-art span{width:45px;height:45px;border-radius:15px;font-size:23px}.buyer-shortcuts{grid-template-columns:repeat(2,minmax(0,1fr))!important}.buyer-preview-list{grid-template-columns:1fr}.buyer-preview-item{grid-template-columns:minmax(0,1fr) auto;align-items:center}.buyer-preview-item .buyer-preview-status{grid-column:1/-1}}
+    @media(max-width:420px){.buyer-welcome{grid-template-columns:1fr!important}.buyer-welcome-art{display:none}.buyer-shortcuts{gap:8px!important}.buyer-shortcut{min-height:105px;padding:13px!important}.buyer-preview-head{align-items:flex-start}.buyer-preview-head a{white-space:nowrap}}
+    @media(prefers-reduced-motion:reduce){.buyer-shortcut,.buyer-welcome-actions a{transition:none!important}.buyer-shortcut:hover,.buyer-welcome-actions a:hover{transform:none!important}}
+
     @media(prefers-reduced-motion:reduce){.workspace-sidebar .side-link{transition:none!important}.workspace-sidebar .side-link:hover{transform:none!important}}
 
 
@@ -151,8 +202,9 @@ import { ApiService, MerkatoProduct, MerkatoOrder, MerkatoDispute, MerchantAnaly
     <section class="workspace">
       <aside class="workspace-sidebar"><a routerLink="/" class="brand"><span class="brand-mark">M</span><span>merkato<small>WORKSPACE</small></span></a><div class="workspace-user"><span class="user-avatar">{{user?.fullName?.slice(0,1)}}</span><div><strong>{{user?.fullName}}</strong><small>{{user?.role}}</small></div></div><span class="side-label">WORKSPACE</span><a routerLink="/dashboard" class="side-link active">▦ <span>Overview</span></a><a routerLink="/" class="side-link">⌕ <span>Marketplace</span></a><a routerLink="/account" class="side-link">◎ <span>My account</span></a><a *ngIf="user?.role === 'MERCHANT' || user?.role === 'ADMIN'" href="#products" class="side-link">▤ <span>Products</span></a><a *ngIf="user?.role === 'MERCHANT'" routerLink="/merchant/payment-settings" class="side-link">◈ <span>Payment accounts</span></a><a *ngIf="user?.role === 'MERCHANT'" routerLink="/merchant/payment-reviews" class="side-link">✓ <span>Payment receipts</span></a><a *ngIf="user?.role === 'ADMIN'" href="#marketplace-fees" class="side-link">⚙ <span>Administration</span></a><div class="sidebar-bottom"><a routerLink="/" class="side-link">↗ <span>View marketplace</span></a><button class="side-link side-logout" (click)="logout()">⇥ <span>Sign out</span></button></div></aside>
       <div class="workspace-main"><header class="workspace-topbar"><div><span class="eyebrow">MERKATO WORKSPACE</span><h1>{{heading}}</h1></div><span class="workspace-date">Ethiopia · ETB</span></header>
-        <section class="welcome-panel"><div><span class="eyebrow">GOOD TO SEE YOU</span><h2>Welcome, {{user?.fullName?.split(' ')?.[0]}}.</h2><p>{{welcomeText}}</p></div><div class="welcome-symbol">✳</div></section>
-        <section class="buyer-shortcuts" *ngIf="user?.role === 'BUYER'">
+        <section class="welcome-panel" [class.buyer-welcome]="user?.role === 'BUYER'"><div class="buyer-welcome-copy"><span class="buyer-welcome-kicker" *ngIf="user?.role === 'BUYER'">YOUR PERSONAL SHOPPING SPACE</span><span class="eyebrow" *ngIf="user?.role !== 'BUYER'">GOOD TO SEE YOU</span><h2>Welcome, {{user?.fullName?.split(' ')?.[0]}}.</h2><p>{{welcomeText}}</p><div class="buyer-welcome-actions" *ngIf="user?.role === 'BUYER'"><a routerLink="/">⌕ &nbsp; Discover products <span>↗</span></a><a routerLink="/account" class="secondary">◎ &nbsp; Manage account</a></div></div><div class="buyer-welcome-art" *ngIf="user?.role === 'BUYER'" aria-hidden="true"><span>M</span></div><div class="welcome-symbol" *ngIf="user?.role !== 'BUYER'">✳</div></section>
+        <div class="buyer-section-label" *ngIf="user?.role === 'BUYER'">QUICK ACCESS</div>
+         <section class="buyer-shortcuts" *ngIf="user?.role === 'BUYER'">
           <a routerLink="/" class="buyer-shortcut"><span>⌕</span><strong>Explore marketplace</strong><small>Discover products from local sellers</small></a>
           <a routerLink="/cart" class="buyer-shortcut"><span>▣</span><strong>My shopping cart</strong><small>Review items before checkout</small></a>
           <a href="#buyer-orders" class="buyer-shortcut"><span>↗</span><strong>Track my orders</strong><small>See your latest order updates</small></a>
@@ -162,6 +214,17 @@ import { ApiService, MerkatoProduct, MerkatoOrder, MerkatoDispute, MerchantAnaly
           <article><span>ORDERS IN PROGRESS</span><strong>{{buyerInProgressCount}}</strong></article>
           <article><span>COMPLETED ORDERS</span><strong>{{buyerCompletedCount}}</strong></article>
           <article><span>AVERAGE ORDER VALUE</span><strong>{{buyerAverageOrder | number:'1.2-2'}} ETB</strong></article>
+        </section>
+        <section class="buyer-orders-preview" *ngIf="user?.role === 'BUYER'">
+          <div class="buyer-preview-head"><div><span class="eyebrow">ORDER ACTIVITY</span><h2>Your latest orders</h2></div><a href="#buyer-orders">View all orders ↗</a></div>
+          <div class="buyer-preview-list" *ngIf="buyerLatestOrders.length; else buyerNoRecentOrders">
+            <article class="buyer-preview-item" *ngFor="let order of buyerLatestOrders">
+              <div class="buyer-preview-item-top"><small>{{order.orderNumber}}</small><small>{{order.createdAt | date:'mediumDate'}}</small></div>
+              <strong>{{order.productTitle}}</strong><span class="amount">{{order.totalAmountEtb | number:'1.2-2'}} ETB</span>
+              <span class="buyer-preview-status" [class.waiting]="order.paymentStatus !== 'VERIFIED' && order.escrowState === 'AWAITING_PAYMENT'">{{order.paymentStatus || order.escrowState || 'PROCESSING'}}</span>
+            </article>
+          </div>
+          <ng-template #buyerNoRecentOrders><div class="buyer-preview-empty">Your recent orders will appear here after your first purchase. <a routerLink="/">Explore the marketplace ↗</a></div></ng-template>
         </section>
         <div class="workspace-grid">
           <ng-container *ngIf="user?.role === 'BUYER'">
@@ -228,7 +291,7 @@ import { ApiService, MerkatoProduct, MerkatoOrder, MerkatoDispute, MerchantAnaly
         </section>
         <section class="workspace-section" *ngIf="user?.role === 'MERCHANT' || user?.role === 'ADMIN'"><span class="eyebrow">ORDER FULFILMENT</span><h2>Incoming orders</h2><div *ngIf="merchantOrders.length" class="table-wrap"><table><thead><tr><th>Order</th><th>Product</th><th>Buyer</th><th>Buyer total</th><th>Payment mode</th><th>Payment status</th><th>MERKATO commission due</th><th>Delivery</th></tr></thead><tbody><tr *ngFor="let order of merchantOrders"><td>{{order.orderNumber}}</td><td>{{order.productTitle}}</td><td>#{{order.buyerId}}</td><td>{{order.totalAmountEtb | number:'1.2-2'}} ETB</td><td>{{order.paymentMode === 'SELLER_DIRECT' ? 'Seller direct' : 'Escrow'}}</td><td><span class="status-pill">{{order.paymentStatus || 'PENDING'}}</span></td><td>{{(order.merchantCommissionEtb || 0) | number:'1.2-2'}} ETB · settle separately with MERKATO</td><td>{{order.deliveryStatus}}</td></tr></tbody></table></div><div class="empty-inline" *ngIf="!merchantOrders.length">No incoming orders have been recorded yet.</div></section>
         <p class="inline-note">For seller-direct orders, the buyer transfers the order total to the seller. MERKATO does not hold these funds; the merchant commission shown above is payable separately and must be manually reconciled by the MERKATO admin.</p>
-        <section class="workspace-section" *ngIf="user?.role === 'BUYER'"><div class="workspace-section-head"><div><span class="eyebrow">YOUR SHOPPING</span><h2>Your orders</h2><p>Recent orders created from your buyer account.</p></div><a routerLink="/cart" class="btn btn-outline">Open cart</a></div><div *ngIf="buyerOrders.length" class="table-wrap"><table><thead><tr><th>Order</th><th>Product</th><th>Total</th><th>Payment mode</th><th>Payment status</th><th>Date</th><th>Payment receipt</th></tr></thead><tbody><tr *ngFor="let order of buyerOrders"><td>{{order.orderNumber}}</td><td>{{order.productTitle}}</td><td>{{order.totalAmountEtb | number:'1.2-2'}} ETB</td><td>{{order.paymentMode === 'SELLER_DIRECT' ? 'Seller direct' : 'Escrow'}}</td><td><span class="status-pill">{{order.paymentStatus || order.escrowState}}</span></td><td>{{order.createdAt | date:'mediumDate'}}</td><td><a *ngIf="order.escrowState === 'AWAITING_PAYMENT' && order.paymentStatus !== 'VERIFIED'" [routerLink]="['/payment', order.id]">Upload receipt ↗</a><button type="button" *ngIf="(order.escrowState === 'HELD' || order.escrowState === 'INSPECTION_ACTIVE')" [disabled]="busyDisputeId === order.id" (click)="fileOrderDispute(order)">File dispute</button><span *ngIf="order.paymentStatus === 'VERIFIED'">Confirmed</span><span *ngIf="order.escrowState !== 'AWAITING_PAYMENT' && order.escrowState !== 'HELD' && order.escrowState !== 'INSPECTION_ACTIVE' && order.paymentStatus !== 'VERIFIED'">—</span></td></tr></tbody></table></div><div class="empty-inline" *ngIf="!buyerOrders.length">No orders have been created yet. Browse the marketplace and add products to your cart.</div><a routerLink="/" class="btn btn-primary">Explore products ↗</a></section>
+        <section class="workspace-section buyer-orders-section" *ngIf="user?.role === 'BUYER'" id="buyer-orders"><div class="workspace-section-head"><div><span class="eyebrow">YOUR SHOPPING</span><h2>Your orders</h2><p>Recent orders created from your buyer account.</p></div><a routerLink="/cart" class="btn btn-outline">Open cart</a></div><div *ngIf="buyerOrders.length" class="table-wrap"><table><thead><tr><th>Order</th><th>Product</th><th>Total</th><th>Payment mode</th><th>Payment status</th><th>Date</th><th>Payment receipt</th></tr></thead><tbody><tr *ngFor="let order of buyerOrders"><td>{{order.orderNumber}}</td><td>{{order.productTitle}}</td><td>{{order.totalAmountEtb | number:'1.2-2'}} ETB</td><td>{{order.paymentMode === 'SELLER_DIRECT' ? 'Seller direct' : 'Escrow'}}</td><td><span class="status-pill">{{order.paymentStatus || order.escrowState}}</span></td><td>{{order.createdAt | date:'mediumDate'}}</td><td><a *ngIf="order.escrowState === 'AWAITING_PAYMENT' && order.paymentStatus !== 'VERIFIED'" [routerLink]="['/payment', order.id]">Upload receipt ↗</a><button type="button" *ngIf="(order.escrowState === 'HELD' || order.escrowState === 'INSPECTION_ACTIVE')" [disabled]="busyDisputeId === order.id" (click)="fileOrderDispute(order)">File dispute</button><span *ngIf="order.paymentStatus === 'VERIFIED'">Confirmed</span><span *ngIf="order.escrowState !== 'AWAITING_PAYMENT' && order.escrowState !== 'HELD' && order.escrowState !== 'INSPECTION_ACTIVE' && order.paymentStatus !== 'VERIFIED'">—</span></td></tr></tbody></table></div><div class="empty-inline" *ngIf="!buyerOrders.length">No orders have been created yet. Browse the marketplace and add products to your cart.</div><a routerLink="/" class="btn btn-primary">Explore products ↗</a></section>
         <section class="workspace-section" *ngIf="user?.role === 'ADMIN' && adminAnalytics as stats"><span class="eyebrow">PLATFORM INTELLIGENCE</span><h2>Marketplace health</h2><div class="workspace-grid"><article class="workspace-card"><span class="card-label">TOTAL USERS</span><strong>{{stats.totalUsers}}</strong><small>{{stats.buyerCount}} buyers · {{stats.merchantCount}} merchants</small></article><article class="workspace-card"><span class="card-label">PRODUCT CATALOGUE</span><strong>{{stats.activeProducts}}</strong><small>{{stats.totalProducts}} total listings</small></article><article class="workspace-card"><span class="card-label">TOTAL ORDERS</span><strong>{{stats.totalOrders}}</strong><small>Gross value: {{stats.grossOrderValueEtb | number:'1.2-2'}} ETB</small></article><article class="workspace-card"><span class="card-label">OPEN DISPUTES</span><strong>{{stats.openDisputes}}</strong><small>Require administrator attention</small></article></div><h3>Recently joined users</h3><div class="table-wrap"><table><thead><tr><th>Name</th><th>Phone</th><th>Role</th><th>Joined</th></tr></thead><tbody><tr *ngFor="let member of stats.recentUsers"><td>{{member.fullName}}</td><td>{{member.phoneNumber}}</td><td>{{member.role}}</td><td>{{member.createdAt | date:'mediumDate'}}</td></tr></tbody></table></div></section>
         <section class="workspace-section" *ngIf="user?.role === 'ADMIN'">
           <span class="eyebrow">TRUST & SAFETY</span><h2>Seller verification queue</h2>
@@ -303,6 +366,7 @@ export class DashboardComponent implements OnInit {
     if (this.selectedImage || (this.editingProductId && this.merchantProducts.some(p => p.id === this.editingProductId && !!p.imageUrl))) score += 30;
     return score;
   }
+  get buyerLatestOrders(): MerkatoOrder[] { return [...this.buyerOrders].sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0,3); }
   get buyerSpend(): number { return this.buyerOrders.reduce((sum, order) => sum + Number(order.totalAmountEtb || 0), 0); }
   get buyerAverageOrder(): number { return this.buyerOrders.length ? this.buyerSpend / this.buyerOrders.length : 0; }
   get buyerCompletedCount(): number { return this.buyerOrders.filter(order => String(order.deliveryStatus).toLowerCase().includes('deliver') || String(order.deliveryStatus).toLowerCase().includes('complete')).length; }
