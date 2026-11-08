@@ -1,4 +1,5 @@
 using Merkato.Application.DTOs;
+using Merkato.Api.Services;
 using Merkato.Application.Interfaces;
 using Merkato.Domain.Enums;
 using Merkato.Domain.Entities;
@@ -314,60 +315,8 @@ public class PaymentsController : ControllerBase
                         }
                     }
 
-                    // Affiliate commission is attributed only to a registered referral with an active affiliate profile.
-                    // It is held until escrow release; a unique OrderId index protects webhook retries.
-                    if (paidOrder.ProductId.HasValue && paidOrder.UnitPriceEtb > 0m && paidOrder.Quantity > 0 &&
-                        !await _db.AffiliateCommissions.AnyAsync(x => x.OrderId == paidOrder.Id, ct))
-                    {
-                        var affiliateReferral = await _db.AffiliateReferrals
-                            .AsNoTracking()
-                            .FirstOrDefaultAsync(x => x.ReferredUserId == paidOrder.BuyerId &&
-                                x.RegisteredAt != null && x.AffiliateUserId != paidOrder.BuyerId, ct);
-                        if (affiliateReferral is not null &&
-                            await _db.AffiliateProfiles.AnyAsync(x => x.UserId == affiliateReferral.AffiliateUserId && x.IsActive, ct))
-                        {
-                            var affiliateRatePercent = CommissionRate("Commissions:AffiliateRatePercent", 2m);
-                            var eligibleAmount = Math.Max(0m, paidOrder.ProductSubtotalEtb - paidOrder.DiscountEtb);
-                            _db.AffiliateCommissions.Add(new AffiliateCommission
-                            {
-                                AffiliateUserId = affiliateReferral.AffiliateUserId,
-                                OrderId = paidOrder.Id,
-                                EligibleAmountEtb = eligibleAmount,
-                                RatePercent = affiliateRatePercent,
-                                CommissionEtb = Math.Round(eligibleAmount * affiliateRatePercent / 100m, 2, MidpointRounding.AwayFromZero),
-                                Status = "HELD",
-                                CreatedAt = DateTime.UtcNow
-                            });
-                            try { await _db.SaveChangesAsync(ct); }
-                            catch (DbUpdateException ex) when (ex.InnerException is Npgsql.PostgresException { SqlState: Npgsql.PostgresErrorCodes.UniqueViolation })
-                            {
-                                var pending = _db.AffiliateCommissions.Local.FirstOrDefault(x => x.OrderId == paidOrder.Id);
-                                if (pending is not null) _db.Entry(pending).State = EntityState.Detached;
-                            }
-                        }
-                    }
+                    await AffiliateRewardProcessor.RecordVerifiedPurchaseAsync(_db, paidOrder, _configuration, ct);
 
-                    var referral = await _db.AffiliateReferrals.FirstOrDefaultAsync(x => x.ReferredUserId == paidOrder.BuyerId, ct);
-                    if (referral is not null && !await _db.PromotionCoupons.AnyAsync(x => x.SourceReferralId == referral.Id, ct))
-                    {
-                        var reward = new PromotionCoupon {
-                            Code = "REFER" + Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(4)),
-                            Title = "MERKATO referral thank-you reward",
-                            DiscountType = "FIXED",
-                            DiscountValue = 50m,
-                            MinimumOrderEtb = 200m,
-                            UsageLimit = 1,
-                            PerUserLimit = 1,
-                            AssignedUserId = referral.AffiliateUserId,
-                            SourceReferralId = referral.Id,
-                            StartsAt = DateTime.UtcNow,
-                            ExpiresAt = DateTime.UtcNow.AddDays(30),
-                            CreatedBy = referral.AffiliateUserId
-                        };
-                        _db.PromotionCoupons.Add(reward);
-                        try { await _db.SaveChangesAsync(ct); }
-                        catch (DbUpdateException) { _db.Entry(reward).State = EntityState.Detached; }
-                    }
                 }
             }
 
