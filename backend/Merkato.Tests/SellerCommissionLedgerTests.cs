@@ -1,5 +1,6 @@
 using System.Linq;
 using Merkato.Api.Controllers;
+using Merkato.Domain.Entities;
 using Merkato.Domain.Enums;
 using Xunit;
 
@@ -116,4 +117,64 @@ public sealed class SellerCommissionLedgerTests
         Assert.Equal(expected, SellerCommissionLedger.ShouldAccrueCommission(payment, state, commission));
     }
 
+}
+
+public sealed class SellerRefundHistoryTests
+{
+    [Fact]
+    public void MultiplePartialRefundsAccumulateAndKeepRemainingBalance()
+    {
+        var history = new[]
+        {
+            new SellerRefundHistoryEntry(20m, "REF-1", null, 7, DateTime.UtcNow),
+            new SellerRefundHistoryEntry(15m, "REF-2", "Second transfer", 7, DateTime.UtcNow)
+        };
+
+        var json = SellerRefundHistory.Serialize(history, 100m);
+        var summary = SellerRefundHistory.Read(json, 100m, ReturnStatus.RECEIVED);
+
+        Assert.Equal("PARTIALLY_REFUNDED", summary.RefundStatus);
+        Assert.Equal(35m, summary.RefundedAmountEtb);
+        Assert.Equal(65m, summary.RemainingRefundEtb);
+        Assert.Equal(2, summary.RefundHistory.Count);
+    }
+
+    [Fact]
+    public void RefundHistoryBecomesFullyRefundedOnlyWhenCumulativeAmountReachesOrderTotal()
+    {
+        var history = new[]
+        {
+            new SellerRefundHistoryEntry(30m, "REF-1", null, 7, DateTime.UtcNow),
+            new SellerRefundHistoryEntry(70m, "REF-2", null, 7, DateTime.UtcNow)
+        };
+
+        var summary = SellerRefundHistory.Read(
+            SellerRefundHistory.Serialize(history, 100m), 100m, ReturnStatus.RECEIVED);
+
+        Assert.Equal("FULLY_REFUNDED", summary.RefundStatus);
+        Assert.Equal(100m, summary.RefundedAmountEtb);
+        Assert.Equal(0m, summary.RemainingRefundEtb);
+    }
+
+    [Fact]
+    public void LegacySingleRefundJsonIsReadAsHistory()
+    {
+        const string legacy = "{\"refundStatus\":\"MERCHANT_REPORTED_SENT\",\"refundAmountEtb\":25,\"transactionReference\":\"OLD-REF\",\"confirmedByMerchantId\":7}";
+        var summary = SellerRefundHistory.Read(legacy, 100m, ReturnStatus.REFUNDED);
+
+        Assert.Equal("PARTIALLY_REFUNDED", summary.RefundStatus);
+        Assert.Equal(25m, summary.RefundedAmountEtb);
+        Assert.Equal(75m, summary.RemainingRefundEtb);
+        Assert.Single(summary.RefundHistory);
+        Assert.Equal("OLD-REF", summary.RefundHistory[0].TransactionReference);
+    }
+
+    [Fact]
+    public void FullyRefundedOrderHasNoRemainingRefundableBalance()
+    {
+        var summary = SellerRefundHistory.Read(null, 100m, ReturnStatus.REFUNDED);
+
+        Assert.Equal("FULLY_REFUNDED", summary.RefundStatus);
+        Assert.Equal(0m, summary.RemainingRefundEtb);
+    }
 }
