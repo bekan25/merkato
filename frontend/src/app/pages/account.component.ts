@@ -17,25 +17,42 @@ interface ReturnRequestItem { id:number; orderId:number; reason:string; status:s
  selector:'app-account', standalone:true, imports:[CommonModule,FormsModule,RouterLink],
  template:`
  <main class="account-shell">
-  <a routerLink="/dashboard" class="back">← Back to dashboard</a>
-  <header class="hero"><div><span class="eyebrow">MERKATO ACCOUNT</span><h1>My account</h1><p>Manage your profile, delivery addresses and account access.</p></div><div class="avatar"><img *ngIf="photoUrl" [src]="photoUrl" alt="Profile photo"><span *ngIf="!photoUrl">{{ profile?.fullName?.slice(0,1) || 'M' }}</span></div></header>
+  <nav class="breadcrumb" aria-label="Breadcrumb"><a routerLink="/">Home</a><span aria-hidden="true">›</span><span aria-current="page">My account</span></nav>
+  <header class="hero">
+   <div class="avatar-wrap">
+    <div class="avatar"><img *ngIf="photoUrl" [src]="photoUrl" alt="Your MERKATO profile photo"><span *ngIf="!photoUrl" aria-hidden="true">{{ profile?.fullName?.slice(0,1) || 'M' }}</span></div>
+    <button class="photo-edit" type="button" (click)="photoInput.click()" aria-label="Edit profile photo" title="Edit photo">📷</button>
+    <input #photoInput class="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" aria-label="Choose profile photo" (change)="uploadPhoto($event)">
+   </div>
+   <div class="hero-copy"><p class="hero-kicker">YOUR MERKATO</p><h1>My account</h1><p>Manage your profile, delivery addresses and account access.</p></div>
+   <div class="hero-meta"><span>{{profile?.role || 'ACCOUNT'}}</span><small *ngIf="profile?.isFaydaVerified">Identity verified</small></div>
+  </header>
   <div *ngIf="error" class="notice error">{{error}}</div><div *ngIf="message" class="notice success">{{message}}</div>
-  <section class="panel"><div class="section-head"><div><h2>Personal profile</h2><p>Your verified account identity and contact details.</p></div><span class="status">{{profile?.role || 'ACCOUNT'}}</span></div>
+  <div class="account-layout">
+   <nav class="account-nav" aria-label="Account sections">
+    <a href="#profile" [class.active]="activeSection==='profile'" (click)="setActiveSection('profile')"><span aria-hidden="true">◉</span>Profile</a>
+    <a href="#addresses" [class.active]="activeSection==='addresses'" (click)="setActiveSection('addresses')"><span aria-hidden="true">⌖</span>Addresses</a>
+    <a href="#orders" [class.active]="activeSection==='orders'" (click)="setActiveSection('orders')"><span aria-hidden="true">▤</span>Orders</a>
+    <a href="#security" [class.active]="activeSection==='security'" (click)="setActiveSection('security')"><span aria-hidden="true">◇</span>Security</a>
+    <a href="#preferences" [class.active]="activeSection==='preferences'" (click)="setActiveSection('preferences')"><span aria-hidden="true">⚙</span>Preferences</a>
+   </nav>
+   <div class="account-content">
+  <section class="panel" id="profile" aria-labelledby="profile-heading"><div class="section-head"><div><h2 id="profile-heading">Profile information</h2><p>Your name and verified contact details.</p></div><button class="secondary" type="button" *ngIf="!isEditingProfile" (click)="isEditingProfile=true">Edit</button></div>
    <div *ngIf="loading" class="muted">Loading your account…</div>
    <form *ngIf="profile" (ngSubmit)="saveProfile()" class="form-grid">
-    <label>Full name<input name="fullName" [(ngModel)]="draft.fullName" maxlength="120" required></label>
+    <label>Full name<input name="fullName" [(ngModel)]="draft.fullName" maxlength="120" required [readonly]="!isEditingProfile" #fullNameInput="ngModel" aria-describedby="full-name-error"></label><small class="field-error" id="full-name-error" *ngIf="fullNameInput.invalid && (fullNameInput.dirty || fullNameInput.touched)">Enter your full name (maximum 120 characters).</small>
     <label>Phone number<input [value]="profile.phoneNumber" readonly></label>
     <label>Email<input [value]="profile.email || 'Not added'" readonly></label>
     <label>Account role<input [value]="profile.role" readonly></label>
-    <div class="actions"><button type="submit" [disabled]="saving">{{saving?'Saving…':'Save profile'}}</button><span class="muted">Phone and email changes require a separate verification flow.</span></div>
+    <div class="actions" *ngIf="isEditingProfile"><button type="submit" [disabled]="saving || fullNameInput.invalid">{{saving?'Saving…':'Save changes'}}</button><button class="secondary" type="button" (click)="cancelProfileEdit()">Cancel</button><span class="muted">Phone and email changes require a separate verification flow.</span></div>
    </form>
-   <div class="photo-row"><div><strong>Profile photo</strong><p class="muted">JPEG, PNG or WebP · maximum 3 MB</p></div><input type="file" accept="image/jpeg,image/png,image/webp" (change)="uploadPhoto($event)"><button class="secondary" type="button" *ngIf="profile?.hasProfilePhoto" (click)="deletePhoto()">Remove photo</button></div>
+   <div class="photo-row"><div><strong>Profile photo</strong><p class="muted">JPEG, PNG or WebP · maximum 3 MB</p></div><button class="secondary" type="button" *ngIf="profile?.hasProfilePhoto" (click)="deletePhoto()">Remove photo</button></div>
   </section>
-  <section class="panel"><div class="section-head"><div><h2>Delivery addresses</h2><p>Save addresses for faster and more accurate checkout.</p></div><div class="address-actions"><span class="status">{{addresses.length}} saved</span><button class="secondary" type="button" (click)="loadAddresses()">Refresh</button></div></div>
+  <section class="panel" id="addresses" aria-labelledby="addresses-heading"><div class="section-head"><div><h2 id="addresses-heading">Delivery addresses</h2><p>Save addresses for faster and more accurate checkout.</p></div><div class="address-actions"><span class="status">{{addresses.length}} saved</span><button class="secondary" type="button" (click)="loadAddresses()">Refresh</button><button type="button" (click)="startNewAddress()">Add new address</button></div></div>
    <div *ngIf="addressesError" class="notice error">{{addressesError}}</div>
-   <div *ngIf="!addresses.length && !addressesError" class="empty">No delivery addresses saved yet.</div>
+   <div *ngIf="!addresses.length && !addressesError" class="empty">No saved addresses yet. Add your first delivery address to make checkout faster.</div>
    <article class="address" *ngFor="let a of addresses"><div><div class="address-title">{{a.label}} <span *ngIf="a.isDefault" class="default">DEFAULT</span></div><strong>{{a.recipientName}}</strong><p>{{a.phoneNumber}} · {{a.subCity}}, {{a.city}}</p><small>{{a.streetAddress || ''}} {{a.woreda || ''}}</small></div><div class="address-actions"><button class="secondary" type="button" (click)="editAddress(a)">Edit</button><button class="secondary" type="button" *ngIf="!a.isDefault" (click)="setDefault(a)">Make default</button><button class="danger" type="button" (click)="deleteAddress(a)">Delete</button></div></article>
-   <form class="address-form" (ngSubmit)="saveAddress()"><h3>{{editingAddressId ? 'Edit delivery address' : 'Add a delivery address'}}</h3><div class="form-grid">
+   <form class="address-form" *ngIf="showAddressForm" (ngSubmit)="saveAddress()"><h3>{{editingAddressId ? 'Edit delivery address' : 'Add a delivery address'}}</h3><div class="form-grid">
     <label>Label<input name="label" [(ngModel)]="addressDraft.label" required></label><label>Recipient name<input name="recipient" [(ngModel)]="addressDraft.recipientName" required></label>
     <label>Phone number<input name="phone" [(ngModel)]="addressDraft.phoneNumber" placeholder="09… or +251…" required></label><label>City<input name="city" [(ngModel)]="addressDraft.city" required></label>
     <label>Sub-city<input name="subCity" [(ngModel)]="addressDraft.subCity" required></label><label>Woreda<input name="woreda" [(ngModel)]="addressDraft.woreda"></label>
@@ -44,9 +61,9 @@ interface ReturnRequestItem { id:number; orderId:number; reason:string; status:s
    </form>
   </section>
 
-  <section class="panel" *ngIf="isBuyer"><div class="section-head"><div><h2>My orders</h2><p>Your order history and delivery progress.</p></div><span class="status">{{orders.length}} orders</span></div>
-   <div *ngIf="!orders.length" class="empty">No orders found for this account.</div>
-   <article class="record" *ngFor="let o of orders"><div><strong>{{o.orderNumber}}</strong><p>{{o.productTitle}} · Qty {{o.quantity}}</p><small>{{o.createdAt | date:'mediumDate'}}</small></div><div class="record-right"><strong>{{o.totalAmountEtb | number:'1.2-2'}} ETB</strong><span>{{o.deliveryStatus}} · {{o.escrowState}}</span><a [routerLink]="'/payment/' + o.id">Payment details</a></div></article>
+  <section class="panel" id="orders" *ngIf="isBuyer" aria-labelledby="orders-heading"><div class="section-head"><div><h2 id="orders-heading">Order history</h2><p>Your order history and delivery progress.</p></div><span class="status">{{orders.length}} orders</span></div>
+   <div *ngIf="!orders.length" class="empty">No orders yet. Your recent purchases will appear here.</div>
+   <article class="record" *ngFor="let o of (orders | slice:0:3)"><div><strong>{{o.orderNumber}}</strong><p>{{o.productTitle}} · Qty {{o.quantity}}</p><small>{{o.createdAt | date:'mediumDate'}}</small></div><div class="record-right"><strong>{{o.totalAmountEtb | number:'1.2-2'}} ETB</strong><span>{{o.deliveryStatus}} · {{o.escrowState}}</span><a [routerLink]="'/payment/' + o.id">Payment details</a></div></article>
   </section>
   <section class="panel" *ngIf="isBuyer"><div class="section-head"><div><h2>Returns &amp; refunds</h2><p>Request a return for a delivered order and track its review.</p></div><span class="status">{{returnRequests.length}} requests</span></div>
    <form class="form-grid" (ngSubmit)="requestReturn()"><label>Delivered order<select name="returnOrderId" [(ngModel)]="returnDraft.orderId" required><option [ngValue]="0" disabled>Select an order</option><option *ngFor="let o of deliveredOrders" [ngValue]="o.id">{{o.orderNumber}} · {{o.productTitle}}</option></select></label><label>Reason<textarea name="returnReason" [(ngModel)]="returnDraft.reason" rows="3" maxlength="1200" required></textarea></label><div class="actions"><button type="submit" [disabled]="submittingReturn || !deliveredOrders.length">{{submittingReturn?'Submitting…':'Submit return request'}}</button></div></form>
@@ -66,12 +83,14 @@ interface ReturnRequestItem { id:number; orderId:number; reason:string; status:s
    <div *ngIf="!notifications.length" class="empty">No notifications yet.</div>
    <article class="record" *ngFor="let n of notifications"><div><strong>{{n.title}}</strong><p>{{n.message}}</p><small>{{n.createdAt | date:'medium'}}</small></div><div class="record-right"><span class="status">{{n.isRead ? 'READ' : 'UNREAD'}}</span><button class="secondary" *ngIf="!n.isRead" (click)="markRead(n)">Mark read</button><button class="danger" (click)="deleteNotification(n)">Delete</button></div></article>
   </section>
-  <section class="panel" *ngIf="isBuyer"><div class="section-head"><div><h2>Language &amp; preferences</h2><p>Save your preferred language and notification channels.</p></div></div>
+  <section class="panel" id="preferences" *ngIf="isBuyer" aria-labelledby="preferences-heading"><div class="section-head"><div><h2 id="preferences-heading">Preferences</h2><p>Save your preferred language and notification channels.</p></div></div>
    <div class="form-grid"><label>Language<select name="languageCode" [(ngModel)]="prefs.languageCode"><option value="om">Afaan Oromoo</option><option value="en">English</option><option value="am">Amharic</option></select></label>
    <label class="check"><input type="checkbox" name="inAppEnabled" [(ngModel)]="prefs.inAppEnabled"> In-app notifications</label><label class="check"><input type="checkbox" name="emailEnabled" [(ngModel)]="prefs.emailEnabled"> Email preference</label><label class="check"><input type="checkbox" name="smsEnabled" [(ngModel)]="prefs.smsEnabled"> SMS preference</label><label class="check"><input type="checkbox" name="marketingEnabled" [(ngModel)]="prefs.marketingEnabled"> Promotions and offers</label></div><button (click)="savePrefs()">Save preferences</button>
   </section>
-  <section class="panel"><h2>Change account PIN</h2><form class="form-grid" (ngSubmit)="changePin()"><label>Current PIN<input type="password" name="currentPin" [(ngModel)]="pinDraft.currentPin" inputmode="numeric" minlength="6" maxlength="8" required></label><label>New PIN<input type="password" name="newPin" [(ngModel)]="pinDraft.newPin" inputmode="numeric" minlength="6" maxlength="8" required></label><div class="actions"><button type="submit">Update PIN</button></div></form></section>
-  <section class="panel security"><div><h2>Account security</h2><p>Change your PIN above. Logging out invalidates this device session; PIN changes revoke all existing tokens.</p></div><button class="danger" (click)="logout()">Log out</button></section>
+  <section class="panel" id="security" aria-labelledby="security-heading"><div class="section-head"><div><h2 id="security-heading">Security</h2><p>Protect your account and sign-in details.</p></div><span class="status">Account protected</span></div><h3>Change account PIN</h3><form class="form-grid" (ngSubmit)="changePin()"><label>Current PIN<input type="password" name="currentPin" [(ngModel)]="pinDraft.currentPin" inputmode="numeric" minlength="6" maxlength="8" required></label><label>New PIN<input type="password" name="newPin" [(ngModel)]="pinDraft.newPin" inputmode="numeric" minlength="6" maxlength="8" required></label><div class="actions"><button type="submit">Update PIN</button></div></form></section>
+  <div class="security-option"><div><strong>Two-factor authentication</strong><p>Extra sign-in verification is not yet available for buyer and merchant accounts.</p></div><label class="switch-label"><input type="checkbox" disabled aria-label="Two-factor authentication unavailable"><span class="switch"></span><span class="sr-only">Unavailable</span></label></div>
+  <div class="security panel security-logout"><div><h3>Active session</h3><p>Logging out invalidates this device session. Changing your PIN revokes existing tokens.</p></div><button class="danger" type="button" (click)="logout()">Log out</button></div>
+  </div></div>
  </main>
  `,
  styles:[`
