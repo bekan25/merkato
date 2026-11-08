@@ -61,8 +61,8 @@ interface HeaderProfile {
             [class.active]="isActive(dashboardPath)" (click)="closeMenu(false)">
             <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="5" rx="1.5"/><rect x="13" y="10" width="8" height="11" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/></svg><span>Dashboard</span>
           </a>
-          <a class="menu-entry" routerLink="/account" fragment="orders" role="menuitem"
-            [class.active]="isActive('/account') && currentFragment === 'orders'" (click)="closeMenu(false)">
+          <a class="menu-entry" [routerLink]="ordersPath" [fragment]="ordersFragment" role="menuitem"
+            [class.active]="isActive(ordersPath) && currentFragment === ordersFragment" (click)="closeMenu(false)">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12a2 2 0 0 1 2 2v16l-3-2-3 2-3-2-3 2-3-2-3 2V5a2 2 0 0 1 2-2Z"/><path d="M8 8h8M8 12h8M8 16h4"/></svg><span>Orders</span>
           </a>
           <a class="menu-entry" routerLink="/commerce" role="menuitem"
@@ -177,6 +177,8 @@ export class AccountMenuComponent implements OnInit, OnDestroy {
     return this.displayName.split(/\s+/).filter(Boolean).slice(0, 2).map(x => x[0]).join('').toUpperCase() || 'M';
   }
   get dashboardPath(): string { return this.auth.dashboardPath(); }
+  get ordersPath(): string { return this.auth.user?.role === 'MERCHANT' ? '/merchant' : '/account'; }
+  get ordersFragment(): string { return this.auth.user?.role === 'MERCHANT' ? 'merchant-orders' : 'orders'; }
   get currentFragment(): string { return this.router.parseUrl(this.router.url).fragment || ''; }
 
   ngOnInit(): void {
