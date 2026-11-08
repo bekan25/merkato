@@ -1,5 +1,6 @@
 using System.Linq;
 using Merkato.Api.Controllers;
+using Merkato.Domain.Entities;
 using Merkato.Domain.Enums;
 using Xunit;
 
