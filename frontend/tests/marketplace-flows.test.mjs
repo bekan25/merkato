@@ -220,3 +220,94 @@ test('checkout sends one quantity-aware order per product and validates live ava
   assert.match(orders, /INSUFFICIENT_STOCK/);
 });
 
+
+test('merchant product create and edit keep stock and reserved units consistent transactionally', async () => {
+  const products = await read('../../backend/Merkato.Api/Controllers/ProductsController.cs');
+  const dashboard = await read('../src/app/pages/dashboard.component.ts');
+  const api = await read('../src/app/core/api.service.ts');
+
+  assert.match(products, /Authorize\(Roles = "MERCHANT,ADMIN"\)/);
+  assert.match(products, /request\.StockQuantity < 0/);
+  assert.match(products, /ReservedQuantity\)/);
+  assert.match(products, /request\.StockQuantity < inventory\.ReservedQuantity/);
+  assert.match(products, /BeginTransactionAsync\(IsolationLevel\.Serializable\)/);
+  assert.match(products, /Entry\(product\)\.ReloadAsync\(\)/);
+  assert.match(products, /Seller is no longer an active merchant account/);
+  assert.match(products, /ProductListingDetail\s*\{\s*ProductId = product\.Id, StockQuantity = request\.StockQuantity, ReservedQuantity = 0/);
+  assert.match(dashboard, /\[\(ngModel\)\]="draft\.stockQuantity"/);
+  assert.match(dashboard, /this\.api\.createProduct\(this\.draft\)/);
+  assert.match(dashboard, /this\.api\.updateProduct\(this\.editingProductId, this\.draft\)/);
+  assert.match(api, /stockQuantity: number/);
+});
+
+test('checkout revalidates the live listing and seller payment account inside its serializable transaction', async () => {
+  const orders = await read('../../backend/Merkato.Api/Controllers/OrdersController.cs');
+  const payments = await read('../../backend/Merkato.Api/Controllers/PaymentsController.cs');
+  const cart = await read('../src/app/pages/cart.component.ts');
+
+  assert.match(orders, /Authorize\(Roles = "BUYER,ADMIN"\)/);
+  assert.match(orders, /BeginTransactionAsync\(IsolationLevel\.Serializable, ct\)/);
+  assert.match(orders, /product = await _db\.Products\.AsNoTracking\(\)[\s\S]*item\.IsActive, ct\)/);
+  assert.match(orders, /expectedProductAmount = product\.PriceEtb \* request\.Quantity/);
+  assert.match(orders, /StockQuantity - x\.ReservedQuantity >= request\.Quantity/);
+  assert.match(orders, /InventoryReservationExpiresAt = reservationTime\.AddHours\(2\)/);
+  assert.match(orders, /PaymentMode = "SELLER_DIRECT"/);
+  assert.match(payments, /Idempotency-Key/);
+  assert.match(payments, /order\.BuyerId != buyerId/);
+  assert.match(cart, /this\.api\.createOrder\(/);
+});
+
+test('merchant orders and analytics are scoped to the authenticated merchant', async () => {
+  const orders = await read('../../backend/Merkato.Api/Controllers/OrdersController.cs');
+  const analytics = await read('../../backend/Merkato.Api/Controllers/AnalyticsController.cs');
+  const dashboard = await read('../src/app/pages/dashboard.component.ts');
+  const api = await read('../src/app/core/api.service.ts');
+
+  assert.match(orders, /HttpGet\("merchant"\)[\s\S]*Authorize\(Roles = "MERCHANT,ADMIN"\)/);
+  assert.match(orders, /query = query\.Where\(order => order\.SellerId == userId\)/);
+  assert.match(analytics, /HttpGet\("merchant"\)[\s\S]*Authorize\(Roles = "MERCHANT,ADMIN"\)/);
+  assert.match(analytics, /Where\(p => p\.SellerId == sellerId\)/);
+  assert.match(analytics, /Where\(o => o\.SellerId == sellerId\)/);
+  assert.match(dashboard, /id="merchant-orders"/);
+  assert.match(dashboard, /id="merchant-analytics"/);
+  assert.match(dashboard, /getMerchantOrders\(\)/);
+  assert.match(dashboard, /getMerchantAnalytics\(\)/);
+  assert.match(api, /getMerchantOrders\(\)/);
+});
+
+test('receipt OCR remains advisory and payment decisions require the correct account role', async () => {
+  const receipts = await read('../../backend/Merkato.Api/Controllers/PaymentReceiptsController.cs');
+  const adminUi = await read('../src/app/pages/admin-payment-reviews.component.ts');
+  const sellerUi = await read('../src/app/pages/seller-payment-reviews.component.ts');
+  const buyerUi = await read('../src/app/pages/payment-receipt.component.ts');
+
+  assert.match(receipts, /Authorize\(Roles = "BUYER,ADMIN"\)/);
+  assert.match(receipts, /MaxReceiptBytes/);
+  assert.match(receipts, /HasValidImageSignature/);
+  assert.match(receipts, /_ocr\.ReadAsync/);
+  assert.match(receipts, /Status = "PENDING_REVIEW"/);
+  assert.match(receipts, /verificationFlags = crossCheck\.Flags/);
+  assert.match(receipts, /Authorize\(Roles = "ADMIN"\)/);
+  assert.match(receipts, /order\.PaymentMode == "SELLER_DIRECT"/);
+  assert.match(receipts, /Authorize\(Roles = "MERCHANT"\)/);
+  assert.match(receipts, /order\.SellerId != sellerId/);
+  assert.match(receipts, /receipt\.Status = "SELLER_CONFIRMED"/);
+  assert.match(adminUi, /Enter an admin review note/);
+  assert.match(adminUi, /independently confirming the funds/);
+  assert.match(sellerUi, /Confirm money received/);
+  assert.match(buyerUi, /OCR is an assistant only/);
+});
+
+test('mobile dashboard and payment review layouts define narrow-screen behavior', async () => {
+  const dashboard = await read('../src/app/pages/dashboard.component.ts');
+  const adminPayments = await read('../src/app/pages/admin-payment-reviews.component.ts');
+  const sellerPayments = await read('../src/app/pages/seller-payment-reviews.component.ts');
+  const cart = await read('../src/app/pages/cart.component.ts');
+
+  assert.match(dashboard, /@media\(max-width:760px\)/);
+  assert.match(dashboard, /overflow-x:auto/);
+  assert.match(dashboard, /workspace-mobile-bar/);
+  assert.match(adminPayments, /@media\(max-width:520px\)/);
+  assert.match(sellerPayments, /@media\(max-width:560px\)/);
+  assert.match(cart, /@media\(max-width:680px\)/);
+});

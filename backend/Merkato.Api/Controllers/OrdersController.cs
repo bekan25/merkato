@@ -156,6 +156,27 @@ public class OrdersController : ControllerBase
             return Conflict(new { message = "The product price or quantity total has changed. Refresh the marketplace and try again.", currentUnitPriceEtb = product.PriceEtb, quantity = request.Quantity, expectedProductAmountEtb = expectedProductAmount });
 
         await using var checkoutTransaction = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+
+        // Re-read price, active status, seller role and payment destination inside the
+        // serializable checkout transaction. This prevents a stale storefront quote from
+        // creating an order after a merchant edits the listing or disables its payment account.
+        product = await _db.Products.AsNoTracking().FirstOrDefaultAsync(item =>
+            item.SellerId == request.SellerId && item.Id == product.Id && item.IsActive, ct);
+        if (product is null)
+            return NotFound(new { message = "The selected product is no longer available." });
+
+        expectedProductAmount = product.PriceEtb * request.Quantity;
+        if (request.AmountEtb != expectedProductAmount)
+            return Conflict(new { message = "The product price or quantity total changed during checkout. Refresh the marketplace and try again.", currentUnitPriceEtb = product.PriceEtb, quantity = request.Quantity, expectedProductAmountEtb = expectedProductAmount });
+
+        if (!await _db.Users.AsNoTracking().AnyAsync(user =>
+            user.Id == request.SellerId && user.Role == UserRole.MERCHANT, ct))
+            return Conflict(new { message = "The selected seller is no longer an active merchant account." });
+
+        if (!await _db.SellerPaymentAccounts.AsNoTracking().AnyAsync(x =>
+            x.SellerId == request.SellerId && x.PaymentRail == request.PaymentRail && x.IsActive, ct))
+            return Conflict(new { message = "The seller payment destination is no longer active. Refresh checkout and choose an available payment method." });
+
         PromotionCoupon? appliedCoupon = null;
         decimal discountEtb = 0m;
         if (!string.IsNullOrWhiteSpace(request.CouponCode))
