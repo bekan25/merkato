@@ -440,7 +440,7 @@ public sealed class PaymentReceiptsController : ControllerBase
                 _db.LedgerTransactions.Add(SellerCommissionLedger.CreateAccrual(order.Id, sellerId, order.MerchantCommissionEtb, reference));
                 _db.IdempotencyRecords.Add(new IdempotencyRecord { Key = commissionKey,
                     RequestHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes($"{order.Id}:{order.MerchantCommissionEtb}:{reference}"))),
-                    ResponseJson = "{\\"status\\":\\"ACCRUED\\"}", StatusCode = 200, CreatedAt = DateTime.UtcNow });
+                    ResponseJson = "{\"status\":\"ACCRUED\"}", StatusCode = 200, CreatedAt = DateTime.UtcNow });
             }
         }
         await AffiliateRewardProcessor.RecordVerifiedPurchaseAsync(_db, order, _configuration, ct);
