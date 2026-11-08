@@ -71,11 +71,12 @@ public static class AffiliateRewardProcessor
         catch (DbUpdateException ex) when (
             ex.InnerException is Npgsql.PostgresException { SqlState: Npgsql.PostgresErrorCodes.UniqueViolation })
         {
-            // A concurrent webhook/review won the unique OrderId or SourceReferralId
-            // race. The verified payment remains valid; the next retry can reconcile.
-            foreach (var entry in db.ChangeTracker.Entries().Where(x => x.State == EntityState.Added &&
-                (x.Entity is AffiliateCommission commission && commission.OrderId == order.Id ||
-                 x.Entity is PromotionCoupon coupon && coupon.SourceReferralId == referral.Id)).ToList())
+            // A concurrent webhook/review already recorded the first commission
+            // for this referral. Keep the verified payment valid and detach our loser.
+            foreach (var entry in db.ChangeTracker.Entries().Where(x =>
+                x.State == EntityState.Added &&
+                x.Entity is AffiliateCommission commission &&
+                (commission.OrderId == order.Id || commission.AffiliateReferralId == referral.Id)).ToList())
                 entry.State = EntityState.Detached;
         }
     }
