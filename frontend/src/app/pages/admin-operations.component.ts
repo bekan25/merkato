@@ -125,7 +125,7 @@ export class AdminOperationsComponent implements OnInit {
     if(!window.confirm('Create a dedicated courier account for '+fullName+'? Verify identity and consent before continuing.'))return;
     this.creatingCourier=true;this.error='';this.message='';
     this.http.post<any>('/api/admin/operations/couriers',{fullName,phoneNumber,temporaryPin}).subscribe({
-      next:r=>{this.creatingCourier=false;this.newCourier={fullName:'',phoneNumber:'',temporaryPin:''};this.message='Courier account created for '+r.fullName+'. Share the temporary PIN privately and ask them to change it after login.';this.loadDispatch();},
+      next:r=>{this.creatingCourier=false;this.newCourier={fullName:'',phoneNumber:'',temporaryPin:''};this.loadDispatch();this.message='Courier account created for '+r.fullName+'. Share the temporary PIN privately and ask them to change it after login.';},
       error:e=>{this.creatingCourier=false;this.error=e?.error?.message||'Could not create the courier account.';}
     });
   }
@@ -136,7 +136,7 @@ export class AdminOperationsComponent implements OnInit {
     if(!window.confirm('Assign '+(courier?.fullName||'this courier')+' to delivery '+delivery.deliveryId+'?'))return;
     this.loading=true;
     this.http.post('/api/deliveries/'+encodeURIComponent(delivery.deliveryId)+'/assign-courier',{courierUserId}).subscribe({
-      next:()=>{this.message='Courier assigned. The buyer and courier can now follow the delivery status.';this.error='';this.loadDispatch();},
+      next:()=>{this.error='';this.loadDispatch();this.message='Courier assigned. The buyer and courier can now follow the delivery status.';},
       error:e=>{this.loading=false;this.error=e?.error?.message||'Could not assign this courier. Refresh the queue and try again.';}
     });
   }
