@@ -22,11 +22,9 @@ import { ShoppingAssistantComponent } from '../components/shopping-assistant.com
         <div class="hero-assurance-chips" aria-label="Marketplace support features"><span><b aria-hidden="true">✓</b> Local Ethiopian merchants</span><span><b aria-hidden="true">✓</b> Dispute support</span></div>
         <div class="hero-proof"><span class="hero-proof-mark" aria-hidden="true">✓</span><span><strong>{{ t('proofTitle') }}</strong><small>{{ t('proofCopy') }}</small></span></div>
       </div>
-      <div class="hero-art" aria-label="Marketplace product collage">
-        <div class="art-orbit orbit-one"></div><div class="art-orbit orbit-two"></div>
-        <div class="art-card art-card-main"><div class="art-image"><span class="hero-bag">M</span><span class="hero-art-spark">✦</span></div><div class="art-card-info"><span>{{ t('madeForEthiopia') }}</span><strong>{{ t('realSellers') }}</strong><small>{{ t('discoverMore') }}</small></div></div>
-        <div class="floating-tag tag-top"><span>✦</span> {{ t('localFinds') }}</div><div class="floating-tag tag-bottom"><span>✓</span> {{ t('secureShopping') }}</div><div class="hero-feature-stack"><div><b>✓</b><span><strong>{{ t('trustedMarketplace') }}</strong><small>{{ t('shopConfidence') }}</small></span></div><div><b>↗</b><span><strong>{{ t('supportLocal') }}</strong><small>{{ t('growBusiness') }}</small></span></div><div><b>✦</b><span><strong>{{ t('greatDiscoveries') }}</strong><small>{{ t('everydayEssentials') }}</small></span></div></div>
-        <div class="art-spark spark-one">✳</div><div class="art-spark spark-two">✦</div>
+      <div class="hero-art" aria-label="Ethiopian woman representing MERKATO shoppers and local businesses">
+        <img class="hero-ethiopian-image" src="/assets/images/merkato-ethiopian-woman.jpg" alt="Ethiopian woman featured in the MERKATO marketplace campaign" fetchpriority="high" decoding="async">
+        <div class="hero-image-caption"><span>✦</span><strong>Made for Ethiopia</strong><small>Discover local. Shop with confidence.</small></div>
       </div>
     </section>
 
@@ -318,6 +316,14 @@ import { ShoppingAssistantComponent } from '../components/shopping-assistant.com
     .hero-proof{gap:10px}
     @media(max-width:760px){.hero{padding-top:22px!important}.hero h1{letter-spacing:-.02em}.hero-copy>p{color:#4d5a51!important}.hero-assurance-chips{margin-top:12px;gap:7px}.hero-assurance-chips span{font-size:9px;padding:7px 9px}.hero-proof{margin-top:14px}}
     @media(max-width:390px){.hero-assurance-chips span{font-size:8px;padding:6px 8px}}
+    .hero-ethiopian-image{display:block;width:min(100%,520px);height:100%;max-height:410px;object-fit:cover;object-position:center 34%;border:1px solid rgba(255,255,255,.82);border-radius:34px;box-shadow:0 28px 70px rgba(17,68,42,.20);animation:merkato-hero-enter .85s cubic-bezier(.2,.75,.25,1) both,merkato-hero-float 7s ease-in-out 1s infinite}
+    .hero-image-caption{position:absolute;left:clamp(8px,4%,34px);bottom:18px;display:grid;grid-template-columns:auto 1fr;column-gap:9px;align-items:center;padding:12px 16px;border:1px solid rgba(255,255,255,.78);border-radius:16px;background:rgba(255,255,255,.88);box-shadow:0 12px 32px rgba(22,55,35,.12);backdrop-filter:blur(12px)}
+    .hero-image-caption>span{grid-row:span 2;color:#b78324;font-size:20px}.hero-image-caption strong{color:#17452f;font-size:13px}.hero-image-caption small{color:#6b7c70;font-size:10px}
+    @keyframes merkato-hero-enter{from{opacity:0;transform:translateY(22px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
+    @keyframes merkato-hero-float{0%,100%{translate:0 0}50%{translate:0 -8px}}
+    @media(max-width:760px){.hero-ethiopian-image{max-height:340px;border-radius:24px}.hero-image-caption{left:12px;bottom:12px}}
+    @media(prefers-reduced-motion:reduce){.hero-ethiopian-image{animation:none!important;translate:none!important}}
+
   `]
 })
 export class StorefrontComponent implements OnInit, OnDestroy {
