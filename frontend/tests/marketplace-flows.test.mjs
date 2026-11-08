@@ -363,6 +363,12 @@ test('delivery dispatch is operational for buyers, administrators and assigned c
   assert.match(admin, /admin\/queue/);
   assert.match(admin, /admin\/couriers/);
   assert.match(admin, /assign-courier/);
+  assert.match(admin, /Create courier account/);
+  assert.match(admin, /temporaryPin/);
+  const adminApi = await read('../../backend/Merkato.Api/Controllers/AdminOperationsController.cs');
+  assert.match(adminApi, /HttpPost\("couriers"\)/);
+  assert.match(adminApi, /PinHasher.Hash/);
+  assert.match(adminApi, /COURIER_CREATED/);
   assert.match(deliveries, /HttpGet\("admin\/queue"\)/);
   assert.match(deliveries, /HttpGet\("admin\/couriers"\)/);
   assert.match(deliveries, /HttpGet\("courier\/mine"\)/);
