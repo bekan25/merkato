@@ -12,7 +12,7 @@ import { AuthService } from '../core/auth.service';
  template: `
  <main class="page">
   <a routerLink="/commerce">← Commerce Hub</a>
-  <header><span>MERKATO PARTNER NETWORK</span><h1>Affiliate earnings</h1><p>Share your referral link. When a referred customer completes an eligible paid order and escrow is released, your commission becomes available.</p></header>
+  <header><span>MERKATO PARTNER NETWORK</span><h1>Affiliate earnings</h1><p>Share your referral link. Earn on a referred customer's first verified purchase after escrow release or seller-confirmed delivery by OTP.</p></header>
   <p class="notice" *ngIf="message">{{message}}</p><p class="error" *ngIf="error">{{error}}</p>
   <section class="panel" *ngIf="profileLoaded && !profile?.enrolled">
    <h2>Join the affiliate programme</h2><p>Get a unique referral code and share it with customers. Your referral commission rate is currently 2% of eligible product subtotal, excluding delivery.</p>
@@ -21,7 +21,7 @@ import { AuthService } from '../core/auth.service';
   <ng-container *ngIf="profileLoaded && profile?.enrolled">
    <section class="panel"><div class="head"><div><small>YOUR REFERRAL CODE</small><h2>{{profile.referralCode}}</h2></div><button (click)="shareLink()">Share invite link</button></div><p class="muted">{{shareUrl}}</p><p>Share your link. Registration attribution is attached to the referred account and the first eligible verified purchase can earn a commission.</p></section>
    <section class="metrics">
-    <article><small>HELD</small><strong>{{totals.heldEtb | number:'1.2-2'}} ETB</strong><span>Waiting for escrow release</span></article>
+    <article><small>HELD</small><strong>{{totals.heldEtb | number:'1.2-2'}} ETB</strong><span>Waiting for escrow release or delivery OTP</span></article>
     <article><small>AVAILABLE</small><strong>{{totals.availableEtb | number:'1.2-2'}} ETB</strong><span>Ready for payout reconciliation</span></article>
     <article><small>PAID</small><strong>{{totals.paidEtb | number:'1.2-2'}} ETB</strong><span>Admin recorded payout</span></article>
     <article><small>REVERSED</small><strong>{{totals.reversedEtb | number:'1.2-2'}} ETB</strong><span>Refund or reversal</span></article>
