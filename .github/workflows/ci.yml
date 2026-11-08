@@ -7,6 +7,7 @@ on:
       - feature/merkato-professional-marketplace
       - feature/auth-hardening-without-otp
       - feature/merkato-four-growth-engines
+      - feat/seller-commission-settlement
   pull_request:
     branches:
       - main
