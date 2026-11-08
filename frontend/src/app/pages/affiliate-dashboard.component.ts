@@ -19,7 +19,7 @@ import { AuthService } from '../core/auth.service';
    <button [disabled]="busy" (click)="enroll()">{{busy?'Please wait…':'Create my referral link'}}</button>
   </section>
   <ng-container *ngIf="profileLoaded && profile?.enrolled">
-   <section class="panel"><div class="head"><div><small>YOUR REFERRAL CODE</small><h2>{{profile.referralCode}}</h2></div><button (click)="copyLink()">Copy referral link</button></div><p class="muted">{{shareUrl}}</p><p>Share your link. Registration attribution is attached to the referred account and the first eligible verified purchase can earn a commission.</p></section>
+   <section class="panel"><div class="head"><div><small>YOUR REFERRAL CODE</small><h2>{{profile.referralCode}}</h2></div><button (click)="shareLink()">Share invite link</button></div><p class="muted">{{shareUrl}}</p><p>Share your link. Registration attribution is attached to the referred account and the first eligible verified purchase can earn a commission.</p></section>
    <section class="metrics">
     <article><small>HELD</small><strong>{{totals.heldEtb | number:'1.2-2'}} ETB</strong><span>Waiting for escrow release</span></article>
     <article><small>AVAILABLE</small><strong>{{totals.availableEtb | number:'1.2-2'}} ETB</strong><span>Ready for payout reconciliation</span></article>
@@ -31,6 +31,13 @@ import { AuthService } from '../core/auth.service';
     <p class="muted" *ngIf="!items.length">No eligible commission yet. Referred customers must complete a verified purchase.</p>
    </section>
    <section class="panel"><div class="head"><h2>Your referrals</h2><button (click)="loadReferrals()">Refresh</button></div><p><b>{{registeredCount}}</b> attributed registrations</p><div class="referral" *ngFor="let r of referrals">{{r.converted?'Registered on '+(r.registeredAt | date:'mediumDate'):'Tracked visit on '+(r.clickedAt | date:'mediumDate')}}</div></section>
+   <section class="panel" *ngIf="rewardCoupons.length">
+    <div class="head"><h2>Rewards earned</h2><span>{{rewardCoupons.length}} coupon(s)</span></div>
+    <article class="referral" *ngFor="let reward of rewardCoupons">
+     <b>{{reward.code}}</b> · {{reward.discountValue | number:'1.0-2'}} ETB off
+     <small>Minimum order {{reward.minimumOrderEtb | number:'1.0-2'}} ETB · Expires {{reward.expiresAt | date:'mediumDate'}}</small>
+    </article>
+   </section>
   </ng-container>
   <section class="panel" *ngIf="auth.hasRole(['ADMIN'])"><div class="head"><h2>Affiliate commission settlement</h2><button (click)="loadAdmin()">Refresh</button></div><p class="muted">Record a payout only after an external bank/mobile-money transfer has been verified. This action records reconciliation; it does not send money.</p><article class="referral" *ngFor="let item of adminItems"><b>{{item.affiliateName}}</b> · {{item.commissionEtb | number:'1.2-2'}} ETB · {{item.status}}<small>Order #{{item.orderId}} · {{item.ratePercent}}% · {{item.eligibleAmountEtb | number:'1.2-2'}} ETB</small><div class="head" *ngIf="item.status==='AVAILABLE'"><input [name]="'affiliatePayout'+item.id" [(ngModel)]="payoutRefs[item.id]" placeholder="Verified transfer reference"><button (click)="pay(item)">Record paid</button></div></article></section>
  </main>`,
@@ -41,14 +48,36 @@ export class AffiliateDashboardComponent implements OnInit {
  private http=inject(HttpClient); auth=inject(AuthService);
  busy=false; profileLoaded=false; message=''; error=''; profile:any=null; items:any[]=[]; adminItems:any[]=[]; payoutRefs:any={};
  totals:any={heldEtb:0,availableEtb:0,paidEtb:0,reversedEtb:0};
- referrals:any[]=[];referralCount=0;registeredCount=0;
+ referrals:any[]=[];rewardCoupons:any[]=[];referralCount=0;registeredCount=0;
  get shareUrl(){return this.profile?.referralCode ? location.origin+'/login?mode=register&ref='+encodeURIComponent(this.profile.referralCode):'';}
  ngOnInit(){this.load();if(this.auth.hasRole(['ADMIN']))this.loadAdmin();}
  load(){this.profileLoaded=false;this.http.get<any>('/api/v1/affiliates/profile').subscribe({next:p=>{this.profile=p;this.profileLoaded=true;if(p.enrolled){this.loadCommissions();this.loadReferrals();}},error:()=>{this.profileLoaded=true;this.error='Could not load affiliate profile.';}});}
  enroll(){this.busy=true;this.http.post<any>('/api/v1/affiliates/enroll',{}).subscribe({next:()=>{this.busy=false;this.message='Affiliate profile created.';this.load();},error:e=>{this.busy=false;this.error=e?.error?.detail||e?.error?.title||'Could not create affiliate profile.';}});}
  loadCommissions(){this.http.get<any>('/api/v1/affiliates/commissions/mine').subscribe({next:r=>{this.items=r.items||[];this.totals=r.totals||this.totals;},error:()=>this.error='Could not load commission history.'});}
- loadReferrals(){this.http.get<any>('/api/v1/affiliates/referrals/mine').subscribe({next:r=>{this.referrals=r.items||[];this.referralCount=r.count||0;this.registeredCount=r.registeredCount||0;},error:()=>this.error='Could not load referrals.'});}
+ loadReferrals(){this.http.get<any>('/api/v1/affiliates/referrals/mine').subscribe({next:r=>{this.referrals=r.items||[];this.rewardCoupons=r.rewardCoupons||[];this.referralCount=r.count||0;this.registeredCount=r.registeredCount||0;},error:()=>this.error='Could not load referrals.'});}
  loadAdmin(){this.http.get<any>('/api/v1/affiliates/commissions/admin').subscribe({next:r=>this.adminItems=r.items||[],error:()=>this.error='Could not load affiliate settlement queue.'});}
  pay(item:any){const reference=String(this.payoutRefs[item.id]||'').trim();if(!reference){this.error='Enter the verified external payout reference.';return;}this.http.post('/api/v1/affiliates/commissions/'+item.id+'/payout',{payoutReference:reference}).subscribe({next:()=>{this.message='Affiliate payout reconciliation recorded.';this.loadAdmin();},error:e=>this.error=e?.error?.detail||e?.error?.title||'Could not record affiliate payout.'});}
- copyLink(){if(!this.shareUrl)return;navigator.clipboard.writeText(this.shareUrl).then(()=>this.message='Referral link copied.').catch(()=>this.error='Could not copy the link on this device.');}
+ shareLink(){
+  if(!this.shareUrl)return;
+  const data={title:'MERKATO — Invite & Earn',text:'Join MERKATO and discover products from Ethiopian merchants.',url:this.shareUrl};
+  if(typeof navigator!=='undefined' && navigator.share){
+   navigator.share(data).then(()=>this.message='Referral link shared.').catch(error=>{if(error?.name!=='AbortError')this.copyLink();});
+   return;
+  }
+  this.copyLink();
+ }
+ copyLink(){
+  if(!this.shareUrl)return;
+  if(navigator.clipboard?.writeText){
+   navigator.clipboard.writeText(this.shareUrl).then(()=>this.message='Referral link copied.').catch(()=>this.copyLegacy());
+   return;
+  }
+  this.copyLegacy();
+ }
+ private copyLegacy(){
+  const field=document.createElement('textarea');field.value=this.shareUrl;field.setAttribute('readonly','');
+  field.style.position='fixed';field.style.opacity='0';document.body.appendChild(field);field.select();
+  const copied=document.execCommand('copy');field.remove();
+  if(copied)this.message='Referral link copied.';else this.error='Could not copy the link on this device.';
+ }
 }
