@@ -50,7 +50,7 @@ type FeeSettings = { merchantCommissionRatePercent:number; buyerServiceFeeRatePe
         <a routerLink="/" class="brand"><span class="mark">M</span><span>MERKATO<small>ADMIN CONSOLE</small></span></a>
         <div class="profile"><span class="avatar">{{user?.fullName?.slice(0,1) || 'A'}}</span><div><strong>{{user?.fullName || 'Administrator'}}</strong><small>Platform administrator</small></div></div>
         <span class="nav-label">CONTROL CENTER</span>
-        <nav class="nav"><a class="active" href="#overview">▦ &nbsp; Dashboard</a><a href="#merchants">▤ &nbsp; Products</a><a href="#orders">▣ &nbsp; Orders</a><a href="#merchants">♙ &nbsp; Customers & Sellers</a><a href="#analytics">⌁ &nbsp; Analytics</a><a href="#reports">▧ &nbsp; Reports</a><a routerLink="/admin/operations">⚙ &nbsp; Settings</a><a href="#disputes">⚑ &nbsp; Disputes</a><a routerLink="/admin/payments">▣ &nbsp; Payment reviews</a><a href="#fees">◈ &nbsp; Fees</a></nav>
+        <nav class="nav"><a class="active" href="#overview">▦ &nbsp; Dashboard</a><a href="#catalog">▤ &nbsp; Products</a><a href="#orders">▣ &nbsp; Orders</a><a href="#customers">♙ &nbsp; Customers</a><a href="#analytics">⌁ &nbsp; Analytics</a><a href="#reports">▧ &nbsp; Reports</a><a routerLink="/admin/operations">⚙ &nbsp; Settings</a><a href="#disputes">⚑ &nbsp; Disputes</a><a routerLink="/admin/payments">▣ &nbsp; Payment reviews</a><a href="#fees">◈ &nbsp; Fees</a></nav>
         <div class="bottom"><a routerLink="/" class="nav-link">↗ &nbsp; Open marketplace</a><button class="logout" (click)="logout()">⇥ &nbsp; Sign out</button></div>
       </aside>
       <main class="main" id="overview">
@@ -60,7 +60,7 @@ type FeeSettings = { merchantCommissionRatePercent:number; buyerServiceFeeRatePe
         <section class="metrics">
           <article class="metric"><div class="metric-head">TOTAL SALES VALUE <span class="metric-icon">◈</span></div><strong>{{(analytics?.grossOrderValueEtb ?? 0) | number:'1.0-0'}}</strong><small>ETB · gross order value, not settled revenue</small></article>
           <article class="metric"><div class="metric-head">TOTAL ORDERS <span class="metric-icon">▣</span></div><strong>{{analytics?.totalOrders ?? '—'}}</strong><small>All recorded marketplace orders</small></article>
-          <article class="metric"><div class="metric-head">CUSTOMERS <span class="metric-icon">♙</span></div><strong>{{analytics?.buyerCount ?? '—'}}</strong><small>{{analytics?.merchantCount ?? 0}} registered merchants</small></article>
+          <article class="metric" id="customers"><div class="metric-head">CUSTOMERS <span class="metric-icon">♙</span></div><strong>{{analytics?.buyerCount ?? '—'}}</strong><small>{{analytics?.merchantCount ?? 0}} registered merchants</small></article>
           <article class="metric metric-conversion"><div class="metric-head">CONVERSION RATE <span class="metric-icon">⌁</span></div><strong>—</strong><small>Not tracked by current analytics API</small></article>
         </section>
         <section class="analytics-grid" id="analytics">
@@ -68,7 +68,7 @@ type FeeSettings = { merchantCommissionRatePercent:number; buyerServiceFeeRatePe
             <div class="chart" *ngIf="monthlySales.length; else noSales"><div class="chart-col" *ngFor="let point of monthlySales"><div class="chart-value">{{point.value | number:'1.0-0'}}</div><div class="chart-bar-wrap"><div class="chart-bar" [style.height.%]="point.height"></div></div><div class="chart-label">{{point.label}}</div></div></div>
             <ng-template #noSales><div class="empty">Sales chart will appear when order records are available.</div></ng-template>
           </article>
-          <article class="panel"><div class="panel-head"><div><h3>Top products</h3><p class="sub">Ranked by order value in the available records</p></div><span class="count">TOP 5</span></div>
+          <article class="panel" id="catalog"><div class="panel-head"><div><h3>Top products</h3><p class="sub">Ranked by order value in the available records</p></div><span class="count">TOP 5</span></div>
             <div *ngIf="topProducts.length; else noTopProducts"><div class="product-rank" *ngFor="let product of topProducts; let i=index"><span class="rank-no">{{i+1}}</span><div class="rank-info"><strong>{{product.name}}</strong><small>{{product.count}} order{{product.count===1?'':'s'}}</small></div><span class="rank-total">{{product.value | number:'1.0-0'}} ETB</span></div></div>
             <ng-template #noTopProducts><div class="empty">No product sales data is available yet.</div></ng-template>
           </article>
