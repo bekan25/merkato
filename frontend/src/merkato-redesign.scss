@@ -242,3 +242,11 @@ app-seller-payment-reviews{--mk-primary:#12805C}
  html{scroll-behavior:auto}
  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}
 }
+
+/* Merchant invitation keeps small catalogues visually balanced. */
+.merchant-empty-cta{display:flex;min-width:0;min-height:100%;flex-direction:column;align-items:flex-start;justify-content:center;gap:12px;padding:24px;border:1px dashed #b7cbb9;border-radius:var(--mk-radius);background:linear-gradient(145deg,#f4f8f2,#fff);color:var(--mk-primary);text-decoration:none;transition:border-color .18s ease,transform .18s ease,box-shadow .18s ease}
+.merchant-empty-cta:hover{transform:translateY(-3px);border-color:var(--mk-primary-strong);box-shadow:var(--mk-shadow-soft)}
+.merchant-empty-cta__mark{display:grid;place-items:center;width:44px;height:44px;border-radius:13px;background:var(--mk-primary);color:#fff;font-size:24px}
+.merchant-empty-cta strong{font:750 16px/1.4 var(--mk-display);overflow-wrap:anywhere}
+.merchant-empty-cta small{font-size:13px;line-height:1.6;color:var(--mk-muted)}
+.merchant-empty-cta__link{margin-top:4px;font-size:13px;font-weight:800;color:var(--mk-primary-strong)}
