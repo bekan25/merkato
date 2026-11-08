@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, EventEmitter, OnInit, Output, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ApiService, MerkatoOrder, MerkatoReturnRequest } from '../core/api.service';
@@ -73,7 +73,7 @@ import { ApiService, MerkatoOrder, MerkatoReturnRequest } from '../core/api.serv
         <div class="tracking-info" *ngIf="statusName(order.deliveryStatus) === 'DELIVERED' && order.paymentMode !== 'SELLER_DIRECT' && label(order.escrowState) === 'INSPECTION_ACTIVE'">Your item is delivered. Review it during the inspection period before escrow is released.</div>
         <div class="tracking-actions">
           <a *ngIf="label(order.escrowState) === 'AWAITING_PAYMENT' && order.paymentStatus !== 'VERIFIED'" [routerLink]="['/payment', order.id]">Upload payment receipt</a>
-          <button type="button" *ngIf="label(order.escrowState) === 'HELD' || label(order.escrowState) === 'INSPECTION_ACTIVE'" (click)="fileDispute(order)">File a dispute</button>
+          <button type="button" *ngIf="label(order.escrowState) === 'HELD' || label(order.escrowState) === 'INSPECTION_ACTIVE'" (click)="disputeRequested.emit(order)">File a dispute</button>
         </div>
         <div class="return-panel" *ngIf="returnFor(order.id) as request">
           <h4>Return & refund status</h4>
@@ -97,6 +97,7 @@ import { ApiService, MerkatoOrder, MerkatoReturnRequest } from '../core/api.serv
   `
 })
 export class BuyerOrderTrackingComponent implements OnInit {
+  @Output() disputeRequested = new EventEmitter<MerkatoOrder>();
   private api = inject(ApiService);
   orders: MerkatoOrder[] = [];
   returns: MerkatoReturnRequest[] = [];
@@ -169,7 +170,7 @@ export class BuyerOrderTrackingComponent implements OnInit {
     const escrow = this.label(order.escrowState).toUpperCase().replaceAll(' ', '_');
     const deliveredAt = order.deliveryDeliveredAt ? Date.parse(order.deliveryDeliveredAt) : NaN;
     return delivered && !!order.deliveryDeliveredAt && !Number.isNaN(deliveredAt) &&
-      Date.now() - deliveredAt <= 7 * 24 * 60 * 60 * 1000 &&
+      Date.now() >= deliveredAt && Date.now() - deliveredAt <= 7 * 24 * 60 * 60 * 1000 &&
       !['RELEASED','REFUNDED','CANCELLED'].includes(escrow) && !this.returnFor(order.id);
   }
 
@@ -178,6 +179,7 @@ export class BuyerOrderTrackingComponent implements OnInit {
     if (!order.deliveryDeliveredAt) return 'Delivery completion time is unavailable. Contact MERKATO support to review return eligibility.';
     const deliveredAt = Date.parse(order.deliveryDeliveredAt);
     if (Number.isNaN(deliveredAt)) return 'Delivery completion time could not be read. Contact MERKATO support.';
+    if (deliveredAt > Date.now()) return 'The delivery timestamp is in the future. Contact MERKATO support before requesting a return.';
     if (Date.now() - deliveredAt > 7 * 24 * 60 * 60 * 1000) return 'The 7-day return request window has ended.';
     const escrow = this.label(order.escrowState).toUpperCase().replaceAll(' ', '_');
     if (['RELEASED','REFUNDED','CANCELLED'].includes(escrow)) return 'This order is no longer eligible for a standard return. Contact MERKATO support for review.';
@@ -220,8 +222,4 @@ export class BuyerOrderTrackingComponent implements OnInit {
     }
   }
 
-  fileDispute(order: MerkatoOrder): void {
-    // Keep dispute creation on the existing protected workflow; the dashboard handles the full dispute form.
-    window.location.href = '/dashboard#buyer-orders';
-  }
 }
