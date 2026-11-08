@@ -348,3 +348,23 @@ test('shopping assistant has working multilingual suggestion chips and a clear d
   assert.match(assistant, /assistant-disabled-reason/);
   assert.match(assistant, /askShoppingAssistant\(message\)/);
 });
+
+test('delivery dispatch is operational for buyers, administrators and assigned couriers', async () => {
+  const hub = await read('../src/app/pages/commerce-hub.component.ts');
+  const admin = await read('../src/app/pages/admin-operations.component.ts');
+  const deliveries = await read('../../backend/Merkato.Api/Controllers/Controllers.cs');
+  const commerce = await read('../../backend/Merkato.Api/Controllers/CommerceGrowthController.cs');
+
+  assert.match(hub, /\/api\/deliveries/);
+  assert.match(hub, /createDeliveryRequest\(\)/);
+  assert.match(hub, /courier\/mine/);
+  assert.match(hub, /verify-otp/);
+  assert.match(admin, /Delivery dispatch/);
+  assert.match(admin, /admin\/queue/);
+  assert.match(admin, /admin\/couriers/);
+  assert.match(admin, /assign-courier/);
+  assert.match(deliveries, /HttpGet\("admin\/queue"\)/);
+  assert.match(deliveries, /HttpGet\("admin\/couriers"\)/);
+  assert.match(deliveries, /HttpGet\("courier\/mine"\)/);
+  assert.match(commerce, /assigned active courier/);
+});
