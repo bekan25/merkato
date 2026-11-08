@@ -245,8 +245,14 @@ import { ApiService, MerkatoProduct, MerkatoOrder, MerkatoDispute, MerchantAnaly
     <section class="workspace">
       <button type="button" class="workspace-nav-backdrop" *ngIf="mobileNavOpen" aria-label="Close navigation" (click)="mobileNavOpen = false"></button><aside class="workspace-sidebar" [class.mobile-open]="mobileNavOpen" [class.merchant-sidebar]="user?.role === 'MERCHANT'"><a routerLink="/" class="brand"><span class="brand-mark">M</span><span>merkato<small>WORKSPACE</small></span></a><div class="workspace-user"><span class="user-avatar">{{user?.fullName?.slice(0,1)}}</span><div><strong>{{user?.fullName}}</strong><small>{{user?.role}}</small></div></div><span class="side-label">WORKSPACE</span><a routerLink="/dashboard" class="side-link active" (click)="mobileNavOpen = false">▦ <span>Overview</span></a><a routerLink="/" class="side-link" (click)="mobileNavOpen = false">⌕ <span>Marketplace</span></a><a routerLink="/account" class="side-link" (click)="mobileNavOpen = false">◎ <span>Profile</span></a><a [routerLink]="user?.role === 'ADMIN' ? '/admin/operations' : '/account'" class="side-link" (click)="mobileNavOpen = false">⚙ <span>Settings</span></a><a *ngIf="user?.role === 'MERCHANT' || user?.role === 'ADMIN'" href="#products" class="side-link" (click)="mobileNavOpen = false">▤ <span>Products</span></a><a *ngIf="user?.role === 'MERCHANT'" href="#merchant-orders" class="side-link" (click)="mobileNavOpen = false">▣ <span>Incoming orders</span></a><a *ngIf="user?.role === 'MERCHANT'" href="#merchant-analytics" class="side-link" (click)="mobileNavOpen = false">▥ <span>Store analytics</span></a><a *ngIf="user?.role === 'MERCHANT'" routerLink="/merchant/payment-settings" class="side-link" (click)="mobileNavOpen = false">◈ <span>Payment accounts</span></a><a *ngIf="user?.role === 'MERCHANT'" routerLink="/merchant/payment-reviews" class="side-link" (click)="mobileNavOpen = false">✓ <span>Payment receipts</span></a><a *ngIf="user?.role === 'ADMIN'" href="#marketplace-fees" class="side-link" (click)="mobileNavOpen = false">⚙ <span>Administration</span></a><div class="sidebar-bottom"><a routerLink="/" class="side-link" (click)="mobileNavOpen = false">↗ <span>View marketplace</span></a><button class="side-link side-logout" (click)="logout()">⇥ <span>Sign out</span></button></div></aside>
       <div class="workspace-main"><div class="workspace-mobile-bar"><div class="workspace-mobile-brand"><span class="brand-mark">M</span><span>merkato</span></div><button type="button" aria-label="Open navigation" [attr.aria-expanded]="mobileNavOpen" (click)="mobileNavOpen = !mobileNavOpen">☰</button></div><header class="workspace-topbar"><div><span class="eyebrow">MERKATO WORKSPACE</span><h1>{{heading}}</h1></div><span class="workspace-date">Ethiopia · ETB</span></header>
-        <section class="welcome-panel" [class.buyer-welcome]="user?.role === 'BUYER'"><div class="buyer-welcome-copy"><span class="buyer-welcome-kicker" *ngIf="user?.role === 'BUYER'">YOUR PERSONAL SHOPPING SPACE</span><span class="eyebrow" *ngIf="user?.role !== 'BUYER'">GOOD TO SEE YOU</span><h2>Welcome, {{user?.fullName?.split(' ')?.[0]}}.</h2><p>{{welcomeText}}</p><div class="buyer-welcome-actions" *ngIf="user?.role === 'BUYER'"><a routerLink="/">⌕ &nbsp; Discover products <span>↗</span></a><a routerLink="/account" class="secondary">◎ &nbsp; Manage account</a></div></div><div class="buyer-welcome-art" *ngIf="user?.role === 'BUYER'" aria-hidden="true"><span>M</span></div><div class="welcome-symbol" *ngIf="user?.role !== 'BUYER'">✳</div></section>
-        <div class="buyer-section-label" *ngIf="user?.role === 'BUYER'">QUICK ACCESS</div>
+        <section class="welcome-panel" [class.buyer-welcome]="hasRichWorkspace"><div class="buyer-welcome-copy"><span class="buyer-welcome-kicker" *ngIf="hasRichWorkspace">{{user?.role === 'MERCHANT' ? 'YOUR STORE WORKSPACE' : 'YOUR PERSONAL SHOPPING SPACE'}}</span><span class="eyebrow" *ngIf="!hasRichWorkspace">GOOD TO SEE YOU</span><h2>Welcome, {{user?.fullName?.split(' ')?.[0]}}.</h2><p>{{welcomeText}}</p><div class="buyer-welcome-actions" *ngIf="user?.role === 'BUYER'"><a routerLink="/">⌕ &nbsp; Discover products <span>↗</span></a><a routerLink="/account" class="secondary">◎ &nbsp; Manage account</a></div><div class="buyer-welcome-actions" *ngIf="user?.role === 'MERCHANT'"><a href="#products">▤ &nbsp; Manage products <span>↗</span></a><a routerLink="/merchant/payment-reviews" class="secondary">✓ &nbsp; Confirm payments</a></div></div><div class="buyer-welcome-art" *ngIf="hasRichWorkspace" aria-hidden="true"><span>M</span></div><div class="welcome-symbol" *ngIf="!hasRichWorkspace">✳</div></section>
+        <div class="buyer-section-label" *ngIf="hasRichWorkspace">QUICK ACCESS</div>
+        <section class="buyer-shortcuts" *ngIf="user?.role === 'MERCHANT'">
+          <a href="#products" class="buyer-shortcut"><span>▤</span><strong>Manage products</strong><small>Add or edit what you sell</small></a>
+          <a href="#merchant-orders" class="buyer-shortcut"><span>▣</span><strong>Incoming orders</strong><small>See what buyers have ordered</small></a>
+          <a routerLink="/merchant/payment-reviews" class="buyer-shortcut"><span>✓</span><strong>Confirm payments</strong><small>Check buyer receipts against your account</small></a>
+          <a routerLink="/merchant/payment-settings" class="buyer-shortcut"><span>◈</span><strong>Payment accounts</strong><small>Where buyers send your money</small></a>
+        </section>
          <section class="buyer-shortcuts" *ngIf="user?.role === 'BUYER'">
           <a routerLink="/" class="buyer-shortcut"><span>⌕</span><strong>Explore marketplace</strong><small>Discover products from local sellers</small></a>
           <a routerLink="/cart" class="buyer-shortcut"><span>▣</span><strong>My shopping cart</strong><small>Review items before checkout</small></a>
@@ -269,6 +275,22 @@ import { ApiService, MerkatoProduct, MerkatoOrder, MerkatoDispute, MerchantAnaly
           </div>
           <ng-template #buyerNoRecentOrders><div class="buyer-preview-empty">Your recent orders will appear here after your first purchase. <a routerLink="/">Explore the marketplace ↗</a></div></ng-template>
         </section>
+        <section class="buyer-insights" *ngIf="user?.role === 'MERCHANT'">
+          <article><span>ORDERS IN PROGRESS</span><strong>{{merchantInProgressCount}}</strong></article>
+          <article><span>DELIVERED ORDERS</span><strong>{{merchantCompletedCount}}</strong></article>
+          <article><span>AVERAGE ORDER VALUE</span><strong>{{merchantAverageOrder | number:'1.2-2'}} ETB</strong></article>
+        </section>
+        <section class="buyer-orders-preview" *ngIf="user?.role === 'MERCHANT'">
+          <div class="buyer-preview-head"><div><span class="eyebrow">ORDER ACTIVITY</span><h2>Latest orders from buyers</h2></div><a href="#merchant-orders">View all orders ↗</a></div>
+          <div class="buyer-preview-list" *ngIf="merchantLatestOrders.length; else merchantNoRecentOrders">
+            <article class="buyer-preview-item" *ngFor="let order of merchantLatestOrders">
+              <div class="buyer-preview-item-top"><small>{{order.orderNumber}}</small><small>{{order.createdAt | date:'mediumDate'}}</small></div>
+              <strong>{{order.productTitle}}</strong><span class="amount">{{order.totalAmountEtb | number:'1.2-2'}} ETB</span>
+              <span class="buyer-preview-status" [class.waiting]="order.paymentStatus !== 'VERIFIED' && order.escrowState === 'AWAITING_PAYMENT'">{{order.paymentStatus || order.escrowState || 'PROCESSING'}}</span>
+            </article>
+          </div>
+          <ng-template #merchantNoRecentOrders><div class="buyer-preview-empty">Orders from buyers will appear here. <a href="#products">Add or edit your products ↗</a></div></ng-template>
+        </section>
         <div class="workspace-grid">
           <ng-container *ngIf="user?.role === 'BUYER'">
             <article class="workspace-card"><span class="card-icon">▣</span><span class="card-label">TOTAL ORDERS</span><strong>{{buyerOrders.length}}</strong><small>Orders linked to your account</small></article>
@@ -276,9 +298,9 @@ import { ApiService, MerkatoProduct, MerkatoOrder, MerkatoDispute, MerchantAnaly
             <article class="workspace-card"><span class="card-icon">✓</span><span class="card-label">IDENTITY STATUS</span><strong>{{user?.isFaydaVerified ? 'Verified' : 'Not verified'}}</strong><small>Trust score: {{user?.trustScore ?? '—'}}/100</small></article>
           </ng-container>
           <ng-container *ngIf="user?.role === 'MERCHANT'">
-            <article class="workspace-card"><span class="card-icon">▤</span><span class="card-label">ACTIVE PRODUCTS</span><strong>{{merchantProducts.length}}</strong><small>Products currently returned by catalogue API</small></article>
-            <article class="workspace-card"><span class="card-icon">▣</span><span class="card-label">ORDERS RECEIVED</span><strong>{{merchantOrders.length}}</strong><small>Orders assigned to your merchant account</small></article>
-            <article class="workspace-card"><span class="card-icon">◈</span><span class="card-label">ORDER VALUE</span><strong>{{merchantSales | number:'1.2-2'}} <small>ETB</small></strong><small>Gross value of recorded orders, not payout</small></article>
+            <article class="workspace-card"><span class="card-icon">▤</span><span class="card-label">ACTIVE PRODUCTS</span><strong>{{merchantProducts.length}}</strong><small>Products live in your catalogue</small></article>
+            <article class="workspace-card"><span class="card-icon">▣</span><span class="card-label">ORDERS RECEIVED</span><strong>{{merchantOrders.length}}</strong><small>Orders placed by buyers</small></article>
+            <article class="workspace-card"><span class="card-icon">◈</span><span class="card-label">ORDER VALUE</span><strong>{{merchantSales | number:'1.2-2'}} <small>ETB</small></strong><small>Total order value, before payout</small></article>
           </ng-container>
           <ng-container *ngIf="user?.role === 'ADMIN'">
             <article class="workspace-card"><span class="card-icon">▣</span><span class="card-label">PLATFORM ORDERS</span><strong>{{merchantOrders.length}}</strong><small>All orders returned by protected API</small></article>
@@ -415,6 +437,11 @@ export class DashboardComponent implements OnInit {
   get buyerAverageOrder(): number { return this.buyerOrders.length ? this.buyerSpend / this.buyerOrders.length : 0; }
   get buyerCompletedCount(): number { return this.buyerOrders.filter(order => String(order.deliveryStatus).toLowerCase().includes('deliver') || String(order.deliveryStatus).toLowerCase().includes('complete')).length; }
   get buyerInProgressCount(): number { return this.buyerOrders.length - this.buyerCompletedCount; }
+  get hasRichWorkspace(): boolean { return this.user?.role === 'BUYER' || this.user?.role === 'MERCHANT'; }
+  get merchantLatestOrders(): MerkatoOrder[] { return [...this.merchantOrders].sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0,3); }
+  get merchantAverageOrder(): number { return this.merchantOrders.length ? this.merchantSales / this.merchantOrders.length : 0; }
+  get merchantCompletedCount(): number { return this.merchantOrders.filter(order => String(order.deliveryStatus).toLowerCase().includes('deliver') || String(order.deliveryStatus).toLowerCase().includes('complete')).length; }
+  get merchantInProgressCount(): number { return this.merchantOrders.length - this.merchantCompletedCount; }
   get merchantSales(): number { return this.merchantOrders.reduce((sum, order) => sum + Number(order.totalAmountEtb || 0), 0); }
   get platformVolume(): number { return this.merchantSales; }
   get openDisputes(): number { return this.disputes.filter(item => item.status === 'OPEN' || item.status === 'UNDER_REVIEW').length; }
