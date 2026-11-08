@@ -231,6 +231,8 @@ test('merchant product create and edit keep stock and reserved units consistent 
   assert.match(products, /ReservedQuantity\)/);
   assert.match(products, /request\.StockQuantity < inventory\.ReservedQuantity/);
   assert.match(products, /BeginTransactionAsync\(IsolationLevel\.Serializable\)/);
+  assert.match(products, /Entry\(product\)\.ReloadAsync\(\)/);
+  assert.match(products, /Seller is no longer an active merchant account/);
   assert.match(products, /ProductListingDetail\s*\{\s*ProductId = product\.Id, StockQuantity = request\.StockQuantity, ReservedQuantity = 0/);
   assert.match(dashboard, /\[\(ngModel\)\]="draft\.stockQuantity"/);
   assert.match(dashboard, /this\.api\.createProduct\(this\.draft\)/);
