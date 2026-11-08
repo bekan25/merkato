@@ -57,7 +57,19 @@ export interface MerkatoOrder {
   deliveryAddress: string;
   escrowState: string | number;
   deliveryStatus: string | number;
+  deliveryDispatchedAt?: string | null;
+  deliveryDeliveredAt?: string | null;
   createdAt: string;
+}
+
+export interface MerkatoReturnRequest {
+  id: number;
+  orderId: number;
+  reason: string;
+  status: string;
+  resolutionNote?: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface PaymentReceiptUploadResult {
@@ -284,6 +296,14 @@ export class ApiService {
 
   getMyOrders(): Observable<MerkatoOrder[]> {
     return this.http.get<MerkatoOrder[]>(`${this.baseUrl}/orders/mine`);
+  }
+
+  getMyReturns(): Observable<MerkatoReturnRequest[]> {
+    return this.http.get<MerkatoReturnRequest[]>('/api/returns/mine');
+  }
+
+  requestReturn(payload: { orderId: number; reason: string }): Observable<unknown> {
+    return this.http.post('/api/returns', payload);
   }
 
   getMerchantOrders(): Observable<MerkatoOrder[]> {

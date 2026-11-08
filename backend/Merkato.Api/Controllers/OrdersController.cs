@@ -47,7 +47,13 @@ public class OrdersController : ControllerBase
                 order.PaymentMode,
                 _db.PaymentTransactions.Where(payment => payment.OrderId == order.Id)
                     .OrderByDescending(payment => payment.CreatedAt)
-                    .Select(payment => payment.Status.ToString()).FirstOrDefault() ?? "PENDING"))
+                    .Select(payment => payment.Status.ToString()).FirstOrDefault() ?? "PENDING",
+                _db.Deliveries.Where(delivery => delivery.OrderId == order.Id)
+                    .OrderByDescending(delivery => delivery.CreatedAt)
+                    .Select(delivery => delivery.DispatchedAt).FirstOrDefault(),
+                _db.Deliveries.Where(delivery => delivery.OrderId == order.Id)
+                    .OrderByDescending(delivery => delivery.CreatedAt)
+                    .Select(delivery => delivery.DeliveredAt).FirstOrDefault()))
             .ToListAsync(ct);
 
         return Ok(orders);
@@ -76,7 +82,13 @@ public class OrdersController : ControllerBase
                 order.PaymentMode,
                 _db.PaymentTransactions.Where(payment => payment.OrderId == order.Id)
                     .OrderByDescending(payment => payment.CreatedAt)
-                    .Select(payment => payment.Status.ToString()).FirstOrDefault() ?? "PENDING"))
+                    .Select(payment => payment.Status.ToString()).FirstOrDefault() ?? "PENDING",
+                _db.Deliveries.Where(delivery => delivery.OrderId == order.Id)
+                    .OrderByDescending(delivery => delivery.CreatedAt)
+                    .Select(delivery => delivery.DispatchedAt).FirstOrDefault(),
+                _db.Deliveries.Where(delivery => delivery.OrderId == order.Id)
+                    .OrderByDescending(delivery => delivery.CreatedAt)
+                    .Select(delivery => delivery.DeliveredAt).FirstOrDefault()))
             .ToListAsync(ct);
 
         return Ok(orders);

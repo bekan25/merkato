@@ -222,6 +222,8 @@ public class DeliveryService : IDeliveryService
 
             delivery.Status =
                 DeliveryStatus.PICKED_UP;
+            // OTP handover may auto-advance a courier who skipped manual status updates.
+            delivery.DispatchedAt ??= now;
         }
 
         if (delivery.Status == DeliveryStatus.PICKED_UP)
@@ -251,6 +253,7 @@ public class DeliveryService : IDeliveryService
         // ---------------------------------------------------------
 
         order.DeliveryStatus = DeliveryStatus.DELIVERED;
+        order.UpdatedAt = now;
 
         // Seller-direct orders do not use MERKATO escrow. Finalize the
         // affiliate commission and referrer coupon only after delivery OTP handover.
