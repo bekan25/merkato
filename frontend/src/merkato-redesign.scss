@@ -250,3 +250,11 @@ app-seller-payment-reviews{--mk-primary:#12805C}
 .merchant-empty-cta strong{font:750 16px/1.4 var(--mk-display);overflow-wrap:anywhere}
 .merchant-empty-cta small{font-size:13px;line-height:1.6;color:var(--mk-muted)}
 .merchant-empty-cta__link{margin-top:4px;font-size:13px;font-weight:800;color:var(--mk-primary-strong)}
+
+.mobile-filter-toggle{display:none;min-height:42px;align-items:center;justify-content:center;gap:10px;padding:9px 14px;border:1px solid var(--mk-line);border-radius:var(--mk-pill);background:#fff;color:var(--mk-primary);font-size:13px;font-weight:750}
+@media(max-width:760px){
+ .mobile-filter-toggle{display:inline-flex;justify-self:start}
+ .market-heading{display:grid!important;grid-template-columns:1fr!important;align-items:start!important}
+ .market-filter-panel{display:none!important;width:100%}
+ .market-filter-panel.filters-open{display:grid!important}
+}
