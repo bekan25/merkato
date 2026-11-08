@@ -258,3 +258,29 @@ app-seller-payment-reviews{--mk-primary:#12805C}
  .market-filter-panel{display:none!important;width:100%}
  .market-filter-panel.filters-open{display:grid!important}
 }
+
+/* Higher-specificity admin overrides win over component-scoped legacy rules. */
+.app-shell.admin-route app-admin-dashboard{display:block;min-height:100vh;background:#0F1B33!important;color:#F1F5F9!important}
+.app-shell.admin-route app-admin-dashboard .sidebar{background:#0B1427!important;border-color:#2C3D5B!important}
+.app-shell.admin-route app-admin-dashboard .mark,.app-shell.admin-route app-admin-dashboard .avatar{background:#12805C!important;color:#fff!important}
+.app-shell.admin-route app-admin-dashboard .nav a:hover,.app-shell.admin-route app-admin-dashboard .nav a.active{background:#173e32!important;box-shadow:inset 3px 0 #E8A317!important}
+.app-shell.admin-route app-admin-dashboard .admin-header,.app-shell.admin-route app-admin-dashboard .metric,.app-shell.admin-route app-admin-dashboard .panel,.app-shell.admin-route app-admin-dashboard .fee-box,.app-shell.admin-route app-admin-dashboard .quick a{background:#14213D!important;border:1px solid #2C3D5B!important;color:#F1F5F9!important;box-shadow:0 8px 24px #0003!important}
+.app-shell.admin-route app-admin-dashboard .admin-header h1,.app-shell.admin-route app-admin-dashboard .hero h2,.app-shell.admin-route app-admin-dashboard .panel h3,.app-shell.admin-route app-admin-dashboard .metric strong,.app-shell.admin-route app-admin-dashboard .quick a{color:#F1F5F9!important}
+.app-shell.admin-route app-admin-dashboard .breadcrumb,.app-shell.admin-route app-admin-dashboard .sub,.app-shell.admin-route app-admin-dashboard .metric small,.app-shell.admin-route app-admin-dashboard .fee-row label,.app-shell.admin-route app-admin-dashboard .note{color:#B0BFD4!important}
+.app-shell.admin-route app-admin-dashboard .hero{background:#14213D!important;border:1px solid #2C3D5B!important}
+.app-shell.admin-route app-admin-dashboard .hero p{color:#B0BFD4!important}
+.app-shell.admin-route app-admin-dashboard .fee-row input,.app-shell.admin-route app-admin-dashboard .admin-search{background:#0B1427!important;border-color:#40516d!important;color:#F1F5F9!important}
+.app-shell.admin-route app-admin-dashboard .save{background:#12805C!important}
+.app-shell.admin-route app-admin-dashboard .quick a{min-height:76px!important;font-size:14px!important}
+.app-shell.admin-route app-admin-operations{display:block;min-height:100vh;background:#0F1B33!important;color:#F1F5F9!important}
+.app-shell.admin-route app-admin-operations .page{background:#0F1B33!important;color:#F1F5F9!important}
+.app-shell.admin-route app-admin-operations .panel,.app-shell.admin-route app-admin-operations .tabs button,.app-shell.admin-route app-admin-operations .filters input,.app-shell.admin-route app-admin-operations .filters select{background:#14213D!important;border-color:#2C3D5B!important;color:#F1F5F9!important}
+.app-shell.admin-route app-admin-operations h1,.app-shell.admin-route app-admin-operations h2,.app-shell.admin-route app-admin-operations td b{color:#F1F5F9!important}
+.app-shell.admin-route app-admin-operations .muted,.app-shell.admin-route app-admin-operations .heading p,.app-shell.admin-route app-admin-operations th,.app-shell.admin-route app-admin-operations td small{color:#B0BFD4!important}
+.app-shell.admin-route app-admin-operations td{color:#D1DCEC!important;border-color:#ffffff16!important}
+.app-shell.admin-route app-admin-operations .tabs button.selected{background:#0B3D2E!important;border-color:#12805C!important;color:#fff!important}
+.app-shell.admin-route app-admin-operations .refresh,.app-shell.admin-route app-admin-operations .filters button,.app-shell.admin-route app-admin-operations .page-btn,.app-shell.admin-route app-admin-operations .action{background:#1b2e4b!important;border-color:#40516d!important;color:#F1F5F9!important}
+.app-shell.admin-route app-admin-operations .empty{color:#B0BFD4!important}
+.app-shell.admin-route app-admin-operations .notice.error{background:#48242b!important;color:#ffc4c8!important}
+.app-shell.admin-route app-admin-operations .notice.success{background:#0e3b31!important;color:#b7f0d4!important}
+.app-shell.admin-route app-admin-operations footer{color:#B0BFD4!important}
