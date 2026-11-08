@@ -107,6 +107,7 @@ public sealed class AffiliateCommissionWorkflowTests
 
         var commission = await db.AffiliateCommissions.SingleAsync();
         Assert.Equal(101L, commission.AffiliateUserId);
+        Assert.Equal(601L, commission.AffiliateReferralId);
         Assert.Equal(450m, commission.EligibleAmountEtb);
         Assert.Equal(9m, commission.CommissionEtb);
         Assert.Equal("HELD", commission.Status);
@@ -148,5 +149,19 @@ public sealed class AffiliateCommissionWorkflowTests
 
         Assert.Empty(await db.AffiliateCommissions.ToListAsync());
         Assert.Empty(await db.PromotionCoupons.Where(x => x.SourceReferralId == 602).ToListAsync());
+    }
+
+    [Fact]
+    public void AffiliateCommissionModelEnforcesOneCommissionPerReferral()
+    {
+        var options = new DbContextOptionsBuilder<MerkatoDbContext>()
+            .UseNpgsql("Host=localhost;Database=merkato_model_test;Username=merkato_model_test;Password=not-used")
+            .Options;
+        using var db = new MerkatoDbContext(options);
+        var entity = db.Model.FindEntityType(typeof(AffiliateCommission));
+        Assert.NotNull(entity);
+        Assert.Contains(entity!.GetIndexes(), index => index.IsUnique &&
+            index.Properties.Select(p => p.Name).SequenceEqual(new[] { nameof(AffiliateCommission.AffiliateReferralId) }) &&
+            index.GetFilter() == "\"AffiliateReferralId\" IS NOT NULL");
     }
 }
