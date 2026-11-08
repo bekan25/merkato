@@ -432,7 +432,7 @@ public sealed class PaymentReceiptsController : ControllerBase
         payment.VerifiedAt = DateTime.UtcNow;
         order.UpdatedAt = DateTime.UtcNow;
         // Seller-direct commission is a merchant receivable, not escrowed buyer money.
-        if (order.MerchantCommissionEtb > 0m)
+        if (SellerCommissionLedger.ShouldAccrueCommission(payment.Status, order.EscrowState, order.MerchantCommissionEtb))
         {
             var commissionKey = $"seller-direct-commission:{order.Id}";
             if (!await _db.IdempotencyRecords.AnyAsync(x => x.Key == commissionKey, ct))

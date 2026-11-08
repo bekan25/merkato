@@ -67,7 +67,7 @@ public sealed class MerchantSettlementController(MerkatoDbContext db) : Controll
         if (request.MerchantId <= 0 || request.AmountEtb <= 0m || request.AmountEtb > 100000000m || string.IsNullOrWhiteSpace(reference) || reference.Length > 150 || !request.ConfirmedProviderCredit)
             return BadRequest(new { error = "Merchant, positive ETB amount, payment reference, and explicit confirmation of verified provider credit are required." });
         await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
-        var key = $"merchant-commission-settlement:{reference}";
+        var key = SellerCommissionLedger.CreateSettlementIdempotencyKey(reference);
         if (await db.IdempotencyRecords.AnyAsync(x => x.Key == key, ct)) return Conflict(new { error = "This payment reference has already been recorded." });
         if (!await db.Users.AnyAsync(x => x.Id == request.MerchantId && x.Role == UserRole.MERCHANT, ct)) return NotFound(new { error = "Merchant account was not found." });
         var due = await (from tx in db.LedgerTransactions.AsNoTracking() join e in db.LedgerEntries.AsNoTracking() on tx.Id equals e.LedgerTransactionId
@@ -77,8 +77,8 @@ public sealed class MerchantSettlementController(MerkatoDbContext db) : Controll
         var reversed = await (from tx in db.LedgerTransactions.AsNoTracking() join e in db.LedgerEntries.AsNoTracking() on tx.Id equals e.LedgerTransactionId
             where tx.TransactionType == "SELLER_DIRECT_COMMISSION_REVERSAL" && e.AccountType == LedgerAccountType.MERCHANT_RECEIVABLE && e.EntryType == LedgerEntryType.CREDIT && e.UserId == request.MerchantId
             select (decimal?)e.AmountEtb).SumAsync(ct) ?? 0m;
-        var outstanding = due - paid - reversed;
-        if (request.AmountEtb > outstanding) return Conflict(new { error = $"Payment exceeds outstanding commission ({outstanding:0.00} ETB)." });
+        var outstanding = SellerCommissionLedger.CalculateOutstanding(due, paid, reversed);
+        if (!SellerCommissionLedger.CanRecordSettlement(request.AmountEtb, outstanding)) return Conflict(new { error = $"Payment exceeds outstanding commission ({outstanding:0.00} ETB)." });
         db.LedgerTransactions.Add(new LedgerTransaction { OrderId = 0, TransactionType = "MERCHANT_COMMISSION_SETTLEMENT", ReferenceId = reference,
             Description = $"Admin {adminId} recorded verified merchant commission payment", CreatedAt = DateTime.UtcNow,
             Entries = new List<LedgerEntry> {
@@ -120,6 +120,24 @@ public static class SellerCommissionLedger
                 new() { AccountType = LedgerAccountType.PLATFORM_FEE, EntryType = LedgerEntryType.CREDIT, AmountEtb = amountEtb }
             }};
     }
+
+    public static string CreateSettlementIdempotencyKey(string paymentReference)
+    {
+        if (string.IsNullOrWhiteSpace(paymentReference)) throw new ArgumentException("A payment reference is required.", nameof(paymentReference));
+        return $"merchant-commission-settlement:{paymentReference.Trim().ToUpperInvariant()}";
+    }
+
+    public static decimal CalculateOutstanding(decimal accruedEtb, decimal paidEtb, decimal reversedEtb)
+    {
+        if (accruedEtb < 0m || paidEtb < 0m || reversedEtb < 0m) throw new ArgumentOutOfRangeException(nameof(accruedEtb));
+        return Math.Max(0m, accruedEtb - paidEtb - reversedEtb);
+    }
+
+    public static bool CanRecordSettlement(decimal paymentEtb, decimal outstandingEtb)
+        => paymentEtb > 0m && outstandingEtb >= 0m && paymentEtb <= outstandingEtb;
+
+    public static bool ShouldAccrueCommission(PaymentStatus paymentStatus, EscrowState escrowState, decimal commissionEtb)
+        => paymentStatus == PaymentStatus.VERIFIED && escrowState is not EscrowState.CANCELLED and not EscrowState.REFUNDED && commissionEtb > 0m;
 
     public static decimal CalculateRefundReversal(decimal accruedCommissionEtb, decimal orderTotalEtb, decimal refundAmountEtb, decimal alreadyReversedEtb)
     {

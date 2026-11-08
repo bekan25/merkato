@@ -86,4 +86,34 @@ public sealed class SellerCommissionLedgerTests
         Assert.Equal(0m, SellerCommissionLedger.CalculateRefundReversal(0m, 100m, 100m, 0m));
     }
 
+    [Fact]
+    public void SettlementIdempotencyKeyNormalizesReferenceCaseAndWhitespace()
+    {
+        Assert.Equal(
+            SellerCommissionLedger.CreateSettlementIdempotencyKey(" bank-ref-001 "),
+            SellerCommissionLedger.CreateSettlementIdempotencyKey("BANK-REF-001"));
+    }
+
+    [Fact]
+    public void PartialSettlementReducesOutstandingAndRejectsOverpayment()
+    {
+        var firstOutstanding = SellerCommissionLedger.CalculateOutstanding(125.50m, 40m, 0m);
+        Assert.Equal(85.50m, firstOutstanding);
+        Assert.True(SellerCommissionLedger.CanRecordSettlement(35m, firstOutstanding));
+        var secondOutstanding = SellerCommissionLedger.CalculateOutstanding(125.50m, 75m, 0m);
+        Assert.Equal(50.50m, secondOutstanding);
+        Assert.False(SellerCommissionLedger.CanRecordSettlement(50.51m, secondOutstanding));
+    }
+
+    [Theory]
+    [InlineData(PaymentStatus.VERIFIED, EscrowState.CANCELLED, 10, false)]
+    [InlineData(PaymentStatus.VERIFIED, EscrowState.REFUNDED, 10, false)]
+    [InlineData(PaymentStatus.PENDING, EscrowState.AWAITING_PAYMENT, 10, false)]
+    [InlineData(PaymentStatus.VERIFIED, EscrowState.AWAITING_PAYMENT, 0, false)]
+    [InlineData(PaymentStatus.VERIFIED, EscrowState.AWAITING_PAYMENT, 10, true)]
+    public void CommissionAccruesOnlyForVerifiedNonCancelledNonRefundedOrders(PaymentStatus payment, EscrowState state, decimal commission, bool expected)
+    {
+        Assert.Equal(expected, SellerCommissionLedger.ShouldAccrueCommission(payment, state, commission));
+    }
+
 }
