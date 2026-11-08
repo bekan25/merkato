@@ -53,6 +53,7 @@ public static class AffiliateRewardProcessor
             db.AffiliateCommissions.Add(new AffiliateCommission
             {
                 AffiliateUserId = referral.AffiliateUserId,
+                AffiliateReferralId = referral.Id,
                 OrderId = order.Id,
                 EligibleAmountEtb = eligibleAmount,
                 RatePercent = rate,
