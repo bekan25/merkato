@@ -118,8 +118,7 @@ type FeeSettings = { merchantCommissionRatePercent:number; buyerServiceFeeRatePe
           <article class="metric"><div class="metric-head">TOTAL SALES VALUE <span class="metric-icon">◈</span></div><strong>{{(analytics?.grossOrderValueEtb ?? 0) | number:'1.0-0'}}</strong><small>ETB · gross order value, not settled revenue</small></article>
           <article class="metric"><div class="metric-head">TOTAL ORDERS <span class="metric-icon">▣</span></div><strong>{{analytics?.totalOrders ?? '—'}}</strong><small>All recorded marketplace orders</small></article>
           <article class="metric" id="customers"><div class="metric-head">CUSTOMERS <span class="metric-icon">♙</span></div><strong>{{analytics?.buyerCount ?? '—'}}</strong><small>{{analytics?.merchantCount ?? 0}} registered merchants</small></article>
-          <article class="metric metric-conversion"><div class="metric-head">CONVERSION RATE <span class="metric-icon">⌁</span></div><strong>—</strong><small>Not tracked by current analytics API</small></article></ng-container>
-        </ng-container></section>
+          <article class="metric metric-conversion"><div class="metric-head">CONVERSION RATE <span class="metric-icon">⌁</span></div><strong>—</strong><small>Not tracked by current analytics API</small></article></ng-container></section>
         <section class="analytics-grid" id="analytics">
           <article class="panel"><div class="panel-head"><div><h3>Sales analytics</h3><p class="sub">Gross order value by month · calculated from available order records</p></div><span class="count">6 MONTHS</span></div>
             <div class="chart" *ngIf="monthlySales.length; else noSales"><div class="chart-col" *ngFor="let point of monthlySales"><div class="chart-value">{{point.value | number:'1.0-0'}}</div><div class="chart-bar-wrap"><div class="chart-bar" [style.height.%]="point.height"></div></div><div class="chart-label">{{point.label}}</div></div></div>
