@@ -51,7 +51,8 @@ public sealed class ReturnsController(MerkatoDbContext db) : ControllerBase
         if (order.EscrowState == EscrowState.RELEASED)
             return Conflict(new { message = "The escrow inspection period has ended. Contact MERKATO support to request a dispute review." });
         var delivery = await db.Deliveries.AsNoTracking().FirstOrDefaultAsync(x => x.OrderId == order.Id, ct);
-        var deliveredAt = delivery?.DeliveredAt ?? order.CreatedAt;
+        if (delivery?.DeliveredAt is not DateTime deliveredAt)
+            return Conflict(new { message = "The delivery completion time is unavailable. Contact MERKATO support to review return eligibility." });
         if (deliveredAt < DateTime.UtcNow.AddDays(-7))
             return Conflict(new { message = "Returns must be requested within 7 days of delivery." });
 

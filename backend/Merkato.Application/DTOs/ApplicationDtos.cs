@@ -68,7 +68,9 @@ public record OrderResponseDto(
     decimal BuyerServiceFeeRatePercent = 0m,
     decimal BuyerServiceFeeEtb = 0m,
     string PaymentMode = "ESCROW",
-    string PaymentStatus = "PENDING"
+    string PaymentStatus = "PENDING",
+    DateTime? DeliveryDispatchedAt = null,
+    DateTime? DeliveryDeliveredAt = null
 );
 
 public record PaymentWebhookDto(
