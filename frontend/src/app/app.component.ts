@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, HostListener, OnInit, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -11,7 +11,7 @@ import { MkBadgeComponent } from './shared/ui-primitives.component';
   standalone: true,
   imports: [CommonModule, FormsModule, RouterOutlet, RouterLink, RouterLinkActive, MkBadgeComponent],
   template: `
-    <div class="app-shell">
+    <div class="app-shell" [class.admin-route]="isAdminRoute">
       <div class="announcement" *ngIf="announcementVisible">MERKATO ETHIOPIA <span>•</span> {{ t('announcement') }}<button type="button" class="announcement-dismiss" aria-label="Dismiss announcement" (click)="announcementVisible = false">×</button></div>
       <header class="site-header">
         <a class="brand" routerLink="/" aria-label="MERKATO home"><span class="brand-mark">M</span><span>merkato<small>ETHIOPIAN MARKETPLACE</small></span></a>
@@ -79,6 +79,9 @@ import { MkBadgeComponent } from './shared/ui-primitives.component';
     </div>
   `,
   styles: [`
+    .app-shell.admin-route>.announcement,.app-shell.admin-route>.site-header,.app-shell.admin-route>.mobile-category-nav,.app-shell.admin-route>.mobile-menu-toggle,.app-shell.admin-route>.department-nav,.app-shell.admin-route>.mobile-bottom-nav,.app-shell.admin-route>.site-footer{display:none!important}
+    .app-shell.admin-route>main{padding:0!important;margin:0!important;min-height:100vh}
+
     .site-header{height:auto;min-height:76px;padding:12px clamp(18px,5vw,76px);gap:24px;background:rgba(250,252,248,.82);border:1px solid rgba(255,255,255,.8);border-left:0;border-right:0;color:#173b2c;backdrop-filter:blur(20px) saturate(150%);-webkit-backdrop-filter:blur(20px) saturate(150%);box-shadow:0 8px 30px rgba(18,48,33,.07)}
     .brand{color:#103d30;flex:0 0 auto}.brand small{color:#7d9183}.brand-mark{background:linear-gradient(145deg,#0b8050,#064a35);color:#fff;border-radius:12px;box-shadow:0 6px 16px rgba(16,61,48,.2)}
     .global-search{display:flex;flex:1;max-width:690px;height:45px;border-radius:11px;overflow:hidden;background:rgba(255,255,255,.9);border:1px solid rgba(31,76,48,.12);box-shadow:0 6px 20px rgba(20,54,35,.06)}
@@ -186,6 +189,17 @@ export class AppComponent implements OnInit {
     { value: 'Other', label: 'Other' }
   ];
   language: 'en' | 'om' | 'am' = this.restoreLanguage();
+
+  get isAdminRoute():boolean{return this.router.url.startsWith('/admin')}
+  @HostListener('window:merkato-language-change',['$event'])
+  syncAdminLanguage(event:CustomEvent):void{
+    const value=event?.detail;
+    if(value==='om'||value==='am'||value==='en'){
+      this.language=value;
+      try{localStorage.setItem('merkato_language',value)}catch{/* Storage may be unavailable. */}
+      document.documentElement.lang=value;
+    }
+  }
 
   ngOnInit(): void {
     document.documentElement.lang = this.language;

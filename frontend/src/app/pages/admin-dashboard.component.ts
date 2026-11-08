@@ -1,14 +1,15 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, HostListener, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { AdminEmptyStateComponent, AdminErrorStateComponent, AdminQuickActionComponent, AdminSkeletonComponent, AdminStatBadgeComponent } from '../shared/admin-ui.components';
 import { AuthService } from '../core/auth.service';
 import { ApiService, AdminAnalytics, MerkatoDispute, MerkatoOrder, SellerVerification } from '../core/api.service';
 
 type FeeSettings = { merchantCommissionRatePercent:number; buyerServiceFeeRatePercent:number; isEnabled:boolean; currency:string; updatedAt:string };
 
 @Component({
-  standalone:true, selector:'app-admin-dashboard', imports:[CommonModule,FormsModule,RouterLink],
+  standalone:true, selector:'app-admin-dashboard', imports:[CommonModule,FormsModule,RouterLink,AdminEmptyStateComponent,AdminErrorStateComponent,AdminQuickActionComponent,AdminSkeletonComponent,AdminStatBadgeComponent],
   styles:[`
     :host{display:block;min-height:100vh;background:#f5f6f4;color:#17231c;font-family:Inter,Manrope,Arial,sans-serif}*{box-sizing:border-box}
     .shell{display:grid;grid-template-columns:245px minmax(0,1fr);min-height:100vh}.sidebar{position:sticky;top:0;height:100vh;padding:24px 16px;background:#17251e;color:#fff;display:flex;flex-direction:column;gap:24px}
@@ -43,58 +44,120 @@ type FeeSettings = { merchantCommissionRatePercent:number; buyerServiceFeeRatePe
     .analytics-grid{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(230px,.8fr);gap:16px;margin-bottom:17px}.chart{display:flex;align-items:end;gap:clamp(7px,1.4vw,17px);height:185px;padding:16px 5px 0;border-bottom:1px solid #ffffff18}.chart-col{display:flex;flex:1;min-width:0;height:100%;flex-direction:column;justify-content:end;align-items:center;gap:8px}.chart-bar-wrap{display:flex;align-items:end;justify-content:center;width:100%;height:100%;border-bottom:0}.chart-bar{width:min(34px,70%);min-height:3px;border-radius:8px 8px 3px 3px;background:linear-gradient(180deg,#36a4ff,#00c99a);box-shadow:0 0 22px #00c99a25}.chart-label{font-size:9px;color:#8da1c5}.chart-value{font-size:8px;color:#bdcbe4}.product-rank{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid #ffffff12}.product-rank:last-child{border:0}.rank-no{width:27px;height:27px;display:grid;place-items:center;border-radius:9px;background:#ffffff0c;color:#78e6ca;font-size:10px;font-weight:900}.rank-info{flex:1;min-width:0}.rank-info strong{display:block;overflow:hidden;color:#eaf1ff;font-size:10px;text-overflow:ellipsis;white-space:nowrap}.rank-info small{color:#8da1c5;font-size:8px}.rank-total{color:#8debd2;font-size:10px;font-weight:900;white-space:nowrap}.metric-conversion{background:linear-gradient(145deg,rgba(33,39,77,.95),rgba(15,23,44,.95))}
     @media(max-width:1050px){.analytics-grid{grid-template-columns:1fr}}
     @media(max-width:700px){.shell{grid-template-columns:1fr}.sidebar{background:rgba(10,19,36,.97);border:1px solid #ffffff16;border-radius:0 0 17px 17px;position:relative;height:auto;padding:13px;gap:10px}.nav{display:flex;overflow:auto}.nav a{flex:0 0 auto;padding:10px 12px}.main{padding:17px 13px 30px}.hero{padding:18px;border-radius:17px}.panel{padding:14px}.analytics-grid{gap:12px}.chart{height:155px}}
+    :host{--bg:#080f1f;--surface:#0f1b33;--surface-2:#14213d;--border:#2b3b59;--text:#f1f5f9;--text-muted:#b0bfd4;--primary:#168bff;--success:#22c58b;--warning:#f5b942;--danger:#ff707a;background:var(--bg)!important;color:var(--text)!important}
+    .shell{grid-template-columns:260px minmax(0,1fr);background:var(--bg)}
+    .sidebar{background:#0b162b;border-right:1px solid var(--border);backdrop-filter:none;box-shadow:none}
+    .mark,.avatar{background:#168bff;color:#fff;box-shadow:none}
+    .nav a,.logout{min-height:42px;font-size:13px;color:#c4d0e2;transition:background .16s ease,color .16s ease}
+    .nav a:hover,.nav a.active{background:#18365b;color:#fff;box-shadow:inset 3px 0 var(--primary)}
+    .nav a:focus-visible,.logout:focus-visible,.menu-toggle:focus-visible,.refresh:focus-visible,.quick a:focus-visible,.action:focus-visible,.save:focus-visible,.fee-row input:focus-visible,.toggle input:focus-visible,.admin-search:focus-visible,.language-select:focus-visible,.account-trigger:focus-visible{outline:3px solid #72baff;outline-offset:3px}
+    .main{padding:28px clamp(16px,3vw,42px) 48px}
+    .top h1{color:var(--text);font-size:clamp(25px,3vw,34px)}
+    .eyebrow{color:#8ec9ff;font-size:11px}.chip,.refresh{background:var(--surface-2);border-color:var(--border);color:var(--text-muted);font-size:12px}
+    .admin-header{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:24px;padding:14px 16px;border:1px solid var(--border);border-radius:15px;background:var(--surface)}
+    .admin-header-left{min-width:0}.breadcrumb{margin:0 0 4px;color:var(--text-muted);font-size:12px}.admin-header h1{margin:0;color:var(--text);font-size:clamp(22px,2.5vw,30px)}
+    .admin-header-actions{display:flex;align-items:center;gap:9px}.notification-button svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.admin-search{width:min(260px,26vw);min-width:150px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:#091427;color:var(--text);font-size:13px}
+    .language-select{min-height:38px;padding:0 10px;border:1px solid var(--border);border-radius:9px;background:var(--surface-2);color:var(--text);font-size:12px}
+    .account-menu{position:relative}.account-trigger{padding:9px 12px;border:1px solid var(--border);border-radius:10px;background:var(--surface-2);color:var(--text);font-size:12px;font-weight:750;cursor:pointer}
+    .account-panel{position:absolute;z-index:20;right:0;top:calc(100% + 10px);width:220px;padding:8px;border:1px solid var(--border);border-radius:13px;background:#14213d;box-shadow:0 18px 42px #0009}
+    .account-panel a,.account-panel button{display:block;width:100%;padding:10px;text-align:left;border:0;border-radius:8px;background:transparent;color:var(--text);text-decoration:none;font-size:13px;cursor:pointer}
+    .account-panel a:hover,.account-panel button:hover,.account-panel a:focus-visible,.account-panel button:focus-visible{background:#203655;outline:0}
+    .account-panel small{display:block;margin-top:3px;color:var(--text-muted);font-size:12px}
+    .drawer-backdrop{display:none}.menu-toggle{display:none;min-height:40px;padding:8px 12px;border:1px solid var(--border);border-radius:9px;background:var(--surface-2);color:var(--text);font-weight:700}
+    .hero{background:linear-gradient(120deg,#142b4b,#14213d 72%,#173454);border:1px solid var(--border);box-shadow:none}
+    .hero p{font-size:14px;color:#c0cde0}.hero h2{font-size:24px}.hero-status{font-size:11px}
+    .metric,.panel{background:var(--surface);border:1px solid var(--border);box-shadow:0 8px 24px #0003;color:var(--text)}
+    .metric-head{font-size:11px;color:var(--text-muted)}.metric strong{color:var(--text)}.metric small{font-size:12px;color:var(--text-muted)}
+    .panel h3{font-size:17px;color:var(--text)}.sub{font-size:12px;color:var(--text-muted);line-height:1.55}
+    .count{background:#1c2d49;border:1px solid #3a4e6d;color:#e0eaf8;font-size:12px}
+    .status{font-size:11px}.status.pending,.status.under_review{background:#493719;color:#ffe0a1}.status.open{background:#51252c;color:#ffc1c6}
+    th{font-size:11px;color:#a9bad2!important}td{font-size:12px;color:#d1dced!important}.strong{color:#f1f5f9}.muted{color:#b0bfd4}
+    .fee-box{background:var(--surface-2);border:1px solid var(--border);padding:16px}
+    .fee-row{grid-template-columns:minmax(0,1fr) minmax(110px,140px);gap:14px}.fee-row label{font-size:13px;color:var(--text)}
+    .fee-input-wrap{position:relative}.fee-row input{padding:11px 31px 11px 11px;font-size:14px;background:#091427;border-color:#435675;color:var(--text)}
+    .fee-input-wrap:after{content:"%";position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:13px;pointer-events:none}
+    .fee-row input:disabled{opacity:.55;cursor:not-allowed}
+    .fee-helper{grid-column:1/-1;margin:-5px 0 10px;color:var(--text-muted);font-size:12px;line-height:1.5}
+    .toggle{font-size:13px;color:var(--text);gap:10px}.toggle input{width:18px;height:18px;accent-color:var(--primary)}
+    .save{min-height:44px;background:var(--primary);font-size:14px}.save:hover:not(:disabled){background:#0876e5}.save:disabled{opacity:.45;cursor:not-allowed}
+    .note{font-size:12px;color:var(--text-muted)}.success,.error{font-size:12px}.error{background:#48242b;color:#ffc4c8;border:1px solid #8a3b47}
+    .fee-error{display:flex;align-items:flex-start;gap:11px;padding:13px;margin-bottom:14px;border:1px solid #8a3b47;border-radius:11px;background:#351e2a;color:#ffd5d8}
+    .fee-error-icon{flex:0 0 auto;font-size:20px}.fee-error strong{display:block;font-size:14px}.fee-error p{margin:4px 0 0;color:#f2bfc4;font-size:12px;line-height:1.5}
+    .retry{margin-left:auto;flex:0 0 auto;padding:8px 11px;border:1px solid #b85c67;border-radius:8px;background:#512832;color:#fff;font-weight:750;cursor:pointer}
+    .field-error{margin:-6px 0 10px;color:#ffabb3;font-size:12px}
+    .quick{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.quick a{display:flex;align-items:center;gap:10px;min-height:76px;padding:14px;border:1px solid #405574;border-radius:12px;background:#14213d;color:#f1f5f9;font-size:14px;font-weight:750}
+    .quick a:hover{background:#1b3456;border-color:#69aaff;transform:translateY(-1px)}
+    .quick-icon{display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:#1b4269;color:#9ed1ff;font-size:18px}
+    .empty{display:grid;justify-items:center;gap:7px;padding:28px 16px;text-align:center;color:var(--text-muted);font-size:13px;line-height:1.5}
+    .empty-icon{display:grid;place-items:center;width:38px;height:38px;border-radius:12px;background:#1c2d49;color:#9ecfff;font-size:18px}
+    .empty strong{font-size:14px;color:var(--text)}.empty span:last-child{max-width:360px}
+    .page-error{font-size:13px;padding:13px}.skeleton-card{min-height:108px;padding:18px;border:1px solid var(--border);border-radius:16px;background:var(--surface);display:grid;align-content:start;gap:13px}.skeleton-line{height:12px;border-radius:7px;background:linear-gradient(90deg,#1a2b45 25%,#2a3e5e 38%,#1a2b45 62%);background-size:400% 100%;animation:admin-shimmer 1.35s ease infinite}.skeleton-line.short{width:42%}.skeleton-line.value{height:28px;width:58%}
+    .skeleton{height:12px;border-radius:7px;background:linear-gradient(90deg,#1a2b45 25%,#2a3e5e 38%,#1a2b45 62%);background-size:400% 100%;animation:admin-shimmer 1.35s ease infinite}
+    @keyframes admin-shimmer{0%{background-position:100% 0}100%{background-position:0 0}}
+    .nav-icon{width:20px;height:20px;display:inline-grid;place-items:center;flex:0 0 20px}.nav-icon svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+    @media(max-width:760px){.drawer-backdrop{display:block;position:fixed;inset:0;z-index:55;border:0;background:#020817aa}.shell{grid-template-columns:1fr}.sidebar{position:fixed;z-index:60;inset:0 auto 0 0;width:min(290px,84vw);height:100dvh;transform:translateX(-105%);transition:transform .2s ease;border-radius:0;padding:22px 16px}.sidebar.drawer-open{transform:translateX(0)}.sidebar .profile,.sidebar .nav-label,.sidebar .bottom{display:flex}.sidebar .nav{display:grid;overflow:auto}.sidebar .nav a{width:100%}.menu-toggle{display:inline-flex;align-items:center;gap:8px}.main{padding:16px 12px 30px}.admin-header{align-items:flex-start;flex-wrap:wrap;padding:12px}.admin-header-actions{width:100%;flex-wrap:wrap}.admin-search{flex:1;width:auto;min-width:130px}.account-menu{margin-left:auto}.hero{padding:18px}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.panel{padding:14px}}
+    @media(max-width:420px){.metrics{grid-template-columns:1fr 1fr;gap:8px}.metric{padding:12px}.metric-head{font-size:10px}.metric small{font-size:11px}.quick{grid-template-columns:1fr}.quick a{min-height:68px}.fee-row{grid-template-columns:1fr}.fee-helper{margin-top:-5px}}
+    @media(prefers-reduced-motion:reduce){.skeleton{animation:none}.sidebar,.quick a{transition:none}.quick a:hover{transform:none}}
+
+
+    .profile strong,.user-meta strong,.rank-info strong{font-size:14px}.profile small,.user-meta small,.rank-info small{font-size:12px}
+    .eyebrow,.metric-head,.hero-status,.status,.action,.chart-label,.chart-value,.rank-total{font-size:12px}
+    th{font-size:12px!important}td{font-size:13px!important}.action{padding:8px 10px}
+    .metric small,.sub,.note,.fee-helper,.breadcrumb,.account-panel small{font-size:12px}
+    .nav a,.logout{font-size:14px}.panel h3{font-size:17px}
+    .account-trigger,.language-select,.admin-search{font-size:13px}
   `],
   template:`
     <div class="shell">
-      <aside class="sidebar">
+      <aside id="admin-sidebar" class="sidebar" [class.drawer-open]="sidebarOpen" aria-label="Admin navigation">
         <a routerLink="/" class="brand"><span class="mark">M</span><span>MERKATO<small>ADMIN CONSOLE</small></span></a>
         <div class="profile"><span class="avatar">{{user?.fullName?.slice(0,1) || 'A'}}</span><div><strong>{{user?.fullName || 'Administrator'}}</strong><small>Platform administrator</small></div></div>
         <span class="nav-label">CONTROL CENTER</span>
-        <nav class="nav"><a class="active" href="#overview">▦ &nbsp; Dashboard</a><a href="#catalog">▤ &nbsp; Products</a><a href="#orders">▣ &nbsp; Orders</a><a href="#customers">♙ &nbsp; Customers</a><a href="#analytics">⌁ &nbsp; Analytics</a><a href="#reports">▧ &nbsp; Reports</a><a routerLink="/admin/operations">⚙ &nbsp; Settings</a><a href="#disputes">⚑ &nbsp; Disputes</a><a routerLink="/admin/payments">▣ &nbsp; Payment reviews</a><a href="#fees">◈ &nbsp; Fees</a></nav>
+        <nav class="nav" aria-label="Control Center"><a class="active" href="#overview"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z"/></svg></span>Dashboard</a><a href="#catalog"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7l8-4 8 4v10l-8 4-8-4z M4 7l8 4 8-4 M12 11v10"/></svg></span>Products</a><a href="#orders"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10v3H7z M5 5H4v16h16V5h-1 M8 11h8 M8 15h8"/></svg></span>Orders</a><a href="#customers"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8 M4 21a8 8 0 0 1 16 0"/></svg></span>Customers</a><a href="#analytics"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5 M4 19h17 M8 15l4-4 3 2 5-7"/></svg></span>Analytics</a><a href="#reports"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6z M14 3v5h5 M9 12h6 M9 16h6"/></svg></span>Reports</a><a routerLink="/admin/operations"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8 M19 12l2-1-2-4-2 1-2-1-.3-2h-5L9 7 7 8 5 7l-2 4 2 1v2l-2 1 2 4 2-1 2 1 .7 2h5l.3-2 2-1 2 1 2-4-2-1z"/></svg></span>Settings</a><a href="#disputes"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4 M5 4h13l-2 4 2 4H5"/></svg></span>Disputes</a><a routerLink="/admin/payments"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18v13H3z M3 10h18 M7 15h4"/></svg></span>Payment reviews</a><a href="#fees"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4z M8 9h8 M8 13h5"/></svg></span>Fees</a></nav>
         <div class="bottom"><a routerLink="/" class="nav-link">↗ &nbsp; Open marketplace</a><button class="logout" (click)="logout()">⇥ &nbsp; Sign out</button></div>
       </aside>
+      <button class="drawer-backdrop" *ngIf="sidebarOpen" type="button" aria-label="Close admin navigation" (click)="closeSidebar()"></button>
       <main class="main" id="overview">
-        <header class="top"><div><span class="eyebrow">MERKATO · PLATFORM OPERATIONS</span><h1>Admin overview</h1></div><div class="top-actions"><span class="chip">Ethiopia · ETB</span><button class="refresh" (click)="refresh()" [disabled]="loading">↻ {{loading ? 'Refreshing…' : 'Refresh data'}}</button></div></header>
+        <header class="admin-header"><div class="admin-header-left"><button class="menu-toggle" type="button" (click)="toggleSidebar()" [attr.aria-expanded]="sidebarOpen" aria-controls="admin-sidebar">☰ Menu</button><p class="breadcrumb">MERKATO / Control Center / Dashboard</p><h1>Admin overview</h1></div><div class="admin-header-actions"><input class="admin-search" type="search" aria-label="Search orders, users and sellers" placeholder="Search orders, users, sellers" (keydown.enter)="searchAdmin($event)"><button class="refresh notification-button" type="button" aria-label="Notifications and open dispute center" (click)="jumpToDisputes()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg></button><select class="language-select" aria-label="Choose language" [value]="language" (change)="setLanguage($event)"><option value="en">EN</option><option value="om">OR</option><option value="am">አማ</option></select><details class="account-menu"><summary class="account-trigger" aria-haspopup="menu" aria-controls="admin-account-menu">My account ▾</summary><div class="account-panel" id="admin-account-menu" role="menu"><a routerLink="/admin">Dashboard<small>Administrator workspace</small></a><a routerLink="/commerce">Commerce Hub<small>Merchant workspace</small></a><button type="button" (click)="logout()">Sign out</button></div></details><span class="chip">Ethiopia · ETB</span><button class="refresh" (click)="refresh()" [disabled]="loading">↻ {{loading ? 'Refreshing…' : 'Refresh data'}}</button></div></header>
         <section class="hero"><div><span class="eyebrow" style="color:#d9bd7c">CONTROL YOUR MARKETPLACE</span><h2>Welcome back, {{firstName}}.</h2><p>Monitor marketplace activity, protect buyer and merchant trust, and manage MERKATO's launch fee policy from one place.</p></div><span class="hero-status">● ADMIN ACCESS</span></section>
         <div class="page-error" *ngIf="loadError">{{loadError}}</div>
-        <section class="metrics">
+        <section class="metrics" aria-label="Marketplace metrics"><ng-container *ngIf="loading"><article class="skeleton-card" *ngFor="let item of [1,2,3,4]" aria-label="Loading metric"><mk-admin-skeleton style="width:42%" /><mk-admin-skeleton style="width:58%" /><mk-admin-skeleton /></article></ng-container><ng-container *ngIf="!loading">
           <article class="metric"><div class="metric-head">TOTAL SALES VALUE <span class="metric-icon">◈</span></div><strong>{{(analytics?.grossOrderValueEtb ?? 0) | number:'1.0-0'}}</strong><small>ETB · gross order value, not settled revenue</small></article>
           <article class="metric"><div class="metric-head">TOTAL ORDERS <span class="metric-icon">▣</span></div><strong>{{analytics?.totalOrders ?? '—'}}</strong><small>All recorded marketplace orders</small></article>
           <article class="metric" id="customers"><div class="metric-head">CUSTOMERS <span class="metric-icon">♙</span></div><strong>{{analytics?.buyerCount ?? '—'}}</strong><small>{{analytics?.merchantCount ?? 0}} registered merchants</small></article>
-          <article class="metric metric-conversion"><div class="metric-head">CONVERSION RATE <span class="metric-icon">⌁</span></div><strong>—</strong><small>Not tracked by current analytics API</small></article>
-        </section>
+          <article class="metric metric-conversion"><div class="metric-head">CONVERSION RATE <span class="metric-icon">⌁</span></div><strong>—</strong><small>Not tracked by current analytics API</small></article></ng-container></section>
         <section class="analytics-grid" id="analytics">
           <article class="panel"><div class="panel-head"><div><h3>Sales analytics</h3><p class="sub">Gross order value by month · calculated from available order records</p></div><span class="count">6 MONTHS</span></div>
             <div class="chart" *ngIf="monthlySales.length; else noSales"><div class="chart-col" *ngFor="let point of monthlySales"><div class="chart-value">{{point.value | number:'1.0-0'}}</div><div class="chart-bar-wrap"><div class="chart-bar" [style.height.%]="point.height"></div></div><div class="chart-label">{{point.label}}</div></div></div>
-            <ng-template #noSales><div class="empty">Sales chart will appear when order records are available.</div></ng-template>
+            <ng-template #noSales><mk-admin-empty-state icon="⌁" title="No sales activity yet" message="Sales chart will appear when order records are available." /></ng-template>
           </article>
           <article class="panel" id="catalog"><div class="panel-head"><div><h3>Top products</h3><p class="sub">Ranked by order value in the available records</p></div><span class="count">TOP 5</span></div>
             <div *ngIf="topProducts.length; else noTopProducts"><div class="product-rank" *ngFor="let product of topProducts; let i=index"><span class="rank-no">{{i+1}}</span><div class="rank-info"><strong>{{product.name}}</strong><small>{{product.count}} order{{product.count===1?'':'s'}}</small></div><span class="rank-total">{{product.value | number:'1.0-0'}} ETB</span></div></div>
-            <ng-template #noTopProducts><div class="empty">No product sales data is available yet.</div></ng-template>
+            <ng-template #noTopProducts><mk-admin-empty-state icon="▤" title="No product sales yet" message="No product sales data is available yet." /></ng-template>
           </article>
         </section>
         <section class="columns">
           <div class="column">
             <section class="panel" id="orders"><div class="panel-head"><div><h3>Recent marketplace orders</h3><p class="sub">Latest order records returned by the protected admin API.</p></div><span class="count">{{orders.length}} records</span></div>
               <div class="table-wrap" *ngIf="recentOrders.length; else noOrders"><table><thead><tr><th>ORDER</th><th>PRODUCT</th><th>SELLER</th><th>VALUE</th><th>ESCROW</th><th>CREATED</th></tr></thead><tbody><tr *ngFor="let order of recentOrders"><td class="strong">{{order.orderNumber || ('#' + order.id)}}</td><td>{{order.productTitle}}</td><td>#{{order.sellerId}}</td><td>{{order.totalAmountEtb | number:'1.2-2'}} ETB</td><td><span class="status" [ngClass]="statusClass(order.escrowState)">{{statusLabel(order.escrowState)}}</span></td><td class="muted">{{order.createdAt | date:'mediumDate'}}</td></tr></tbody></table></div>
-              <ng-template #noOrders><div class="empty">No order records are currently available.</div></ng-template>
+              <ng-template #noOrders><mk-admin-empty-state icon="▣" title="No orders yet" message="No order records are currently available." /></ng-template>
             </section>
-            <section class="panel" id="merchants"><div class="panel-head"><div><h3>Merchant verification</h3><p class="sub">Review business profiles before granting verified seller status.</p></div><span class="count">{{pendingMerchants}} pending</span></div>
+            <section class="panel" id="merchants"><div class="panel-head"><div><h3>Merchant verification</h3><p class="sub">Review business profiles before granting verified seller status.</p></div><mk-admin-stat-badge [label]="pendingMerchants + ' pending'" tone="pending" [zero]="pendingMerchants===0" /></div>
               <div class="table-wrap" *ngIf="sellerVerifications.length; else noMerchants"><table><thead><tr><th>SELLER</th><th>BUSINESS</th><th>CITY</th><th>STATUS</th><th>DECISION</th></tr></thead><tbody><tr *ngFor="let item of sellerVerifications"><td class="strong">#{{item.sellerId}}</td><td>{{item.businessName || '—'}}</td><td>{{item.city || '—'}}</td><td><span class="status" [ngClass]="statusClass(item.status)">{{item.status}}</span></td><td><div class="actions" *ngIf="item.status === 'PENDING'"><button class="action" (click)="decideSeller(item,'APPROVED')" [disabled]="busySellerId === item.sellerId">Approve</button><button class="action danger" (click)="decideSeller(item,'REJECTED')" [disabled]="busySellerId === item.sellerId">Reject</button></div><span class="muted" *ngIf="item.status !== 'PENDING'">—</span></td></tr></tbody></table></div>
-              <ng-template #noMerchants><div class="empty">No seller verification requests have been submitted.</div></ng-template>
+              <ng-template #noMerchants><mk-admin-empty-state icon="♙" title="No verification requests" message="No seller verification requests have been submitted." /></ng-template>
             </section>
-            <section class="panel" id="disputes"><div class="panel-head"><div><h3>Trust & dispute center</h3><p class="sub">Handle buyer–merchant disputes with recorded decisions.</p></div><span class="count">{{openDisputes}} open</span></div>
+            <section class="panel" id="disputes"><div class="panel-head"><div><h3>Trust & dispute center</h3><p class="sub">Handle buyer–merchant disputes with recorded decisions.</p></div><mk-admin-stat-badge [label]="openDisputes + ' open'" tone="open" [zero]="openDisputes===0" /></div>
               <div class="table-wrap" *ngIf="disputes.length; else noDisputes"><table><thead><tr><th>CASE</th><th>ORDER</th><th>REASON</th><th>STATUS</th><th>ACTIONS</th></tr></thead><tbody><tr *ngFor="let dispute of disputes"><td class="strong">#{{dispute.id}}</td><td>#{{dispute.orderId}}</td><td>{{dispute.reason}}</td><td><span class="status" [ngClass]="statusClass(dispute.status)">{{dispute.status}}</span></td><td><div class="actions" *ngIf="dispute.status === 'OPEN' || dispute.status === 'UNDER_REVIEW'"><button class="action" *ngIf="dispute.status === 'OPEN'" (click)="reviewDispute(dispute)" [disabled]="busyDisputeId === dispute.id">Review</button><button class="action danger" (click)="resolveDispute(dispute,'refund')" [disabled]="busyDisputeId === dispute.id">Refund</button><button class="action" (click)="resolveDispute(dispute,'release')" [disabled]="busyDisputeId === dispute.id">Release</button></div><span class="muted" *ngIf="dispute.status !== 'OPEN' && dispute.status !== 'UNDER_REVIEW'">Closed</span></td></tr></tbody></table></div>
-              <ng-template #noDisputes><div class="empty">No disputes are currently returned by the API.</div></ng-template>
+              <ng-template #noDisputes><mk-admin-empty-state icon="⚑" title="No open disputes" message="No disputes are currently returned by the API." /></ng-template>
             </section>
           </div>
           <div class="column">
             <section class="panel" id="fees"><div class="panel-head"><div><h3>Marketplace commission</h3><p class="sub">Configure MERKATO's launch revenue model.</p></div><span class="count">{{fees?.isEnabled ? 'ACTIVE' : 'PAUSED'}}</span></div>
-              <form class="fee-box" (ngSubmit)="saveFees()"><div class="fee-row"><label for="merchantRate">Merchant commission</label><input id="merchantRate" name="merchantRate" type="number" min="0" max="10" step="0.05" [(ngModel)]="feeDraft.merchantCommissionRatePercent" required></div><div class="fee-row"><label for="buyerRate">Buyer service fee</label><input id="buyerRate" name="buyerRate" type="number" min="0" max="5" step="0.05" [(ngModel)]="feeDraft.buyerServiceFeeRatePercent" required></div>
-                <label class="toggle"><input type="checkbox" name="feesEnabled" [(ngModel)]="feeDraft.isEnabled"> Enable fee collection for new orders</label><button class="save" type="submit" [disabled]="savingFees">{{savingFees ? 'Saving settings…' : 'Save fee settings'}}</button><p class="note">Changes apply to new orders only. Existing orders keep their saved fee snapshot. Merchant rate max 10%; buyer fee max 5%.</p><p class="success" *ngIf="feeMessage">{{feeMessage}}</p><p class="error" *ngIf="feeError">{{feeError}}</p></form><p class="sub" *ngIf="fees?.updatedAt">Last updated {{fees?.updatedAt | date:'medium'}}</p>
+              <mk-admin-error-state *ngIf="feeError && !fees" title="Could not load marketplace fee settings" [message]="feeError" (retry)="retryFees()" [busy]="loadingFees" /><form class="fee-box" (ngSubmit)="saveFees()"><div class="fee-row"><label for="merchantRate">Merchant commission</label><div class="fee-input-wrap"><input id="merchantRate" name="merchantRate" type="number" min="0" max="10" step="0.05" [(ngModel)]="feeDraft.merchantCommissionRatePercent" [disabled]="!fees || loadingFees || savingFees" required></div><p class="fee-helper">Merchant rate max 10%, buyer fee max 5%</p></div><div class="fee-row"><label for="buyerRate">Buyer service fee</label><div class="fee-input-wrap"><input id="buyerRate" name="buyerRate" type="number" min="0" max="5" step="0.05" [(ngModel)]="feeDraft.buyerServiceFeeRatePercent" [disabled]="!fees || loadingFees || savingFees" required></div></div>
+                <label class="toggle"><input type="checkbox" name="feesEnabled" [(ngModel)]="feeDraft.isEnabled" [disabled]="!fees || loadingFees || savingFees"> Enable fee collection for new orders</label><button class="save" type="submit" [disabled]="!fees || loadingFees || savingFees">{{savingFees ? 'Saving settings…' : 'Save fee settings'}}</button><p class="note">Changes apply to new orders only. Existing orders keep their saved fee snapshot.</p><p class="success" *ngIf="feeMessage" role="status">{{feeMessage}}</p><p class="error" *ngIf="feeError && fees" role="alert">{{feeError}}</p></form><p class="sub" *ngIf="fees?.updatedAt">Last updated {{fees?.updatedAt | date:'medium'}}</p>
             </section>
-            <section class="panel"><div class="panel-head"><div><h3>Quick actions</h3><p class="sub">Jump to the main platform controls.</p></div></div><div class="quick"><a href="#merchants">♙ &nbsp; Review sellers</a><a href="#disputes">⚑ &nbsp; Resolve disputes</a><a href="#fees">◈ &nbsp; Manage fees</a><a routerLink="/">↗ &nbsp; View storefront</a></div></section>
-            <section class="panel"><div class="panel-head"><div><h3>New members</h3><p class="sub">Most recent users in the admin analytics feed.</p></div></div><div class="users" *ngIf="analytics?.recentUsers?.length; else noUsers"><div class="user" *ngFor="let member of analytics?.recentUsers"><span class="initial">{{member.fullName?.slice(0,1) || 'U'}}</span><div class="user-meta"><strong>{{member.fullName}}</strong><small>{{member.role}} · {{member.createdAt | date:'mediumDate'}}</small></div></div></div><ng-template #noUsers><div class="empty">No recent member data is available.</div></ng-template></section>
+            <section class="panel"><div class="panel-head"><div><h3>Quick actions</h3><p class="sub">Jump to the main platform controls.</p></div></div><div class="quick"><mk-admin-quick-action href="#merchants" icon="♙" label="Review sellers" /><mk-admin-quick-action href="#disputes" icon="⚑" label="Resolve disputes" /><mk-admin-quick-action href="#fees" icon="◈" label="Manage fees" /><mk-admin-quick-action href="/" icon="↗" label="View storefront" /></div></section>
+            <section class="panel"><div class="panel-head"><div><h3>New members</h3><p class="sub">Most recent users in the admin analytics feed.</p></div></div><div class="users" *ngIf="analytics?.recentUsers?.length; else noUsers"><div class="user" *ngFor="let member of analytics?.recentUsers"><span class="initial">{{member.fullName?.slice(0,1) || 'U'}}</span><div class="user-meta"><strong>{{member.fullName}}</strong><small>{{member.role}} · {{member.createdAt | date:'mediumDate'}}</small></div></div></div><ng-template #noUsers><mk-admin-empty-state icon="♙" title="No new members" message="No recent member data is available." /></ng-template></section>
           </div>
         </section>
       </main>
@@ -105,7 +168,17 @@ export class AdminDashboardComponent implements OnInit {
   private auth=inject(AuthService); private api=inject(ApiService);
   user=this.auth.user; analytics:AdminAnalytics|null=null; orders:MerkatoOrder[]=[]; disputes:MerkatoDispute[]=[]; sellerVerifications:SellerVerification[]=[]; fees:FeeSettings|null=null;
   feeDraft={merchantCommissionRatePercent:1,buyerServiceFeeRatePercent:0.5,isEnabled:true};
-  loading=false; savingFees=false; loadError=''; feeError=''; feeMessage=''; busySellerId:number|null=null; busyDisputeId:number|null=null;
+  loading=false; savingFees=false; loadingFees=false; loadError=''; feeError=''; feeMessage=''; busySellerId:number|null=null; busyDisputeId:number|null=null;
+  sidebarOpen=false; language:'en'|'om'|'am'=this.restoreAdminLanguage();
+  private restoreAdminLanguage():'en'|'om'|'am'{try{const value=localStorage.getItem('merkato_language');return value==='om'||value==='am'?value:'en'}catch{return'en'}}
+  searchAdmin(event:Event):void{const query=(event.target as HTMLInputElement).value.trim().toLowerCase();const target=query.includes('order')?'orders':query.includes('seller')||query.includes('merchant')?'merchants':query.includes('user')||query.includes('customer')?'customers':query.includes('dispute')?'disputes':query.includes('fee')?'fees':query.includes('product')?'catalog':'overview';document.getElementById(target)?.scrollIntoView({behavior:'smooth',block:'start'});this.closeSidebar()}
+  @HostListener('document:click',['$event']) closeAccountOnOutsideClick(event:MouseEvent):void{const menu=document.querySelector('.admin-header .account-menu');if(menu&&!menu.contains(event.target as Node))menu.removeAttribute('open')}
+  @HostListener('document:keydown.escape') closeAdminOverlays():void{this.closeSidebar();document.querySelector('.admin-header .account-menu')?.removeAttribute('open')}
+  toggleSidebar():void{this.sidebarOpen=!this.sidebarOpen}
+  closeSidebar():void{this.sidebarOpen=false}
+  jumpToDisputes():void{document.getElementById('disputes')?.scrollIntoView({behavior:'smooth',block:'start'})}
+  setLanguage(event:Event):void{const value=(event.target as HTMLSelectElement).value;this.language=value==='om'||value==='am'?value:'en';window.dispatchEvent(new CustomEvent('merkato-language-change',{detail:this.language}))}
+
   get firstName():string{return this.user?.fullName?.trim().split(/\\s+/)[0]||'Administrator'}
   get monthlySales():Array<{label:string;value:number;height:number}>{
     const now=new Date();const rows=Array.from({length:6},(_,i)=>{const d=new Date(now.getFullYear(),now.getMonth()-5+i,1);return{key:d.getFullYear()+'-'+d.getMonth(),label:d.toLocaleDateString('en',{month:'short'}),value:0}});
@@ -120,14 +193,15 @@ export class AdminDashboardComponent implements OnInit {
   get openDisputes():number{return this.disputes.filter(x=>['OPEN','UNDER_REVIEW'].includes(x.status)).length}
   ngOnInit():void{this.refresh()}
   refresh():void{
-    this.loading=true;this.loadError='';let remaining=5;
+    this.loading=true;this.loadingFees=true;this.loadError='';let remaining=5;
     const done=()=>{remaining--;if(remaining<=0)this.loading=false};
     this.api.getAdminAnalytics().subscribe({next:v=>this.analytics=v,error:()=>{this.loadError='Could not load marketplace analytics.';done()},complete:done});
     this.api.getMerchantOrders().subscribe({next:v=>this.orders=v||[],error:()=>{this.loadError='Could not load marketplace orders.';done()},complete:done});
     this.api.getDisputes().subscribe({next:v=>this.disputes=v||[],error:()=>{this.loadError='Could not load dispute records.';done()},complete:done});
     this.api.getSellerVerifications().subscribe({next:v=>this.sellerVerifications=v||[],error:()=>{this.loadError='Could not load seller verification requests.';done()},complete:done});
-    this.api.getMarketplaceFees().subscribe({next:v=>{this.fees=v;this.feeDraft={merchantCommissionRatePercent:Number(v.merchantCommissionRatePercent??1),buyerServiceFeeRatePercent:Number(v.buyerServiceFeeRatePercent??0.5),isEnabled:v.isEnabled!==false}},error:()=>{this.feeError='Could not load marketplace fee settings.';done()},complete:done});
+    this.api.getMarketplaceFees().subscribe({next:v=>{this.fees=v;this.feeError='';this.loadingFees=false;this.feeDraft={merchantCommissionRatePercent:Number(v.merchantCommissionRatePercent??1),buyerServiceFeeRatePercent:Number(v.buyerServiceFeeRatePercent??0.5),isEnabled:v.isEnabled!==false}},error:()=>{this.fees=null;this.feeError='Could not load marketplace fee settings. Please retry.';this.loadingFees=false;done()},complete:done});
   }
+  retryFees():void{this.loadingFees=true;this.feeError='';this.api.getMarketplaceFees().subscribe({next:v=>{this.fees=v;this.feeDraft={merchantCommissionRatePercent:Number(v.merchantCommissionRatePercent??1),buyerServiceFeeRatePercent:Number(v.buyerServiceFeeRatePercent??0.5),isEnabled:v.isEnabled!==false};this.loadingFees=false},error:()=>{this.feeError='Could not load marketplace fee settings. Please check your connection and retry.';this.loadingFees=false}})}
   saveFees():void{
     this.feeError='';this.feeMessage='';const merchant=Number(this.feeDraft.merchantCommissionRatePercent),buyer=Number(this.feeDraft.buyerServiceFeeRatePercent);
     if(!Number.isFinite(merchant)||merchant<0||merchant>10||!Number.isFinite(buyer)||buyer<0||buyer>5){this.feeError='Merchant commission must be 0–10%; buyer service fee must be 0–5%.';return}
