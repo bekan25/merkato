@@ -61,17 +61,17 @@ test('saved delivery addresses load into checkout while manual entry and city va
   const account = await read('../src/app/pages/account.component.ts');
   const controller = await read('../../backend/Merkato.Api/Controllers/AccountController.cs');
 
-  assert.match(api, /getMyDeliveryAddresses\\(\\)/);
-  assert.match(api, /\\/account\\/addresses/);
-  assert.match(cart, /loadSavedAddresses\\(\\)/);
-  assert.match(cart, /selectSavedAddress\\(id: number\\)/);
+  assert.match(api, /getMyDeliveryAddresses\(\)/);
+  assert.match(api, /\/account\/addresses/);
+  assert.match(cart, /loadSavedAddresses\(\)/);
+  assert.match(cart, /selectSavedAddress\(id: number\)/);
   assert.match(cart, /Enter address manually/);
-  assert.match(cart, /saved\\.deliveryInstructions/);
+  assert.match(cart, /saved\.deliveryInstructions/);
   assert.match(cart, /supported delivery city/);
   assert.match(account, /addressesError/);
-  assert.match(account, /loadAddresses\\(\\)/);
-  assert.match(controller, /HttpGet\\("addresses"\\)/);
-  assert.match(controller, /Where\\(x => x\\.UserId == UserId\\)/);
+  assert.match(account, /loadAddresses\(\)/);
+  assert.match(controller, /HttpGet\("addresses"\)/);
+  assert.match(controller, /Where\(x => x\.UserId == UserId\)/);
 });
 
 test('checkout quotes and validates city-based delivery fees instead of submitting zero', async () => {
