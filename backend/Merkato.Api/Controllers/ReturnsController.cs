@@ -99,7 +99,7 @@ public sealed class ReturnsController(MerkatoDbContext db) : ControllerBase
 
     [HttpPost("{id:long}/decision")]
     [Authorize(Roles = "MERCHANT")]
-    public async Task<IActionResult> Decide(long id, [FromBody] ReturnDecisionInput input, CancellationToken ct)
+    public async Task<IActionResult> Decide(long id, [FromBody] MerchantReturnDecisionInput input, CancellationToken ct)
     {
         var decision = input.Decision?.Trim().ToUpperInvariant();
         var note = input.Note?.Trim();
@@ -234,6 +234,6 @@ public sealed class ReturnsController(MerkatoDbContext db) : ControllerBase
 }
 
 public sealed record ReturnRequestInput(long OrderId, string Reason);
-public sealed record ReturnDecisionInput(string Decision, string? Note);
+public sealed record MerchantReturnDecisionInput(string Decision, string? Note);
 public sealed record ReturnNoteInput(string? Note);
 public sealed record SellerDirectRefundConfirmation(decimal RefundAmountEtb, string TransactionReference, string? Note);
