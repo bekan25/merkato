@@ -311,3 +311,30 @@ test('mobile dashboard and payment review layouts define narrow-screen behavior'
   assert.match(sellerPayments, /@media\(max-width:560px\)/);
   assert.match(cart, /@media\(max-width:680px\)/);
 });
+
+
+test('Ethiopian marketplace redesign loads after legacy styles and preserves the existing Angular stack', async () => {
+  const angular = await read('../angular.json');
+  const design = await read('../src/merkato-redesign.scss');
+  const index = await read('../src/index.html');
+
+  assert.match(angular, /src\\/merkato-redesign\\.scss/);
+  assert.match(design, /--mk-primary:#0B3D2E/);
+  assert.match(design, /--mk-accent:#E8A317/);
+  assert.match(design, /prefers-reduced-motion:reduce/);
+  assert.match(design, /category-image-grid/);
+  assert.match(design, /aspect-ratio:4\\/3/);
+  assert.match(design, /app-admin-operations/);
+  assert.match(index, /Noto\\+Sans\\+Ethiopic/);
+});
+
+test('shopping assistant has working multilingual suggestion chips and a clear disabled reason', async () => {
+  const assistant = await read('../src/app/components/shopping-assistant.component.ts');
+  assert.match(assistant, /assistant-suggestions/);
+  assert.match(assistant, /Bilbila gatii madaalawaa qabu barbaada/);
+  assert.match(assistant, /ተመጣጣኝ ዋጋ ያለው ስልክ እፈልጋለሁ/);
+  assert.match(assistant, /Find an affordable phone in Addis Ababa/);
+  assert.match(assistant, /useSuggestion\(suggestion\)/);
+  assert.match(assistant, /assistant-disabled-reason/);
+  assert.match(assistant, /askShoppingAssistant\(message\)/);
+});
