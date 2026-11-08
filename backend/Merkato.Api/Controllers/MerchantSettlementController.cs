@@ -29,9 +29,14 @@ public sealed class MerchantSettlementController(MerkatoDbContext db) : Controll
             join entry in db.LedgerEntries.AsNoTracking() on tx.Id equals entry.LedgerTransactionId
             where tx.TransactionType == "MERCHANT_COMMISSION_SETTLEMENT" && entry.AccountType == LedgerAccountType.MERCHANT_RECEIVABLE && entry.UserId == sellerId && entry.EntryType == LedgerEntryType.CREDIT
             select new { tx.Id, tx.ReferenceId, tx.CreatedAt, entry.AmountEtb }).ToListAsync(ct);
-        var due = accruals.Sum(x => x.AmountEtb); var paid = settlements.Sum(x => x.AmountEtb);
-        return Ok(new { currency = "ETB", commissionDue = due, paid, outstanding = due - paid,
-            accrualHistory = accruals.OrderByDescending(x => x.CreatedAt), paymentHistory = settlements.OrderByDescending(x => x.CreatedAt) });
+        var reversals = await (from tx in db.LedgerTransactions.AsNoTracking()
+            join entry in db.LedgerEntries.AsNoTracking() on tx.Id equals entry.LedgerTransactionId
+            where tx.TransactionType == "SELLER_DIRECT_COMMISSION_REVERSAL" && entry.AccountType == LedgerAccountType.MERCHANT_RECEIVABLE && entry.UserId == sellerId && entry.EntryType == LedgerEntryType.CREDIT
+            select new { tx.Id, tx.OrderId, tx.ReferenceId, tx.CreatedAt, entry.AmountEtb }).ToListAsync(ct);
+        var due = accruals.Sum(x => x.AmountEtb); var paid = settlements.Sum(x => x.AmountEtb); var reversed = reversals.Sum(x => x.AmountEtb);
+        return Ok(new { currency = "ETB", commissionDue = due, reversed, paid, outstanding = due - paid - reversed,
+            accrualHistory = accruals.OrderByDescending(x => x.CreatedAt), reversalHistory = reversals.OrderByDescending(x => x.CreatedAt),
+            paymentHistory = settlements.OrderByDescending(x => x.CreatedAt) });
     }
 
     [HttpGet("admin/outstanding")]
@@ -44,10 +49,13 @@ public sealed class MerchantSettlementController(MerkatoDbContext db) : Controll
         var paid = await (from tx in db.LedgerTransactions.AsNoTracking() join e in db.LedgerEntries.AsNoTracking() on tx.Id equals e.LedgerTransactionId
             where tx.TransactionType == "MERCHANT_COMMISSION_SETTLEMENT" && e.AccountType == LedgerAccountType.MERCHANT_RECEIVABLE && e.EntryType == LedgerEntryType.CREDIT && e.UserId != null
             group e by e.UserId into g select new { MerchantId = g.Key!.Value, Amount = g.Sum(x => x.AmountEtb) }).ToDictionaryAsync(x => x.MerchantId, x => x.Amount, ct);
+        var reversed = await (from tx in db.LedgerTransactions.AsNoTracking() join e in db.LedgerEntries.AsNoTracking() on tx.Id equals e.LedgerTransactionId
+            where tx.TransactionType == "SELLER_DIRECT_COMMISSION_REVERSAL" && e.AccountType == LedgerAccountType.MERCHANT_RECEIVABLE && e.EntryType == LedgerEntryType.CREDIT && e.UserId != null
+            group e by e.UserId into g select new { MerchantId = g.Key!.Value, Amount = g.Sum(x => x.AmountEtb) }).ToDictionaryAsync(x => x.MerchantId, x => x.Amount, ct);
         var ids = due.Select(x => x.MerchantId).ToArray();
         var users = await db.Users.AsNoTracking().Where(x => ids.Contains(x.Id)).Select(x => new { x.Id, x.FullName, x.PhoneNumber }).ToDictionaryAsync(x => x.Id, ct);
         return Ok(due.Select(x => new { x.MerchantId, merchant = users.GetValueOrDefault(x.MerchantId), commissionDue = x.Amount,
-            paid = paid.GetValueOrDefault(x.MerchantId), outstanding = x.Amount - paid.GetValueOrDefault(x.MerchantId) }).OrderByDescending(x => x.outstanding));
+            paid = paid.GetValueOrDefault(x.MerchantId), reversed = reversed.GetValueOrDefault(x.MerchantId), outstanding = x.Amount - paid.GetValueOrDefault(x.MerchantId) - reversed.GetValueOrDefault(x.MerchantId) }).OrderByDescending(x => x.outstanding));
     }
 
     [HttpPost("admin/record-payment")]
@@ -66,7 +74,10 @@ public sealed class MerchantSettlementController(MerkatoDbContext db) : Controll
             where tx.TransactionType == "SELLER_DIRECT_COMMISSION" && e.AccountType == LedgerAccountType.MERCHANT_RECEIVABLE && e.EntryType == LedgerEntryType.DEBIT && e.UserId == request.MerchantId select (decimal?)e.AmountEtb).SumAsync(ct) ?? 0m;
         var paid = await (from tx in db.LedgerTransactions.AsNoTracking() join e in db.LedgerEntries.AsNoTracking() on tx.Id equals e.LedgerTransactionId
             where tx.TransactionType == "MERCHANT_COMMISSION_SETTLEMENT" && e.AccountType == LedgerAccountType.MERCHANT_RECEIVABLE && e.EntryType == LedgerEntryType.CREDIT && e.UserId == request.MerchantId select (decimal?)e.AmountEtb).SumAsync(ct) ?? 0m;
-        var outstanding = due - paid;
+        var reversed = await (from tx in db.LedgerTransactions.AsNoTracking() join e in db.LedgerEntries.AsNoTracking() on tx.Id equals e.LedgerTransactionId
+            where tx.TransactionType == "SELLER_DIRECT_COMMISSION_REVERSAL" && e.AccountType == LedgerAccountType.MERCHANT_RECEIVABLE && e.EntryType == LedgerEntryType.CREDIT && e.UserId == request.MerchantId
+            select (decimal?)e.AmountEtb).SumAsync(ct) ?? 0m;
+        var outstanding = due - paid - reversed;
         if (request.AmountEtb > outstanding) return Conflict(new { error = $"Payment exceeds outstanding commission ({outstanding:0.00} ETB)." });
         db.LedgerTransactions.Add(new LedgerTransaction { OrderId = 0, TransactionType = "MERCHANT_COMMISSION_SETTLEMENT", ReferenceId = reference,
             Description = $"Admin {adminId} recorded verified merchant commission payment", CreatedAt = DateTime.UtcNow,
