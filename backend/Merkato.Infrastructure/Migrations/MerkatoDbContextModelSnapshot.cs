@@ -943,7 +943,6 @@ b.Property<long>("SellerId")
                     b.Property<long>("Id").ValueGeneratedOnAdd().HasColumnType("bigint");
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
                     b.Property<long>("AffiliateUserId").HasColumnType("bigint");
-                    b.Property<long?>("AffiliateReferralId").HasColumnType("bigint");
                     b.Property<DateTime>("ClickedAt").HasColumnType("timestamp with time zone");
                     b.Property<string>("ReferralCode").IsRequired().HasColumnType("text");
                     b.Property<long?>("ReferredUserId").HasColumnType("bigint");
@@ -960,6 +959,7 @@ b.Property<long>("SellerId")
                     b.Property<long>("Id").ValueGeneratedOnAdd().HasColumnType("bigint");
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
                     b.Property<long>("AffiliateUserId").HasColumnType("bigint");
+                    b.Property<long?>("AffiliateReferralId").HasColumnType("bigint");
                     b.Property<decimal>("CommissionEtb").HasColumnType("numeric(18,4)");
                     b.Property<DateTime>("CreatedAt").HasColumnType("timestamp with time zone");
                     b.Property<decimal>("EligibleAmountEtb").HasColumnType("numeric(18,4)");
