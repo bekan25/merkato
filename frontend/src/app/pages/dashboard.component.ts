@@ -4,7 +4,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../core/auth.service';
-import { ApiService, MerkatoProduct, MerkatoOrder, MerkatoDispute, MerchantAnalytics, AdminAnalytics, SellerVerification } from '../core/api.service';
+import { ApiService, MerkatoProduct, MerkatoOrder, MerkatoDispute, MerchantAnalytics, AdminAnalytics, SellerVerification, BuyerReturnRequest, OrderDeliveryTracking } from '../core/api.service';
 
 @Component({
   standalone: true,
@@ -227,6 +227,12 @@ import { ApiService, MerkatoProduct, MerkatoOrder, MerkatoDispute, MerchantAnaly
     .buyer-preview-status{display:inline-flex;justify-self:start;max-width:100%;padding:5px 8px;border-radius:999px;background:#e9f5eb;color:#26704a;font-size:8px;font-weight:900;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .buyer-preview-status.waiting{background:#fff4dc;color:#936313}
     .buyer-preview-empty{padding:18px;border:1px dashed #cbdccf;border-radius:14px;color:#7d8d82;font-size:11px;line-height:1.6}
+    .buyer-tracking-list{display:grid;gap:14px}.buyer-tracking-card{min-width:0;padding:18px;border:1px solid #e4ece4;border-radius:17px;background:linear-gradient(145deg,#fff,#fbfdf9);box-shadow:0 8px 22px rgba(20,55,35,.04)}
+    .buyer-tracking-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}.buyer-tracking-head h3{margin:6px 0;color:#183d2b;font-size:15px}.buyer-tracking-head small,.buyer-updated-at{color:#7b8b7e;font-size:10px}.buyer-tracking-head>strong{color:#16764a;font-size:15px;white-space:nowrap}.buyer-order-number{color:#a17b2c;font-size:10px;font-weight:900;letter-spacing:.06em}
+    .buyer-tracking-meta,.buyer-tracking-rider{display:flex;flex-wrap:wrap;gap:9px 18px;margin-top:12px;color:#65756a;font-size:10px}.buyer-tracking-meta b{color:#254b35}.buyer-tracking-rider{padding:10px 12px;border-radius:10px;background:#f3f8f2}
+    .buyer-timeline{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px;margin:20px 0 8px}.buyer-timeline-step{position:relative;display:grid;justify-items:center;gap:7px;text-align:center;color:#a0aaa1}.buyer-timeline-step:not(:last-child):after{content:'';position:absolute;top:12px;left:calc(50% + 15px);width:calc(100% - 25px);height:2px;background:#e4eae3}.buyer-timeline-step.done:not(:last-child):after{background:#62a77b}.buyer-timeline-dot{z-index:1;display:grid;place-items:center;width:25px;height:25px;border:2px solid #dce5dc;border-radius:50%;background:#fff;font-size:9px;font-weight:900}.buyer-timeline-step.done{color:#267348}.buyer-timeline-step.done .buyer-timeline-dot{border-color:#5caa79;background:#e8f5e9;color:#17643b}.buyer-timeline-step.current .buyer-timeline-dot{box-shadow:0 0 0 4px #16834f20}.buyer-timeline-step small{font-size:9px;line-height:1.25}
+    .buyer-order-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:14px}.buyer-order-actions a,.buyer-text-button{border:0;background:none;color:#176b43;font-size:11px;font-weight:850;text-decoration:none;cursor:pointer}.buyer-return-panel{display:grid;gap:8px;margin-top:14px;padding:13px;border:1px solid #e7eee6;border-radius:12px;background:#fafcf9}.buyer-return-heading{display:flex;align-items:center;justify-content:space-between;gap:10px}.buyer-return-heading strong,.buyer-return-panel>strong{color:#264c35;font-size:11px}.buyer-return-panel p,.buyer-return-panel small{margin:0;color:#68786d;font-size:10px;line-height:1.5}.buyer-return-panel textarea{width:100%;min-height:62px;padding:10px;border:1px solid #dce6dc;border-radius:9px;background:#fff;color:#253c2d;font:inherit;font-size:11px;resize:vertical}.buyer-return-panel button{justify-self:start;padding:9px 13px;border:0;border-radius:9px;background:#176b43;color:#fff;font-size:10px;font-weight:850;cursor:pointer}.buyer-return-panel button:disabled{opacity:.5;cursor:not-allowed}.buyer-return-status{padding:5px 9px;border-radius:99px;background:#edf4ed;color:#286b43;font-size:9px;font-weight:900}.buyer-return-status[data-status="REJECTED"]{background:#fff0ed;color:#a74432}.buyer-return-status[data-status="REFUNDED"]{background:#e7f4ff;color:#21638d}.buyer-refund-note{font-weight:850;color:#176b43!important}.buyer-trust-warning{color:#94651a!important}.buyer-trust-message{margin:0 0 12px;padding:10px 12px;border-radius:10px;background:#eef7ef;color:#24643e;font-size:11px}
+    @media(max-width:640px){.buyer-tracking-card{padding:14px}.buyer-timeline{gap:2px}.buyer-timeline-step small{font-size:8px}.buyer-tracking-head{gap:8px}.buyer-tracking-head>strong{font-size:12px}}
     .buyer-orders-section{scroll-margin-top:22px}
     .buyer-orders-section .workspace-section-head{margin-bottom:16px}
     .buyer-orders-section .workspace-section-head h2{font-size:20px}
@@ -448,7 +454,49 @@ import { ApiService, MerkatoProduct, MerkatoOrder, MerkatoDispute, MerchantAnaly
         </section>
         <section class="workspace-section" id="merchant-orders" *ngIf="user?.role === 'MERCHANT' || user?.role === 'ADMIN'"><span class="eyebrow">ORDER FULFILMENT</span><h2>Incoming orders</h2><div *ngIf="merchantOrders.length" class="table-wrap"><table><thead><tr><th>Order</th><th>Product</th><th>Buyer</th><th>Buyer total</th><th>Payment mode</th><th>Payment status</th><th>MERKATO commission due</th><th>Delivery</th></tr></thead><tbody><tr *ngFor="let order of merchantOrders"><td>{{order.orderNumber}}</td><td>{{order.productTitle}}</td><td>#{{order.buyerId}}</td><td>{{order.totalAmountEtb | number:'1.2-2'}} ETB</td><td>{{order.paymentMode === 'SELLER_DIRECT' ? 'Seller direct' : 'Escrow'}}</td><td><span class="status-pill">{{order.paymentStatus || 'PENDING'}}</span></td><td>{{(order.merchantCommissionEtb || 0) | number:'1.2-2'}} ETB · settle separately with MERKATO</td><td>{{order.deliveryStatus}}</td></tr></tbody></table></div><div class="empty-inline" *ngIf="!merchantOrders.length">No incoming orders have been recorded yet.</div></section>
         <p class="inline-note">For seller-direct orders, the buyer transfers the order total to the seller. MERKATO does not hold these funds; the merchant commission shown above is payable separately and must be manually reconciled by the MERKATO admin.</p>
-        <section class="workspace-section buyer-orders-section" *ngIf="user?.role === 'BUYER'" id="buyer-orders"><div class="workspace-section-head"><div><span class="eyebrow">YOUR SHOPPING</span><h2>Your orders</h2><p>Recent orders created from your buyer account.</p></div><a routerLink="/cart" class="btn btn-outline">Open cart</a></div><div *ngIf="buyerOrders.length" class="table-wrap"><table><thead><tr><th>Order</th><th>Product</th><th>Total</th><th>Payment mode</th><th>Payment status</th><th>Date</th><th>Payment receipt</th></tr></thead><tbody><tr *ngFor="let order of buyerOrders"><td>{{order.orderNumber}}</td><td>{{order.productTitle}}</td><td>{{order.totalAmountEtb | number:'1.2-2'}} ETB</td><td>{{order.paymentMode === 'SELLER_DIRECT' ? 'Seller direct' : 'Escrow'}}</td><td><span class="status-pill">{{order.paymentStatus || order.escrowState}}</span></td><td>{{order.createdAt | date:'mediumDate'}}</td><td><a *ngIf="order.escrowState === 'AWAITING_PAYMENT' && order.paymentStatus !== 'VERIFIED'" [routerLink]="['/payment', order.id]">Upload receipt ↗</a><button type="button" *ngIf="(order.escrowState === 'HELD' || order.escrowState === 'INSPECTION_ACTIVE')" [disabled]="busyDisputeId === order.id" (click)="fileOrderDispute(order)">File dispute</button><span *ngIf="order.paymentStatus === 'VERIFIED'">Confirmed</span><span *ngIf="order.escrowState !== 'AWAITING_PAYMENT' && order.escrowState !== 'HELD' && order.escrowState !== 'INSPECTION_ACTIVE' && order.paymentStatus !== 'VERIFIED'">—</span></td></tr></tbody></table></div><div class="empty-inline" *ngIf="!buyerOrders.length">No orders have been created yet. Browse the marketplace and add products to your cart.</div><a routerLink="/" class="btn btn-primary">Explore products ↗</a></section>
+        <section class="workspace-section buyer-orders-section" *ngIf="user?.role === 'BUYER'" id="buyer-orders">
+          <div class="workspace-section-head"><div><span class="eyebrow">YOUR SHOPPING</span><h2>Orders & delivery tracking</h2><p>Follow courier progress and manage eligible returns from one place.</p></div><a routerLink="/cart" class="btn btn-outline">Open cart</a></div>
+          <p class="buyer-trust-message" *ngIf="returnActionMessage" role="status">{{returnActionMessage}}</p>
+          <div *ngIf="buyerOrders.length" class="buyer-tracking-list">
+            <article class="buyer-tracking-card" *ngFor="let order of buyerOrders">
+              <div class="buyer-tracking-head"><div><span class="buyer-order-number">{{order.orderNumber}}</span><h3>{{order.productTitle}}</h3><small>Ordered {{order.createdAt | date:'mediumDate'}} · {{order.paymentMode === 'SELLER_DIRECT' ? 'Seller direct' : 'Escrow'}}</small></div><strong>{{order.totalAmountEtb | number:'1.2-2'}} ETB</strong></div>
+              <div class="buyer-tracking-meta"><span>Payment: <b>{{order.paymentStatus || order.escrowState}}</b></span><span>Delivery: <b>{{deliveryStatusLabel(order)}}</b></span></div>
+              <ng-container *ngIf="buyerDeliveryTracking[order.id] as tracking">
+                <div class="buyer-tracking-rider" *ngIf="tracking.deliveryAssigned"><span>Courier: {{tracking.courierType || 'Assigned'}}</span><span *ngIf="tracking.riderName">Rider: {{tracking.riderName}}</span><span *ngIf="tracking.riderPhone">Contact: {{tracking.riderPhone}}</span></div>
+                <div class="buyer-tracking-rider" *ngIf="!tracking.deliveryAssigned"><span>Courier assignment is pending. The order will update when dispatch is arranged.</span></div>
+                <div class="buyer-timeline" *ngIf="deliveryStepIndex(order) >= 0; else deliveryException">
+                  <div class="buyer-timeline-step" *ngFor="let step of deliverySteps; let i = index" [class.done]="i <= deliveryStepIndex(order)" [class.current]="i === deliveryStepIndex(order)"><span class="buyer-timeline-dot">{{i < deliveryStepIndex(order) ? '✓' : i + 1}}</span><small>{{step}}</small></div>
+                </div>
+                <ng-template #deliveryException><p class="buyer-trust-warning">Delivery update: {{deliveryStatusLabel(order)}}. Please contact the merchant if this status does not change.</p></ng-template>
+                <small class="buyer-updated-at" *ngIf="tracking.updatedAt">Last updated {{tracking.updatedAt | date:'medium'}}</small>
+              </ng-container>
+              <div class="buyer-order-actions">
+                <a *ngIf="order.escrowState === 'AWAITING_PAYMENT' && order.paymentStatus !== 'VERIFIED'" [routerLink]="['/payment', order.id]">Upload payment receipt ↗</a>
+                <button type="button" class="buyer-text-button" *ngIf="order.escrowState === 'HELD' || order.escrowState === 'INSPECTION_ACTIVE'" [disabled]="busyDisputeId === order.id" (click)="fileOrderDispute(order)">File dispute</button>
+              </div>
+              <div class="buyer-return-panel">
+                <ng-container *ngIf="returnForOrder(order.id) as returnRequest">
+                  <div class="buyer-return-heading"><strong>Return request</strong><span class="buyer-return-status" [attr.data-status]="returnRequest.status">{{returnStatusLabel(returnRequest.status)}}</span></div>
+                  <p>{{returnRequest.reason}}</p>
+                  <small *ngIf="returnRequest.resolutionNote && returnRequest.status !== 'REFUNDED'">{{returnRequest.resolutionNote}}</small>
+                  <ng-container *ngIf="returnRequest.status === 'REFUNDED'">
+                    <p class="buyer-refund-note">Merchant-reported refund: {{refundDetails(returnRequest)?.refundAmountEtb || '—'}} ETB</p>
+                    <small>Transaction reference: {{refundDetails(returnRequest)?.transactionReference || 'Not supplied'}}</small>
+                    <small class="buyer-trust-warning">This is a merchant-reported refund, not independently verified by MERKATO.</small>
+                  </ng-container>
+                </ng-container>
+                <ng-container *ngIf="!returnForOrder(order.id) && canRequestReturn(order)">
+                  <strong>Need to return this item?</strong>
+                  <textarea rows="2" maxlength="1200" [ngModel]="returnReasonDrafts[order.id] || ''" (ngModelChange)="returnReasonDrafts[order.id] = $event" placeholder="Describe the issue and why you need a return"></textarea>
+                  <button type="button" [disabled]="busyReturnOrderId === order.id || !(returnReasonDrafts[order.id] || '').trim()" (click)="requestOrderReturn(order)">{{busyReturnOrderId === order.id ? 'Submitting…' : 'Request return'}}</button>
+                  <small>Return requests are accepted within 7 days of delivery, subject to the order's escrow state and merchant review.</small>
+                </ng-container>
+              </div>
+            </article>
+          </div>
+          <div class="empty-inline" *ngIf="!buyerOrders.length">No orders have been created yet. Browse the marketplace and add products to your cart.</div>
+          <a routerLink="/" class="btn btn-primary">Explore products ↗</a>
+        </section>
         <section class="workspace-section" *ngIf="user?.role === 'ADMIN' && adminAnalytics as stats"><span class="eyebrow">PLATFORM INTELLIGENCE</span><h2>Marketplace health</h2><div class="workspace-grid"><article class="workspace-card"><span class="card-label">TOTAL USERS</span><strong>{{stats.totalUsers}}</strong><small>{{stats.buyerCount}} buyers · {{stats.merchantCount}} merchants</small></article><article class="workspace-card"><span class="card-label">PRODUCT CATALOGUE</span><strong>{{stats.activeProducts}}</strong><small>{{stats.totalProducts}} total listings</small></article><article class="workspace-card"><span class="card-label">TOTAL ORDERS</span><strong>{{stats.totalOrders}}</strong><small>Gross value: {{stats.grossOrderValueEtb | number:'1.2-2'}} ETB</small></article><article class="workspace-card"><span class="card-label">OPEN DISPUTES</span><strong>{{stats.openDisputes}}</strong><small>Require administrator attention</small></article></div><h3>Recently joined users</h3><div class="table-wrap"><table><thead><tr><th>Name</th><th>Phone</th><th>Role</th><th>Joined</th></tr></thead><tbody><tr *ngFor="let member of stats.recentUsers"><td>{{member.fullName}}</td><td>{{member.phoneNumber}}</td><td>{{member.role}}</td><td>{{member.createdAt | date:'mediumDate'}}</td></tr></tbody></table></div></section>
         <section class="workspace-section" *ngIf="user?.role === 'ADMIN'">
           <span class="eyebrow">TRUST & SAFETY</span><h2>Seller verification queue</h2>
@@ -489,6 +537,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
   mobileNavOpen = false;
   merchantProducts: MerkatoProduct[] = [];
   buyerOrders: MerkatoOrder[] = [];
+  buyerReturns: BuyerReturnRequest[] = [];
+  buyerDeliveryTracking: Record<number, OrderDeliveryTracking> = {};
+  returnReasonDrafts: Record<number, string> = {};
+  busyReturnOrderId: number | null = null;
+  returnActionMessage = '';
   merchantOrders: MerkatoOrder[] = [];
   disputes: MerkatoDispute[] = [];
   merchantAnalytics: MerchantAnalytics | null = null;
@@ -553,7 +606,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     if (this.user?.role === 'MERCHANT') this.api.getMySellerVerification().subscribe({ next: item => this.sellerVerification = item, error: () => this.loadError = 'Could not load seller verification status.' });
     if (this.user?.role === 'ADMIN') this.reloadSellerVerifications();
     if (this.user?.role === 'ADMIN') this.reloadMarketplaceFees();
-    if (this.user?.role === 'BUYER') this.api.getMyOrders().subscribe({ next: items => this.buyerOrders = items || [], error: () => this.loadError = 'Could not load order history.' });
+    if (this.user?.role === 'BUYER') this.loadBuyerTrustData();
     if (this.user?.role === 'MERCHANT') this.api.getMerchantAnalytics().subscribe({ next: stats => { this.merchantAnalytics = stats; this.analyticsLoading = false; this.analyticsError = ''; }, error: () => { this.analyticsLoading = false; this.analyticsError = 'Could not load store analytics. Please refresh and try again.'; } });
     if (this.user?.role === 'ADMIN') this.api.getAdminAnalytics().subscribe({ next: stats => this.adminAnalytics = stats, error: () => this.loadError = 'Could not load platform analytics.' });
     if (this.user?.role === 'MERCHANT' || this.user?.role === 'ADMIN') {
@@ -726,6 +779,68 @@ export class DashboardComponent implements OnInit, OnDestroy {
       error: () => this.loadError = 'Could not archive this product. Check ownership and permissions.'
     });
   }
+  readonly deliverySteps = ['Order placed', 'Courier assigned', 'Picked up', 'In transit', 'Out for delivery', 'Delivered'];
+
+  private loadBuyerTrustData(): void {
+    this.api.getMyOrders().subscribe({
+      next: items => {
+        this.buyerOrders = items || [];
+        this.buyerDeliveryTracking = {};
+        this.buyerOrders.forEach(order => this.api.getOrderDelivery(order.id).subscribe({
+          next: tracking => this.buyerDeliveryTracking = { ...this.buyerDeliveryTracking, [order.id]: tracking },
+          error: () => this.buyerDeliveryTracking = { ...this.buyerDeliveryTracking, [order.id]: { orderId: order.id, status: this.deliveryStatusLabel(order), deliveryAssigned: false } }
+        }));
+      },
+      error: () => this.loadError = 'Could not load order history.'
+    });
+    this.reloadBuyerReturns();
+  }
+
+  private reloadBuyerReturns(): void {
+    this.api.getMyReturns().subscribe({ next: items => this.buyerReturns = items || [], error: () => this.loadError = 'Could not load return and refund updates.' });
+  }
+
+  deliveryStatusLabel(order: MerkatoOrder): string {
+    const raw = String(order.deliveryStatus ?? 'CREATED').toUpperCase();
+    const numeric: Record<string, string> = { '0': 'CREATED', '1': 'ASSIGNED_COURIER', '2': 'PICKED_UP', '3': 'IN_TRANSIT', '4': 'OUT_FOR_DELIVERY', '5': 'DELIVERED', '6': 'FAILED_DELIVERY', '7': 'RETURNED_TO_MERCHANT' };
+    return numeric[raw] || raw;
+  }
+
+  deliveryStepIndex(order: MerkatoOrder): number {
+    const status = (this.buyerDeliveryTracking[order.id]?.status || this.deliveryStatusLabel(order)).toUpperCase();
+    const map: Record<string, number> = { CREATED: 0, ASSIGNED_COURIER: 1, PICKED_UP: 2, IN_TRANSIT: 3, OUT_FOR_DELIVERY: 4, DELIVERED: 5 };
+    return map[status] ?? -1;
+  }
+
+  returnForOrder(orderId: number): BuyerReturnRequest | undefined { return this.buyerReturns.find(item => item.orderId === orderId); }
+
+  canRequestReturn(order: MerkatoOrder): boolean {
+    const delivered = (this.buyerDeliveryTracking[order.id]?.status || this.deliveryStatusLabel(order)).toUpperCase() === 'DELIVERED';
+    const escrow = String(order.escrowState).toUpperCase();
+    return delivered && !['CANCELLED', 'REFUNDED', 'RELEASED'].includes(escrow) && !this.returnForOrder(order.id);
+  }
+
+  returnStatusLabel(status: string): string {
+    const labels: Record<string, string> = { REQUESTED: 'Awaiting merchant review', APPROVED: 'Return approved', REJECTED: 'Return declined', RECEIVED: 'Item received by merchant', REFUNDED: 'Refund reported by merchant' };
+    return labels[status] || status.replace(/_/g, ' ');
+  }
+
+  refundDetails(item: BuyerReturnRequest): { refundAmountEtb?: number; transactionReference?: string } | null {
+    if (!item.resolutionNote) return null;
+    try { const parsed = JSON.parse(item.resolutionNote); return parsed && typeof parsed === 'object' ? parsed : null; }
+    catch { return null; }
+  }
+
+  requestOrderReturn(order: MerkatoOrder): void {
+    const reason = (this.returnReasonDrafts[order.id] || '').trim();
+    if (!reason || reason.length > 1200) return;
+    this.busyReturnOrderId = order.id; this.returnActionMessage = '';
+    this.api.requestReturn(order.id, reason).subscribe({
+      next: () => { this.busyReturnOrderId = null; this.returnReasonDrafts[order.id] = ''; this.returnActionMessage = 'Return request submitted. The merchant will review it.'; this.reloadBuyerReturns(); },
+      error: err => { this.busyReturnOrderId = null; this.returnActionMessage = err?.error?.message || 'Could not submit the return request. Check delivery and return eligibility.'; }
+    });
+  }
+
   fileOrderDispute(order: MerkatoOrder): void {
     const reason = window.prompt('Brief dispute reason (e.g. item not received, damaged item):');
     if (!reason || !reason.trim()) return;
