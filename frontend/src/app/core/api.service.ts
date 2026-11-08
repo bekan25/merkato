@@ -23,6 +23,19 @@ interface DiscoveryProductsResponse {
   limit: number;
 }
 
+export interface UserDeliveryAddress {
+  id: number;
+  label: string;
+  recipientName: string;
+  phoneNumber: string;
+  city: string;
+  subCity: string;
+  woreda?: string | null;
+  streetAddress?: string | null;
+  deliveryInstructions?: string | null;
+  isDefault: boolean;
+}
+
 export interface MerkatoOrder {
   id: number;
   orderNumber: string;
@@ -165,6 +178,10 @@ export class ApiService {
         createdAt: ''
       })))
     );
+  }
+
+  getMyDeliveryAddresses(): Observable<UserDeliveryAddress[]> {
+    return this.http.get<UserDeliveryAddress[]>(`${this.baseUrl}/account/addresses`);
   }
 
   getMarketplaceFees(): Observable<{ merchantCommissionRatePercent: number; buyerServiceFeeRatePercent: number; isEnabled: boolean; currency: string; updatedAt: string }> {
