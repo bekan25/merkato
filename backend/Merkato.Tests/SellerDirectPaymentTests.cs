@@ -252,6 +252,7 @@ public sealed class SellerDirectPaymentTests
         Assert.False((await db.PaymentTransactions.SingleAsync()).WebhookVerified);
         var affiliateCommission = await db.AffiliateCommissions.SingleAsync();
         Assert.Equal(99L, affiliateCommission.AffiliateUserId);
+        Assert.Equal(806L, affiliateCommission.AffiliateReferralId);
         Assert.Equal(5m, affiliateCommission.CommissionEtb);
         Assert.Equal("HELD", affiliateCommission.Status);
         Assert.Empty(await db.PromotionCoupons.Where(x => x.SourceReferralId == 806).ToListAsync());
@@ -341,7 +342,7 @@ public sealed class SellerDirectPaymentTests
         });
         db.AffiliateCommissions.Add(new AffiliateCommission
         {
-            Id = 904, AffiliateUserId = 99, OrderId = 901, EligibleAmountEtb = 250m,
+            Id = 904, AffiliateUserId = 99, AffiliateReferralId = 906, OrderId = 901, EligibleAmountEtb = 250m,
             RatePercent = 2m, CommissionEtb = 5m, Status = "HELD"
         });
         await db.SaveChangesAsync();
