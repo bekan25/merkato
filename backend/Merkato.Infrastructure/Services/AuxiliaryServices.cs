@@ -33,21 +33,6 @@ public class PaymentService : IPaymentService
         if (amountEtb <= 0m) throw new InvalidOperationException("Payment amount must be positive.");
         if (!Enum.IsDefined(rail)) throw new InvalidOperationException("Unsupported payment rail.");
 
-        var order = await _db.Orders.FirstOrDefaultAsync(x => x.Id == orderId, ct)
-            ?? throw new KeyNotFoundException("Order was not found.");
-        if (order.PaymentMode == "SELLER_DIRECT")
-            throw new InvalidOperationException("Seller-direct transfers must use the seller's own payment destination and receipt workflow.");
-        if (order.PaymentRail != rail)
-            throw new InvalidOperationException("Payment rail does not match the rail selected for this order.");
-        if (order.TotalAmountEtb != amountEtb)
-            throw new InvalidOperationException("Payment amount does not match the order total.");
-        if (order.EscrowState != EscrowState.AWAITING_PAYMENT)
-            throw new InvalidOperationException("Order is not awaiting payment.");
-        if (order.InventoryReservationState is InventoryReservationState.RELEASED or InventoryReservationState.EXPIRED ||
-            (order.InventoryReservationState == InventoryReservationState.RESERVED &&
-             order.InventoryReservationExpiresAt <= DateTime.UtcNow))
-            throw new InvalidOperationException("The order inventory reservation has expired.");
-
         var existing = await _db.PaymentTransactions
             .FirstOrDefaultAsync(p => p.IdempotencyKey == idempotencyKey, ct);
         if (existing != null)
@@ -57,20 +42,6 @@ public class PaymentService : IPaymentService
                 throw new InvalidOperationException("Idempotency key was already used for a different payment request.");
 
             return existing;
-        }
-
-        // A retry with a new client key must not create a second active provider
-        // transaction for the same order. Reuse the existing pending attempt.
-        var activeForOrder = await _db.PaymentTransactions
-            .Where(p => p.OrderId == orderId &&
-                (p.Status == PaymentStatus.PENDING || p.Status == PaymentStatus.INITIATED))
-            .OrderByDescending(p => p.CreatedAt)
-            .FirstOrDefaultAsync(ct);
-        if (activeForOrder is not null)
-        {
-            if (activeForOrder.AmountEtb != amountEtb || activeForOrder.PaymentRail != rail)
-                throw new InvalidOperationException("An active payment attempt already exists with a different amount or payment rail.");
-            return activeForOrder;
         }
 
         var tx = new PaymentTransaction
@@ -143,39 +114,26 @@ public class PaymentService : IPaymentService
             .FirstOrDefaultAsync(o => o.OrderNumber == dto.OrderNumber, ct)
             ?? throw new KeyNotFoundException("Order was not found.");
 
-        if (order.PaymentRail != expectedRail)
-            throw new UnauthorizedAccessException("Webhook provider does not match the payment rail selected for this order.");
-
-        // Provider retries must be idempotent even when the order has several
-        // historical attempts. First recognize the exact provider transaction,
-        // then select the newest eligible pending attempt rather than an older
-        // failed transaction returned by an unordered FirstOrDefault query.
-        var replay = await _db.PaymentTransactions.FirstOrDefaultAsync(
-            p => p.OrderId == order.Id && p.PaymentRail == expectedRail &&
-                 p.RailTransactionId == dto.RailTransactionId, ct);
-        if (replay is not null)
-        {
-            if (replay.AmountEtb != dto.AmountEtb)
-                throw new InvalidOperationException("Provider transaction reference was replayed with a different amount.");
-            if (replay.Status is PaymentStatus.VERIFIED or PaymentStatus.FAILED)
-                return replay;
-        }
-
         var tx = await _db.PaymentTransactions
-            .Where(p => p.OrderId == order.Id &&
-                p.PaymentRail == expectedRail &&
-                p.AmountEtb == dto.AmountEtb &&
-                (p.Status == PaymentStatus.PENDING || p.Status == PaymentStatus.INITIATED))
-            .OrderByDescending(p => p.CreatedAt)
-            .ThenByDescending(p => p.Id)
-            .FirstOrDefaultAsync(ct);
-        if (tx is null)
+            .FirstOrDefaultAsync(p => p.OrderId == order.Id, ct)
+            ?? throw new KeyNotFoundException("Payment transaction was not found.");
+
+        if (tx.PaymentRail != expectedRail)
+            throw new UnauthorizedAccessException("Webhook provider does not match the selected payment rail.");
+
+        if (tx.Status == PaymentStatus.VERIFIED || tx.Status == PaymentStatus.FAILED)
         {
-            if (await _db.PaymentTransactions.AnyAsync(
-                p => p.OrderId == order.Id && p.Status == PaymentStatus.VERIFIED, ct))
+            if (string.Equals(tx.RailTransactionId, dto.RailTransactionId, StringComparison.Ordinal))
+                return tx;
+            if (tx.Status == PaymentStatus.VERIFIED)
                 throw new InvalidOperationException("This order already has a verified payment.");
-            throw new KeyNotFoundException("No eligible pending payment transaction matches this order, rail and amount.");
         }
+
+        if (tx.Status != PaymentStatus.PENDING && tx.Status != PaymentStatus.INITIATED)
+            throw new InvalidOperationException("Payment transaction is not awaiting provider confirmation.");
+
+        if (dto.AmountEtb != tx.AmountEtb)
+            throw new InvalidOperationException("Payment amount does not match the pending transaction.");
 
         var reusedProviderReference = await _db.PaymentTransactions.AnyAsync(
             p => p.Id != tx.Id && p.RailTransactionId == dto.RailTransactionId, ct);
