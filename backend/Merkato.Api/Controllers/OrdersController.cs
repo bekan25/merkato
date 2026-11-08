@@ -350,6 +350,15 @@ public class OrdersController : ControllerBase
             }
         }
 
+        // A coupon is consumed only by a completed purchase. Since this endpoint
+        // accepts unpaid orders only, release its redemption in the same transaction
+        // as the inventory reservation so the buyer can reuse the coupon.
+        var couponRedemptions = await _db.CouponRedemptions
+            .Where(x => x.OrderId == orderId)
+            .ToListAsync(ct);
+        if (couponRedemptions.Count > 0)
+            _db.CouponRedemptions.RemoveRange(couponRedemptions);
+
         order.EscrowState = EscrowState.CANCELLED;
         order.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync(ct);
