@@ -1,4 +1,5 @@
-﻿using System.Security.Claims;
+﻿using System.Data;
+using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -162,6 +163,8 @@ public class ProductsController : ControllerBase
         if (!sellerExists)
             return BadRequest("Seller does not exist.");
 
+        await using var transaction = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+
         var product = new Product
         {
             SellerId = sellerId,
@@ -192,6 +195,7 @@ public class ProductsController : ControllerBase
             UpdatedAt = DateTime.UtcNow
         });
         await _db.SaveChangesAsync();
+        await transaction.CommitAsync();
 
         return Ok(new ProductResponse(
             product.Id,
@@ -247,6 +251,7 @@ public class ProductsController : ControllerBase
         if (request.StockQuantity < 0 || request.StockQuantity > 1000000)
             return BadRequest("Stock quantity must be between 0 and 1,000,000.");
 
+        await using var transaction = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
         var inventory = await _db.ProductListingDetails.FirstOrDefaultAsync(x => x.ProductId == product.Id);
         if (inventory != null && request.StockQuantity < inventory.ReservedQuantity)
             return Conflict(new { message = "Stock cannot be lower than units already reserved.", reservedQuantity = inventory.ReservedQuantity });
@@ -299,6 +304,7 @@ public class ProductsController : ControllerBase
         }
 
         await _db.SaveChangesAsync();
+        await transaction.CommitAsync();
 
         return Ok(new ProductResponse(
             product.Id,
