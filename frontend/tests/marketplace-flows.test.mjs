@@ -336,6 +336,9 @@ test('Ethiopian marketplace redesign loads after legacy styles and preserves the
   assert.match(storefront, /verifiedTitle:'Daldaltoota mirkanaa’an'/);
   assert.match(storefront, /verifiedTitle:'የተረጋገጡ ነጋዴዎች'/);
   assert.match(storefront, /sellerBenefit3/);
+  assert.match(storefront, /secureTitle:'Transparent payment review'/);
+  assert.match(storefront, /secureTitle:'Kaffaltii ifa ta’e'/);
+  assert.match(storefront, /secureTitle:'ግልጽ የክፍያ ማረጋገጫ'/);
 });
 
 test('shopping assistant has working multilingual suggestion chips and a clear disabled reason', async () => {
