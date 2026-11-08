@@ -1,3 +1,4 @@
+using System.Data;
 using System.Security.Claims;
 using System.Text.Json;
 using Merkato.Domain.Entities;
@@ -199,6 +200,7 @@ public sealed class ReturnsController(MerkatoDbContext db) : ControllerBase
         if (note?.Length > 1000)
             return BadRequest(new { message = "The note cannot exceed 1000 characters." });
 
+        await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
         var request = await db.ReturnRequests.FirstOrDefaultAsync(
             x => x.Id == id && x.SellerId == CurrentUserId, ct);
         if (request is null) return NotFound();
@@ -282,9 +284,11 @@ public sealed class ReturnsController(MerkatoDbContext db) : ControllerBase
         try
         {
             await db.SaveChangesAsync(ct);
+            await transaction.CommitAsync(ct);
         }
         catch (DbUpdateException)
         {
+            await transaction.RollbackAsync(ct);
             return Conflict(new { message = "This refund transaction reference has already been recorded or conflicts with an existing record." });
         }
 
