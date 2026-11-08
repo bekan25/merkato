@@ -1,4 +1,5 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -95,7 +96,7 @@ import { ApiService, MerkatoProduct, MerkatoOrder, MerkatoDispute, MerchantAnaly
     .workspace-sidebar>.brand small{display:block!important;margin-top:4px!important;color:#789082!important;font-size:9px!important;letter-spacing:1.5px!important}
     .workspace-sidebar .brand-mark{width:42px!important;height:42px!important;display:grid!important;place-items:center!important;border-radius:15px!important;background:linear-gradient(145deg,#0d9a61,#075036)!important;color:white!important;box-shadow:0 9px 22px rgba(8,113,68,.25)!important}
     .workspace-user{display:flex!important;align-items:center!important;gap:11px!important;margin:5px 0 8px!important;padding:12px!important;border:1px solid rgba(255,255,255,.85)!important;border-radius:17px!important;background:rgba(255,255,255,.53)!important;box-shadow:inset 0 1px 0 #fff,0 8px 20px rgba(29,68,43,.045)!important;min-width:0!important}
-    .workspace-user .user-avatar{width:40px!important;height:40px!important;flex:0 0 40px!important;display:grid!important;place-items:center!important;border-radius:14px!important;background:linear-gradient(145deg,#0b8654,#174b37)!important;color:#fff!important;font-weight:900!important;box-shadow:0 7px 16px rgba(9,112,67,.20)!important}
+     .workspace-user .user-avatar{width:44px!important;height:44px!important;flex:0 0 44px!important;display:grid!important;place-items:center!important;overflow:hidden!important;border-radius:50%!important;border:2px solid rgba(255,255,255,.95)!important;background:linear-gradient(145deg,#0b8654,#174b37)!important;color:#fff!important;font-weight:900!important;box-shadow:0 7px 16px rgba(9,112,67,.20)!important}.workspace-user .user-avatar img{display:block!important;width:100%!important;height:100%!important;object-fit:cover!important;border-radius:inherit!important}.workspace-user .avatar-fallback{display:grid!important;place-items:center!important;width:100%!important;height:100%!important;font-size:21px!important;line-height:1!important}
     .workspace-user strong{display:block!important;max-width:150px!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;color:#183c2b!important;font-size:12px!important}
     .workspace-user small{display:block!important;margin-top:4px!important;color:#7b8e80!important;font-size:9px!important;font-weight:800!important;letter-spacing:1px!important}
     .workspace-sidebar .side-label{padding:9px 12px 2px!important;color:#8b9d90!important;font-size:9px!important;font-weight:900!important;letter-spacing:1.8px!important}
@@ -243,7 +244,7 @@ import { ApiService, MerkatoProduct, MerkatoOrder, MerkatoDispute, MerchantAnaly
   `],
   template: `
     <section class="workspace">
-      <button type="button" class="workspace-nav-backdrop" *ngIf="mobileNavOpen" aria-label="Close navigation" (click)="mobileNavOpen = false"></button><aside class="workspace-sidebar" [class.mobile-open]="mobileNavOpen" [class.merchant-sidebar]="user?.role === 'MERCHANT'"><a routerLink="/" class="brand"><span class="brand-mark">M</span><span>merkato<small>WORKSPACE</small></span></a><div class="workspace-user"><span class="user-avatar">{{user?.fullName?.slice(0,1)}}</span><div><strong>{{user?.fullName}}</strong><small>{{user?.role}}</small></div></div><span class="side-label">WORKSPACE</span><a routerLink="/dashboard" class="side-link active" (click)="mobileNavOpen = false">▦ <span>Overview</span></a><a routerLink="/" class="side-link" (click)="mobileNavOpen = false">⌕ <span>Marketplace</span></a><a routerLink="/account" class="side-link" (click)="mobileNavOpen = false">◎ <span>Profile</span></a><a [routerLink]="user?.role === 'ADMIN' ? '/admin/operations' : '/account'" class="side-link" (click)="mobileNavOpen = false">⚙ <span>Settings</span></a><a *ngIf="user?.role === 'MERCHANT' || user?.role === 'ADMIN'" href="#products" class="side-link" (click)="mobileNavOpen = false">▤ <span>Products</span></a><a *ngIf="user?.role === 'MERCHANT'" href="#merchant-orders" class="side-link" (click)="mobileNavOpen = false">▣ <span>Incoming orders</span></a><a *ngIf="user?.role === 'MERCHANT'" href="#merchant-analytics" class="side-link" (click)="mobileNavOpen = false">▥ <span>Store analytics</span></a><a *ngIf="user?.role === 'MERCHANT'" routerLink="/merchant/payment-settings" class="side-link" (click)="mobileNavOpen = false">◈ <span>Payment accounts</span></a><a *ngIf="user?.role === 'MERCHANT'" routerLink="/merchant/payment-reviews" class="side-link" (click)="mobileNavOpen = false">✓ <span>Payment receipts</span></a><a *ngIf="user?.role === 'ADMIN'" href="#marketplace-fees" class="side-link" (click)="mobileNavOpen = false">⚙ <span>Administration</span></a><div class="sidebar-bottom"><a routerLink="/" class="side-link" (click)="mobileNavOpen = false">↗ <span>View marketplace</span></a><button class="side-link side-logout" (click)="logout()">⇥ <span>Sign out</span></button></div></aside>
+      <button type="button" class="workspace-nav-backdrop" *ngIf="mobileNavOpen" aria-label="Close navigation" (click)="mobileNavOpen = false"></button><aside class="workspace-sidebar" [class.mobile-open]="mobileNavOpen" [class.merchant-sidebar]="user?.role === 'MERCHANT'"><a routerLink="/" class="brand"><span class="brand-mark">M</span><span>merkato<small>WORKSPACE</small></span></a><div class="workspace-user"><span class="user-avatar"><img *ngIf="workspacePhotoUrl; else workspaceAvatarFallback" [src]="workspacePhotoUrl" [alt]="(user?.fullName || 'User') + ' profile photo'"><ng-template #workspaceAvatarFallback><span class="avatar-fallback" aria-label="User profile">👤</span></ng-template></span><div><strong>{{user?.fullName}}</strong><small>{{user?.role}}</small></div></div><span class="side-label">WORKSPACE</span><a routerLink="/dashboard" class="side-link active" (click)="mobileNavOpen = false">▦ <span>Overview</span></a><a routerLink="/" class="side-link" (click)="mobileNavOpen = false">⌕ <span>Marketplace</span></a><a routerLink="/account" class="side-link" (click)="mobileNavOpen = false">◎ <span>Profile</span></a><a [routerLink]="user?.role === 'ADMIN' ? '/admin/operations' : '/account'" class="side-link" (click)="mobileNavOpen = false">⚙ <span>Settings</span></a><a *ngIf="user?.role === 'MERCHANT' || user?.role === 'ADMIN'" href="#products" class="side-link" (click)="mobileNavOpen = false">▤ <span>Products</span></a><a *ngIf="user?.role === 'MERCHANT'" href="#merchant-orders" class="side-link" (click)="mobileNavOpen = false">▣ <span>Incoming orders</span></a><a *ngIf="user?.role === 'MERCHANT'" href="#merchant-analytics" class="side-link" (click)="mobileNavOpen = false">▥ <span>Store analytics</span></a><a *ngIf="user?.role === 'MERCHANT'" routerLink="/merchant/payment-settings" class="side-link" (click)="mobileNavOpen = false">◈ <span>Payment accounts</span></a><a *ngIf="user?.role === 'MERCHANT'" routerLink="/merchant/payment-reviews" class="side-link" (click)="mobileNavOpen = false">✓ <span>Payment receipts</span></a><a *ngIf="user?.role === 'ADMIN'" href="#marketplace-fees" class="side-link" (click)="mobileNavOpen = false">⚙ <span>Administration</span></a><div class="sidebar-bottom"><a routerLink="/" class="side-link" (click)="mobileNavOpen = false">↗ <span>View marketplace</span></a><button class="side-link side-logout" (click)="logout()">⇥ <span>Sign out</span></button></div></aside>
       <div class="workspace-main"><div class="workspace-mobile-bar"><div class="workspace-mobile-brand"><span class="brand-mark">M</span><span>merkato</span></div><button type="button" aria-label="Open navigation" [attr.aria-expanded]="mobileNavOpen" (click)="mobileNavOpen = !mobileNavOpen">☰</button></div><header class="workspace-topbar"><div><span class="eyebrow">MERKATO WORKSPACE</span><h1>{{heading}}</h1></div><span class="workspace-date">Ethiopia · ETB</span></header>
         <section class="welcome-panel" [class.buyer-welcome]="user?.role === 'BUYER'"><div class="buyer-welcome-copy"><span class="buyer-welcome-kicker" *ngIf="user?.role === 'BUYER'">YOUR PERSONAL SHOPPING SPACE</span><span class="eyebrow" *ngIf="user?.role !== 'BUYER'">GOOD TO SEE YOU</span><h2>Welcome, {{user?.fullName?.split(' ')?.[0]}}.</h2><p>{{welcomeText}}</p><div class="buyer-welcome-actions" *ngIf="user?.role === 'BUYER'"><a routerLink="/">⌕ &nbsp; Discover products <span>↗</span></a><a routerLink="/account" class="secondary">◎ &nbsp; Manage account</a></div></div><div class="buyer-welcome-art" *ngIf="user?.role === 'BUYER'" aria-hidden="true"><span>M</span></div><div class="welcome-symbol" *ngIf="user?.role !== 'BUYER'">✳</div></section>
         <div class="buyer-section-label" *ngIf="user?.role === 'BUYER'">QUICK ACCESS</div>
@@ -362,9 +363,11 @@ import { ApiService, MerkatoProduct, MerkatoOrder, MerkatoDispute, MerchantAnaly
     </section>
   `
 })
-export class DashboardComponent implements OnInit {
+export class DashboardComponent implements OnInit, OnDestroy {
   auth = inject(AuthService);
+  private http = inject(HttpClient);
   private api = inject(ApiService);
+  workspacePhotoUrl: string | null = null;
   user = this.auth.user;
   heading = this.user?.role === 'ADMIN' ? 'Admin overview' : this.user?.role === 'MERCHANT' ? 'Merchant overview' : 'Buyer overview';
   welcomeText = this.user?.role === 'ADMIN' ? 'Monitor your marketplace workspace and manage platform operations.' : this.user?.role === 'MERCHANT' ? 'Manage your catalogue and grow your reach across Ethiopia.' : 'Your marketplace journey starts here. Discover something worth sharing.';
@@ -420,6 +423,7 @@ export class DashboardComponent implements OnInit {
   get openDisputes(): number { return this.disputes.filter(item => item.status === 'OPEN' || item.status === 'UNDER_REVIEW').length; }
 
   ngOnInit(): void {
+    this.loadWorkspacePhoto();
     if (this.user?.role === 'MERCHANT') this.api.getMySellerVerification().subscribe({ next: item => this.sellerVerification = item, error: () => this.loadError = 'Could not load seller verification status.' });
     if (this.user?.role === 'ADMIN') this.reloadSellerVerifications();
     if (this.user?.role === 'ADMIN') this.reloadMarketplaceFees();
@@ -432,6 +436,26 @@ export class DashboardComponent implements OnInit {
     }
     if (this.user?.role === 'ADMIN') this.api.getDisputes().subscribe({ next: items => this.disputes = items || [], error: () => this.loadError = 'Could not load dispute records.' });
   }
+  ngOnDestroy(): void {
+    if (this.workspacePhotoUrl) URL.revokeObjectURL(this.workspacePhotoUrl);
+  }
+
+  private loadWorkspacePhoto(): void {
+    this.http.get<{ hasProfilePhoto: boolean }>('/api/account/profile').subscribe({
+      next: profile => {
+        if (!profile.hasProfilePhoto) return;
+        this.http.get('/api/account/profile/photo', { responseType: 'blob' }).subscribe({
+          next: blob => {
+            if (this.workspacePhotoUrl) URL.revokeObjectURL(this.workspacePhotoUrl);
+            this.workspacePhotoUrl = URL.createObjectURL(blob);
+          },
+          error: () => this.workspacePhotoUrl = null
+        });
+      },
+      error: () => this.workspacePhotoUrl = null
+    });
+  }
+
   reloadMarketplaceFees(): void {
     this.api.getMarketplaceFees().subscribe({
       next: fees => {
