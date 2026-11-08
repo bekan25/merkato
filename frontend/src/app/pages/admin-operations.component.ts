@@ -38,6 +38,16 @@ type AdminSection = 'users' | 'products' | 'returns' | 'deliveries' | 'audit';
       </section>
       <section class="panel" *ngIf="section==='deliveries'">
         <div class="heading"><div><h2>Courier dispatch</h2><p>Assign verified courier accounts to paid delivery requests. Courier accounts must be onboarded before they appear here.</p></div><span class="count">{{deliveries.length}} waiting</span></div>
+        <div class="courier-onboard">
+          <h3>Onboard a delivery courier</h3>
+          <p class="muted">Verify the person's identity and consent before creating the account. Share the temporary PIN privately; the courier should change it after signing in.</p>
+          <div class="dispatch-assignment">
+            <input [(ngModel)]="newCourier.fullName" maxlength="120" placeholder="Courier full name">
+            <input [(ngModel)]="newCourier.phoneNumber" maxlength="20" placeholder="Ethiopian phone number">
+            <input [(ngModel)]="newCourier.temporaryPin" type="password" inputmode="numeric" minlength="6" maxlength="8" placeholder="Temporary PIN (6–8 digits)">
+            <button class="action" [disabled]="creatingCourier" (click)="createCourier()">{{creatingCourier?'Creating…':'Create courier account'}}</button>
+          </div>
+        </div>
         <div class="filters"><button (click)="loadDispatch()" [disabled]="loading">Refresh dispatch queue</button></div>
         <div class="table-wrap"><table><thead><tr><th>DELIVERY / ORDER</th><th>BUYER</th><th>DESTINATION</th><th>FEE</th><th>ASSIGN COURIER</th></tr></thead><tbody>
           <tr *ngFor="let d of deliveries">
@@ -59,6 +69,7 @@ type AdminSection = 'users' | 'products' | 'returns' | 'deliveries' | 'audit';
     </div>
   `,
   styles: [`
+    .courier-onboard{display:grid;gap:10px;margin:18px 0;padding:16px;border:1px solid #dce5dc;border-radius:13px;background:#f8fbf8}.courier-onboard h3{margin:0}.courier-onboard .dispatch-assignment{grid-template-columns:repeat(4,minmax(0,1fr))}.courier-onboard input{min-width:0;padding:10px;border:1px solid #dce5dc;border-radius:8px}@media(max-width:760px){.courier-onboard .dispatch-assignment{grid-template-columns:1fr}}
     .dispatch-assignment{display:grid;grid-template-columns:minmax(160px,1fr) auto;gap:7px;min-width:230px}.dispatch-assignment select{min-width:0;padding:9px;border:1px solid #dce5dc;border-radius:8px;background:#fff;color:#253b2d}.dispatch-assignment .action{white-space:nowrap}@media(max-width:760px){.dispatch-assignment{grid-template-columns:1fr;min-width:150px}}
     :host{display:block;min-height:100vh;background:#f4f6f3;color:#1d3025;font-family:Inter,Arial,sans-serif}*{box-sizing:border-box}.page{max-width:1440px;margin:auto;padding:clamp(16px,3vw,36px)}.top{display:flex;justify-content:space-between;gap:16px;align-items:flex-end;margin-bottom:22px}.back{color:#42634c;text-decoration:none;font-size:12px;font-weight:800}.eyebrow{margin:22px 0 5px;color:#a47d3d;font-size:10px;font-weight:900;letter-spacing:1.5px}h1{margin:0;font-size:clamp(26px,4vw,38px);letter-spacing:-1.3px}.muted{color:#849187;font-size:12px}.top .muted{max-width:700px;line-height:1.6}.refresh,.filters button,.page-btn{border:1px solid #dce5dc;border-radius:9px;background:#fff;color:#294c35;padding:10px 14px;font-weight:800;cursor:pointer}.tabs{display:flex;gap:7px;overflow:auto;margin-bottom:14px}.tabs button{white-space:nowrap;padding:11px 16px;border:1px solid #e1e8df;border-radius:10px;background:#fff;color:#536458;font-weight:800;cursor:pointer}.tabs button.selected{background:#203b2a;color:#fff;border-color:#203b2a}.panel{padding:clamp(14px,2vw,24px);border:1px solid #e2e9e1;border-radius:16px;background:#fff;box-shadow:0 10px 30px #1b34200a}.heading{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:17px}.heading h2{margin:0;font-size:18px}.heading p{margin:6px 0 0;color:#879289;font-size:12px;line-height:1.5}.count{padding:7px 10px;border-radius:8px;background:#f1f5f0;color:#536b58;font-size:11px;font-weight:900}.filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}.filters input,.filters select{min-width:150px;flex:1;padding:10px 12px;border:1px solid #dfe7df;border-radius:9px;background:#fbfcfa;color:#2b4032}.filters input{flex:2}.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;text-align:left;min-width:680px}th{padding:10px;border-bottom:1px solid #eaf0e9;color:#8a958b;font-size:10px;letter-spacing:.7px}td{padding:12px 10px;border-bottom:1px solid #eff3ee;font-size:12px;vertical-align:middle}td b{color:#2b4132}td small{display:block;margin-top:4px;color:#8a958b;font-size:10px}td a{display:inline-block;margin-top:5px;color:#276443}.status{display:inline-block;padding:5px 8px;border-radius:20px;background:#eaf5ed;color:#36754a;font-size:10px;font-weight:900}.status.warn{background:#fff3df;color:#a36d1c}.action{padding:7px 9px;border:1px solid #dce7dc;border-radius:8px;background:#fff;color:#31563b;font-size:10px;font-weight:900;cursor:pointer}.action.danger{border-color:#f0d7d2;color:#b34f43}.actions{display:flex;gap:6px}.empty{padding:25px;text-align:center;color:#8b978d;font-size:12px}.notice{padding:11px 13px;border-radius:9px;font-size:12px;margin-bottom:12px}.notice.error{background:#fff0ed;color:#a74438}.notice.success{background:#eaf6ed;color:#287444}.footnote{margin:14px 0 0;padding:12px;border-radius:9px;background:#fff8e9;color:#8d6b2d;font-size:11px;line-height:1.6}.details{max-width:360px;white-space:normal;overflow-wrap:anywhere;font-family:ui-monospace,monospace;font-size:10px}footer{display:flex;justify-content:center;align-items:center;gap:15px;padding:18px;color:#718076;font-size:12px}button:disabled{opacity:.45;cursor:not-allowed}@media(max-width:620px){.top{align-items:flex-start;flex-direction:column}.refresh{width:100%}.heading{flex-direction:column}.filters>*{min-width:100%}.panel{padding:13px}.tabs button{padding:10px 12px;font-size:11px}}
   `]
@@ -70,7 +81,7 @@ export class AdminOperationsComponent implements OnInit {
     {id:'users',label:'Users'}, {id:'products',label:'Products'},
     {id:'returns',label:'Returns'}, {id:'deliveries',label:'Delivery dispatch'}, {id:'audit',label:'Audit log'}
   ];
-  users:any[]=[]; products:any[]=[]; returns:any[]=[]; deliveries:any[]=[]; couriers:any[]=[]; courierAssignments:Record<string,number>={}; audit:any[]=[];
+  users:any[]=[]; products:any[]=[]; returns:any[]=[]; deliveries:any[]=[]; couriers:any[]=[]; courierAssignments:Record<string,number>={}; newCourier={fullName:'',phoneNumber:'',temporaryPin:''}; creatingCourier=false; audit:any[]=[];
   search=''; roleFilter=''; suspendedFilter=''; activeFilter=''; returnFilter=''; entityFilter='';
   page=1; pageSize=25; total=0; loading=false; error=''; message='';
   ngOnInit():void { this.load(); }
@@ -106,6 +117,16 @@ export class AdminOperationsComponent implements OnInit {
         });
       },
       error:e=>{this.loading=false;this.error=e?.error?.message||'Could not load the delivery dispatch queue.';}
+    });
+  }
+  createCourier():void {
+    const fullName=this.newCourier.fullName.trim(),phoneNumber=this.newCourier.phoneNumber.trim(),temporaryPin=this.newCourier.temporaryPin.trim();
+    if(fullName.length<2||!phoneNumber||!/^\\d{6,8}$/.test(temporaryPin)){this.error='Enter a full name, Ethiopian phone number and a 6–8 digit temporary PIN.';return;}
+    if(!window.confirm('Create a dedicated courier account for '+fullName+'? Verify identity and consent before continuing.'))return;
+    this.creatingCourier=true;this.error='';this.message='';
+    this.http.post<any>('/api/admin/operations/couriers',{fullName,phoneNumber,temporaryPin}).subscribe({
+      next:r=>{this.creatingCourier=false;this.newCourier={fullName:'',phoneNumber:'',temporaryPin:''};this.message='Courier account created for '+r.fullName+'. Share the temporary PIN privately and ask them to change it after login.';this.loadDispatch();},
+      error:e=>{this.creatingCourier=false;this.error=e?.error?.message||'Could not create the courier account.';}
     });
   }
   assignCourier(delivery:any):void {
