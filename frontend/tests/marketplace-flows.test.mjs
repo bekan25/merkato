@@ -318,14 +318,14 @@ test('Ethiopian marketplace redesign loads after legacy styles and preserves the
   const design = await read('../src/merkato-redesign.scss');
   const index = await read('../src/index.html');
 
-  assert.match(angular, /src\\/merkato-redesign\\.scss/);
+  assert.ok(angular.includes('src/merkato-redesign.scss'));
   assert.match(design, /--mk-primary:#0B3D2E/);
   assert.match(design, /--mk-accent:#E8A317/);
   assert.match(design, /prefers-reduced-motion:reduce/);
   assert.match(design, /category-image-grid/);
-  assert.match(design, /aspect-ratio:4\\/3/);
+  assert.ok(design.includes('aspect-ratio:4/3'));
   assert.match(design, /app-admin-operations/);
-  assert.match(index, /Noto\\+Sans\\+Ethiopic/);
+  assert.ok(index.includes('Noto+Sans+Ethiopic'));
 });
 
 test('shopping assistant has working multilingual suggestion chips and a clear disabled reason', async () => {
