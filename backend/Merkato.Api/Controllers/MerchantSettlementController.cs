@@ -85,7 +85,7 @@ public sealed class MerchantSettlementController(MerkatoDbContext db) : Controll
 
 public sealed record RecordMerchantCommissionPaymentRequest(long MerchantId, decimal AmountEtb, string PaymentReference);
 
-internal static class SellerCommissionLedger
+public static class SellerCommissionLedger
 {
     public static LedgerTransaction CreateAccrual(long orderId, long merchantId, decimal amountEtb, string paymentReference)
     {
