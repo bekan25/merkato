@@ -429,6 +429,7 @@ public sealed class PaymentReceiptsController : ControllerBase
         payment.RawPayloadHash = receipt.Sha256;
         payment.VerifiedAt = DateTime.UtcNow;
         order.UpdatedAt = DateTime.UtcNow;
+        await AffiliateRewardProcessor.RecordVerifiedPurchaseAsync(_db, order, null, ct);
         await _db.SaveChangesAsync(ct);
         await _audit.LogAsync(sellerId, "MERCHANT", "SELLER_DIRECT_PAYMENT_CONFIRMED",
             "PAYMENT", payment.Id.ToString(), "SUCCESS",
