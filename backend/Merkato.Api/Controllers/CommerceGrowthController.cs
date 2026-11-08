@@ -429,9 +429,28 @@ public sealed class CommerceGrowthController(MerkatoDbContext db, IEscrowService
     {
         var order = await db.Orders.AsNoTracking().FirstOrDefaultAsync(x => x.Id == orderId, ct);
         if (order is null) return NotFound();
-        var role = User.FindFirstValue(ClaimTypes.Role) ?? "";
-        if (role is not ("ADMIN" or "COURIER") && order.BuyerId != CurrentUserId && order.SellerId != CurrentUserId) return Forbid();
+        var isAdmin = User.IsInRole("ADMIN");
+        var isCourier = User.IsInRole("COURIER");
         var delivery = await db.Deliveries.AsNoTracking().FirstOrDefaultAsync(x => x.OrderId == orderId, ct);
+
+        // Courier access is limited to the active courier account assigned to this exact delivery.
+        // A COURIER role alone must never expose buyer addresses or rider details for other orders.
+        if (isCourier)
+        {
+            if (delivery is null) return Forbid();
+            var courierPhone = await db.Users.AsNoTracking()
+                .Where(x => x.Id == CurrentUserId && x.Role == UserRole.COURIER && !x.IsSuspended)
+                .Select(x => x.PhoneNumber)
+                .SingleOrDefaultAsync(ct);
+            if (string.IsNullOrWhiteSpace(courierPhone) ||
+                !string.Equals(courierPhone, delivery.RiderPhone, StringComparison.Ordinal))
+                return Forbid();
+        }
+        else if (!isAdmin && order.BuyerId != CurrentUserId && order.SellerId != CurrentUserId)
+        {
+            return Forbid();
+        }
+
         if (delivery is null)
         {
             // Keep order tracking useful before a courier record has been created.
