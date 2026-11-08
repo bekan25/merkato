@@ -372,5 +372,7 @@ test('delivery dispatch is operational for buyers, administrators and assigned c
   assert.match(deliveries, /HttpGet\("admin\/queue"\)/);
   assert.match(deliveries, /HttpGet\("admin\/couriers"\)/);
   assert.match(deliveries, /HttpGet\("courier\/mine"\)/);
-  assert.match(commerce, /assigned active courier/);
+  assert.match(commerce, /if \(isCourier\)/);
+  assert.match(commerce, /delivery\.RiderPhone/);
+  assert.match(commerce, /UserRole\.COURIER && !x\.IsSuspended/);
 });
