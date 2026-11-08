@@ -191,6 +191,7 @@ public sealed class SellerDirectPaymentTests
             .UseInMemoryDatabase(nameof(SellerDirectReceiptConfirmationRequiresActiveSellerAccountAndVerifiedReference))
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning)).Options;
         await using var db = new MerkatoDbContext(options);
+        db.Products.Add(new Product { Id = 901, SellerId = 22, Name = "Test Product", PriceEtb = 250m });
         db.Orders.Add(new Order
         {
             Id = 801, SellerId = 22, BuyerId = 33, PaymentMode = "SELLER_DIRECT",
