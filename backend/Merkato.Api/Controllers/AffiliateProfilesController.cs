@@ -67,7 +67,7 @@ public sealed class AffiliateProfilesController(MerkatoDbContext db) : Controlle
             .Select(x => new { x.Id, x.ReferredUserId, x.ClickedAt, x.RegisteredAt, converted = x.ReferredUserId != null })
             .Take(200).ToListAsync(ct);
         var rewardCoupons = await db.PromotionCoupons.AsNoTracking()
-            .Where(x => x.AssignedUserId == userId && x.SourceReferralId != null && x.IsActive)
+            .Where(x => x.AssignedUserId == userId && x.SourceReferralId != null && x.IsActive && x.ExpiresAt > DateTime.UtcNow)
             .OrderByDescending(x => x.CreatedAt)
             .Select(x => new { x.Code, x.Title, x.DiscountValue, x.MinimumOrderEtb, x.ExpiresAt })
             .ToListAsync(ct);
