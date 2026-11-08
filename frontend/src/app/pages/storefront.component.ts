@@ -323,6 +323,7 @@ export class StorefrontComponent implements OnInit, OnDestroy {
   minPrice: number | null = null;
   maxPrice: number | null = null;
   sortBy: 'newest' | 'price-low' | 'price-high' | 'name' = 'newest';
+  filtersOpen = false;
   compareProducts: MerkatoProduct[] = [];
   toast = '';
   selectedProduct: MerkatoProduct | null = null;
@@ -422,6 +423,7 @@ export class StorefrontComponent implements OnInit, OnDestroy {
     this.minPrice = null;
     this.maxPrice = null;
     this.sortBy = 'newest';
+    this.filtersOpen = false;
     this.compareProducts = [];
     if (this.searchTimer) clearTimeout(this.searchTimer);
     this.loadProducts();
