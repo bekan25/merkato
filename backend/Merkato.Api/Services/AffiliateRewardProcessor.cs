@@ -62,26 +62,6 @@ public static class AffiliateRewardProcessor
             });
         }
 
-        // The referrer receives one 50 ETB coupon after the referred buyer's
-        // first verified purchase. SourceReferralId is protected by a unique index.
-        if (!await db.PromotionCoupons.AnyAsync(x => x.SourceReferralId == referral.Id, ct))
-        {
-            db.PromotionCoupons.Add(new PromotionCoupon
-            {
-                Code = "REFER" + Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(4)),
-                Title = "MERKATO referral thank-you reward",
-                DiscountType = "FIXED",
-                DiscountValue = 50m,
-                MinimumOrderEtb = 200m,
-                UsageLimit = 1,
-                PerUserLimit = 1,
-                AssignedUserId = referral.AffiliateUserId,
-                SourceReferralId = referral.Id,
-                StartsAt = now,
-                ExpiresAt = now.AddDays(30),
-                CreatedBy = referral.AffiliateUserId
-            });
-        }
 
         try
         {
@@ -99,11 +79,4 @@ public static class AffiliateRewardProcessor
         }
     }
 
-    public static Task ReleaseSellerDirectCommissionAsync(
-        MerkatoDbContext db,
-        long orderId,
-        CancellationToken ct = default) =>
-        db.AffiliateCommissions
-            .Where(x => x.OrderId == orderId && x.Status == "HELD")
-            .ExecuteUpdateAsync(update => update.SetProperty(x => x.Status, "AVAILABLE"), ct);
 }
