@@ -2,6 +2,7 @@ using System.Security.Claims;
 using System.Text.Json;
 using Merkato.Domain.Entities;
 using Merkato.Domain.Enums;
+using Merkato.Api.Services;
 using Merkato.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -65,6 +66,48 @@ public sealed class AdminOperationsController(MerkatoDbContext db) : ControllerB
             "User", user.Id.ToString(), new { reason = input.Reason.Trim() }));
         await db.SaveChangesAsync(ct);
         return Ok(new { user.Id, user.IsSuspended, user.TokenVersion, user.UpdatedAt });
+    }
+
+    [HttpPost("couriers")]
+    public async Task<IActionResult> CreateCourier([FromBody] AdminCourierCreateInput input, CancellationToken ct)
+    {
+        var fullName = input.FullName?.Trim();
+        if (string.IsNullOrWhiteSpace(fullName) || fullName.Length < 2 || fullName.Length > 120)
+            return BadRequest(new { message = "Courier name must contain 2–120 characters." });
+        if (!EthiopianPhoneNumber.TryNormalize(input.PhoneNumber, out var phone))
+            return BadRequest(new { message = "Enter a valid Ethiopian mobile number (09/07 or +2519/+2517)." });
+        if (string.IsNullOrWhiteSpace(input.TemporaryPin) || input.TemporaryPin.Length is < 6 or > 8 ||
+            input.TemporaryPin.Any(ch => ch is < '0' or > '9'))
+            return BadRequest(new { message = "Temporary PIN must contain 6–8 digits." });
+        if (await db.Users.AnyAsync(x => x.PhoneNumber == phone, ct))
+            return Conflict(new { message = "An account already uses this phone number." });
+
+        var courier = new User
+        {
+            FullName = fullName,
+            PhoneNumber = phone,
+            PinHash = PinHasher.Hash(input.TemporaryPin),
+            Role = UserRole.COURIER,
+            TrustScore = 50,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        db.Users.Add(courier);
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException)
+        {
+            return Conflict(new { message = "Courier account could not be created. The phone number may already be registered." });
+        }
+
+        db.AuditLogs.Add(CreateAudit("COURIER_CREATED", "User", courier.Id.ToString(),
+            new { courier.FullName, courier.PhoneNumber, note = "Courier account created by an administrator. Temporary PIN is never written to the audit log." }));
+        await db.SaveChangesAsync(ct);
+        return Created($"/api/admin/operations/users?q={Uri.EscapeDataString(phone)}",
+            new { courier.Id, courier.FullName, courier.PhoneNumber, role = courier.Role.ToString(), courier.CreatedAt,
+                message = "Courier account created. Share the temporary PIN privately and ask the courier to change it after signing in." });
     }
 
     [HttpGet("products")]
@@ -193,3 +236,4 @@ public sealed class AdminOperationsController(MerkatoDbContext db) : ControllerB
 public sealed record AdminUserSuspensionInput(bool Suspend, string Reason);
 public sealed record AdminProductVisibilityInput(bool Active, string Reason);
 public sealed record AdminReturnDecisionInput(string Decision, string? Note);
+public sealed record AdminCourierCreateInput(string FullName, string PhoneNumber, string TemporaryPin);

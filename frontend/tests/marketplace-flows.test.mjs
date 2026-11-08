@@ -336,6 +336,9 @@ test('Ethiopian marketplace redesign loads after legacy styles and preserves the
   assert.match(storefront, /verifiedTitle:'Daldaltoota mirkanaa’an'/);
   assert.match(storefront, /verifiedTitle:'የተረጋገጡ ነጋዴዎች'/);
   assert.match(storefront, /sellerBenefit3/);
+  assert.match(storefront, /secureTitle:'Transparent payment review'/);
+  assert.match(storefront, /secureTitle:'Kaffaltii ifa ta’e'/);
+  assert.match(storefront, /secureTitle:'ግልጽ የክፍያ ማረጋገጫ'/);
 });
 
 test('shopping assistant has working multilingual suggestion chips and a clear disabled reason', async () => {
@@ -347,4 +350,32 @@ test('shopping assistant has working multilingual suggestion chips and a clear d
   assert.match(assistant, /useSuggestion\(suggestion\)/);
   assert.match(assistant, /assistant-disabled-reason/);
   assert.match(assistant, /askShoppingAssistant\(message\)/);
+});
+
+test('delivery dispatch is operational for buyers, administrators and assigned couriers', async () => {
+  const hub = await read('../src/app/pages/commerce-hub.component.ts');
+  const admin = await read('../src/app/pages/admin-operations.component.ts');
+  const deliveries = await read('../../backend/Merkato.Api/Controllers/Controllers.cs');
+  const commerce = await read('../../backend/Merkato.Api/Controllers/CommerceGrowthController.cs');
+
+  assert.match(hub, /\/api\/deliveries/);
+  assert.match(hub, /createDeliveryRequest\(\)/);
+  assert.match(hub, /courier\/mine/);
+  assert.match(hub, /verify-otp/);
+  assert.match(admin, /Delivery dispatch/);
+  assert.match(admin, /admin\/queue/);
+  assert.match(admin, /admin\/couriers/);
+  assert.match(admin, /assign-courier/);
+  assert.match(admin, /Create courier account/);
+  assert.match(admin, /temporaryPin/);
+  const adminApi = await read('../../backend/Merkato.Api/Controllers/AdminOperationsController.cs');
+  assert.match(adminApi, /HttpPost\("couriers"\)/);
+  assert.match(adminApi, /PinHasher.Hash/);
+  assert.match(adminApi, /COURIER_CREATED/);
+  assert.match(deliveries, /HttpGet\("admin\/queue"\)/);
+  assert.match(deliveries, /HttpGet\("admin\/couriers"\)/);
+  assert.match(deliveries, /HttpGet\("courier\/mine"\)/);
+  assert.match(commerce, /if \(isCourier\)/);
+  assert.match(commerce, /delivery\.RiderPhone/);
+  assert.match(commerce, /UserRole\.COURIER && !x\.IsSuspended/);
 });
