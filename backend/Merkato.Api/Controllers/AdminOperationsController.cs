@@ -236,4 +236,4 @@ public sealed class AdminOperationsController(MerkatoDbContext db) : ControllerB
 public sealed record AdminUserSuspensionInput(bool Suspend, string Reason);
 public sealed record AdminProductVisibilityInput(bool Active, string Reason);
 public sealed record AdminReturnDecisionInput(string Decision, string? Note);
-\npublic sealed record AdminCourierCreateInput(string FullName, string PhoneNumber, string TemporaryPin);\n
+public sealed record AdminCourierCreateInput(string FullName, string PhoneNumber, string TemporaryPin);
