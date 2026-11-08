@@ -185,13 +185,13 @@ export class AdminDashboardComponent implements OnInit {
   get openDisputes():number{return this.disputes.filter(x=>['OPEN','UNDER_REVIEW'].includes(x.status)).length}
   ngOnInit():void{this.refresh()}
   refresh():void{
-    this.loading=true;this.loadError='';let remaining=5;
+    this.loading=true;this.loadingFees=true;this.loadError='';let remaining=5;
     const done=()=>{remaining--;if(remaining<=0)this.loading=false};
     this.api.getAdminAnalytics().subscribe({next:v=>this.analytics=v,error:()=>{this.loadError='Could not load marketplace analytics.';done()},complete:done});
     this.api.getMerchantOrders().subscribe({next:v=>this.orders=v||[],error:()=>{this.loadError='Could not load marketplace orders.';done()},complete:done});
     this.api.getDisputes().subscribe({next:v=>this.disputes=v||[],error:()=>{this.loadError='Could not load dispute records.';done()},complete:done});
     this.api.getSellerVerifications().subscribe({next:v=>this.sellerVerifications=v||[],error:()=>{this.loadError='Could not load seller verification requests.';done()},complete:done});
-    this.api.getMarketplaceFees().subscribe({next:v=>{this.fees=v;this.feeError='';this.loadingFees=false;this.feeDraft={merchantCommissionRatePercent:Number(v.merchantCommissionRatePercent??1),buyerServiceFeeRatePercent:Number(v.buyerServiceFeeRatePercent??0.5),isEnabled:v.isEnabled!==false}},error:()=>{this.feeError='Could not load marketplace fee settings. Please retry.';this.loadingFees=false;done()},complete:done});
+    this.api.getMarketplaceFees().subscribe({next:v=>{this.fees=v;this.feeError='';this.loadingFees=false;this.feeDraft={merchantCommissionRatePercent:Number(v.merchantCommissionRatePercent??1),buyerServiceFeeRatePercent:Number(v.buyerServiceFeeRatePercent??0.5),isEnabled:v.isEnabled!==false}},error:()=>{this.fees=null;this.feeError='Could not load marketplace fee settings. Please retry.';this.loadingFees=false;done()},complete:done});
   }
   retryFees():void{this.loadingFees=true;this.feeError='';this.api.getMarketplaceFees().subscribe({next:v=>{this.fees=v;this.feeDraft={merchantCommissionRatePercent:Number(v.merchantCommissionRatePercent??1),buyerServiceFeeRatePercent:Number(v.buyerServiceFeeRatePercent??0.5),isEnabled:v.isEnabled!==false};this.loadingFees=false},error:()=>{this.feeError='Could not load marketplace fee settings. Please check your connection and retry.';this.loadingFees=false}})}
   saveFees():void{
