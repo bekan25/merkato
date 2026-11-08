@@ -172,7 +172,7 @@ app-shopping-assistant .assistant-products article>span{font-size:0!important;wi
 app-shopping-assistant .assistant-products article>span:after{content:"";display:block;width:18px;height:18px;border:2px solid var(--mk-primary);border-radius:4px}
 
 /* Admin console — single dark command theme */
-app-admin-dashboard,:host-context(.app-shell.admin-route) app-admin-operations{--admin-bg:#0F1B33;--admin-surface:#14213D;--admin-border:#2C3D5B;--admin-text:#F1F5F9;--admin-muted:#B0BFD4}
+app-admin-dashboard{--admin-bg:#0F1B33;--admin-surface:#14213D;--admin-border:#2C3D5B;--admin-text:#F1F5F9;--admin-muted:#B0BFD4}
 app-admin-dashboard .admin-header,app-admin-dashboard .metric,app-admin-dashboard .panel,app-admin-dashboard .fee-box,app-admin-dashboard .quick a{background:#14213D!important;border-color:#2C3D5B!important;color:#F1F5F9!important;box-shadow:0 8px 24px #0003!important}
 app-admin-dashboard .admin-header h1,app-admin-dashboard .hero h2,app-admin-dashboard .panel h3,app-admin-dashboard .metric strong,app-admin-dashboard .quick a{color:#F1F5F9!important}
 app-admin-dashboard .breadcrumb,app-admin-dashboard .sub,app-admin-dashboard .metric small,app-admin-dashboard .fee-row label,app-admin-dashboard .note{color:#B0BFD4!important}
@@ -199,8 +199,7 @@ app-admin-operations .notice.success{background:#0e3b31!important;color:#b7f0d4!
 app-admin-operations footer{color:#B0BFD4!important}
 
 /* Admin payments and remaining admin pages share the same command palette */
-app-admin-payment-reviews,:host-context(.app-shell.admin-route) app-admin-payment-reviews,
-app-seller-payment-reviews{--mk-primary:#12805C}
+app-admin-payment-reviews,app-seller-payment-reviews{--mk-primary:#12805C}
 @media(max-width:1100px){
  .hero{grid-template-columns:minmax(0,1fr) minmax(260px,.85fr)!important}
  .market-filter-panel{grid-template-columns:repeat(3,minmax(0,1fr))!important}
