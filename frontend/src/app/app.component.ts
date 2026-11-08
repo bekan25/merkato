@@ -115,8 +115,8 @@ import { MkBadgeComponent } from './shared/ui-primitives.component';
     .footer-column a:hover,.footer-column a:focus-visible{color:#fff;text-decoration:underline;text-underline-offset:4px}
     .footer-bottom{display:flex;justify-content:space-between;gap:16px;max-width:1440px;margin:0 auto;padding-top:16px;border-top:1px solid #ffffff24;color:#b9cec0;font-size:10px}
     .mobile-bottom-nav{display:none}
-    .announcement{position:relative;padding:10px 44px 10px 18px;text-align:center}
-    .announcement-dismiss{position:absolute;right:14px;top:50%;transform:translateY(-50%);width:28px;height:28px;border:0;border-radius:50%;background:#ffffff20;color:#fff;font-size:20px;line-height:1;cursor:pointer}
+    .announcement{position:relative;min-height:30px;padding:5px 56px 5px 18px;text-align:center;display:flex;align-items:center;justify-content:center;font-size:10px;line-height:1.35}
+    .announcement-dismiss{position:absolute;right:12px;top:50%;transform:translateY(-50%);display:grid;place-items:center;width:36px;height:36px;min-height:36px;padding:0;border:1px solid #ffffff70;border-radius:50%;background:#ffffff24;color:#fff;font-size:24px;line-height:1;cursor:pointer}.announcement-dismiss:focus-visible{outline:3px solid #f0d79a;outline-offset:2px;background:#ffffff38}
     .language-picker>svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
     .mobile-category-nav{display:none}
 
@@ -125,7 +125,7 @@ import { MkBadgeComponent } from './shared/ui-primitives.component';
     .language-picker select{width:44px;border:0;outline:0;background:transparent;color:#214d37;font-size:10px;font-weight:800;cursor:pointer}
     .language-picker:focus-within{box-shadow:0 0 0 3px #087b4d20;border-color:#8db99a}
     @media(max-width:760px){.language-picker{height:30px;padding:0 7px;gap:3px}.language-picker>span{font-size:15px}.language-picker select{width:39px;font-size:9px}}
-    .announcement{background:linear-gradient(90deg,#064b35,#08734b);font-weight:700;letter-spacing:.02em}
+    .announcement{background:linear-gradient(90deg,#315f50,#42796c);color:#fff;font-weight:700;letter-spacing:.02em}
     .site-header{min-height:78px;gap:clamp(12px,2.5vw,34px)}
     .global-search{height:48px;border-radius:28px;max-width:760px}
     .global-search select{border-radius:24px 0 0 24px;padding-left:17px}
