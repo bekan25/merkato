@@ -26,6 +26,23 @@ type FeeSettings = { merchantCommissionRatePercent:number; buyerServiceFeeRatePe
     @media(max-width:1050px){.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.columns{grid-template-columns:1fr}}
     @media(max-width:700px){.shell{grid-template-columns:1fr}.sidebar{position:relative;height:auto;padding:13px;gap:10px}.profile,.nav-label,.bottom{display:none}.nav{display:flex;overflow:auto}.nav a{flex:0 0 auto;padding:9px}.main{padding:17px 13px 30px}.chip{display:none}.hero{padding:18px}.hero-status{display:none}.metric{padding:13px}.metric strong{font-size:21px}}
     @media(max-width:380px){.metrics{gap:8px}.metric-head{font-size:8px}.quick{grid-template-columns:1fr}}
+
+    /* MERKATO Admin — dark glass command center */
+    :host{background:radial-gradient(70rem 38rem at 85% -8%,rgba(47,99,255,.17),transparent 60%),radial-gradient(55rem 34rem at 0% 100%,rgba(0,205,151,.12),transparent 60%),#070d19!important;color:#e8efff!important;font-family:Inter,Manrope,Arial,sans-serif}
+    .shell{grid-template-columns:260px minmax(0,1fr);background:transparent}
+    .sidebar{background:linear-gradient(180deg,rgba(15,26,48,.96),rgba(8,15,29,.98));border-right:1px solid rgba(150,180,255,.13);box-shadow:18px 0 55px rgba(0,0,0,.2);backdrop-filter:blur(24px);padding:25px 17px}
+    .mark{background:linear-gradient(135deg,#00d6a0,#2c9cff 60%,#8065ff);color:#fff;box-shadow:0 9px 25px #00c99a44}
+    .brand small{color:#8ca5cf}.profile{background:rgba(255,255,255,.055);border:1px solid rgba(165,190,255,.14);border-radius:15px}.avatar{background:linear-gradient(135deg,#00c99a,#328dff);color:white}
+    .nav-label{color:#7184a9}.nav a,.logout{color:#aebedc;border-radius:11px;padding:12px 13px}.nav a:hover,.nav a.active{background:linear-gradient(100deg,rgba(0,205,151,.19),rgba(54,125,255,.16));color:#fff}.nav a.active{box-shadow:inset 3px 0 #00d6a0,0 8px 24px #0002}.logout{border-color:#ffffff18}
+    .main{padding:30px clamp(17px,3vw,42px) 48px}.top{margin-bottom:25px}h1{color:#f3f6ff}.eyebrow{color:#62dabc}.chip,.refresh{background:rgba(255,255,255,.06);border-color:#ffffff19;color:#aebedc;border-radius:11px}.refresh{color:#6ce3c2}.refresh:hover{background:#00c99a1a}
+    .hero{background:radial-gradient(28rem 18rem at 90% 0%,#6854ff55,transparent 62%),radial-gradient(25rem 17rem at 0% 100%,#00c99a44,transparent 65%),linear-gradient(120deg,#111f39,#101a31 70%,#17213f);border:1px solid #a8bdff25;border-radius:22px;padding:27px 30px;box-shadow:0 25px 65px #0003}.hero h2{font-size:clamp(22px,2.5vw,30px);color:#fff}.hero p{color:#aebedc}.hero-status{background:#00c99a16;border-color:#00d6a055;color:#72e8c9}
+    .metrics{gap:14px;margin-bottom:20px}.metric,.panel{background:linear-gradient(145deg,rgba(22,35,61,.92),rgba(13,23,42,.94));border:1px solid rgba(160,185,255,.13);border-radius:18px;box-shadow:0 16px 42px #0002;color:#e8efff}.metric{padding:19px;position:relative;overflow:hidden}.metric:after{content:"";position:absolute;right:-35px;top:-45px;width:105px;height:105px;border-radius:50%;background:radial-gradient(circle,#438bff2a,transparent 70%)}.metric-head{color:#8fa4ca}.metric-icon{background:linear-gradient(135deg,#00c99a26,#368dff30);color:#73e8ce;border:1px solid #69d8c52c}.metric strong{color:#f4f7ff;font-size:clamp(22px,2.3vw,29px)}.metric small{color:#8195b8}
+    .columns{gap:17px}.column{gap:17px}.panel{padding:19px}.panel h3{color:#eef3ff;font-size:14px}.sub{color:#8da1c5}.count{background:#ffffff0c;color:#a9bcdf;border:1px solid #ffffff12}.table-wrap{border-radius:11px}th{background:#ffffff08!important;color:#8198c0!important;border-color:#ffffff12!important}td{color:#c4d1e9;border-color:#ffffff0e!important}tbody tr:hover{background:#ffffff08!important}.strong{color:#f0f5ff}.muted{color:#8195b8}
+    .status{background:#ffffff12;color:#c1cde2}.status.pending,.status.open,.status.under_review{background:#f4b84b20;color:#ffd27c}.status.approved,.status.held,.status.released,.status.completed{background:#00c99a20;color:#75e7c9}.status.rejected,.status.failed,.status.refunded{background:#ff6d7920;color:#ff9da5}
+    .action{background:#ffffff0b;border-color:#ffffff20;color:#a8f0db}.action.danger{border-color:#ff7c7c35;color:#ff9da5}.fee-box{background:#ffffff08;border-color:#ffffff16}.fee-row label,.toggle{color:#bdcbe4}.fee-row input{background:#0a1426;border-color:#ffffff20;color:#eef4ff}.save{background:linear-gradient(100deg,#00b98c,#267bff);border-radius:10px}.note,.page-error{color:#91a4c5}.success{background:#00c99a20;color:#83e8cb}.error,.page-error{background:#ff6b7620;color:#ffb1b6;border-color:#ff7c7c30}.quick a{background:#ffffff08;border-color:#ffffff16;color:#c5d3ec}.quick a:hover{background:#00c99a14;border-color:#00c99a66}.user{border-color:#ffffff12}.user-meta strong{color:#e6eeff}.user-meta small{color:#8da1c5}.initial{background:#ffffff12;color:#8debd2}.empty{color:#8da1c5}
+    .analytics-grid{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(230px,.8fr);gap:16px;margin-bottom:17px}.chart{display:flex;align-items:end;gap:clamp(7px,1.4vw,17px);height:185px;padding:16px 5px 0;border-bottom:1px solid #ffffff18}.chart-col{display:flex;flex:1;min-width:0;height:100%;flex-direction:column;justify-content:end;align-items:center;gap:8px}.chart-bar-wrap{display:flex;align-items:end;justify-content:center;width:100%;height:100%;border-bottom:0}.chart-bar{width:min(34px,70%);min-height:3px;border-radius:8px 8px 3px 3px;background:linear-gradient(180deg,#36a4ff,#00c99a);box-shadow:0 0 22px #00c99a25}.chart-label{font-size:9px;color:#8da1c5}.chart-value{font-size:8px;color:#bdcbe4}.product-rank{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid #ffffff12}.product-rank:last-child{border:0}.rank-no{width:27px;height:27px;display:grid;place-items:center;border-radius:9px;background:#ffffff0c;color:#78e6ca;font-size:10px;font-weight:900}.rank-info{flex:1;min-width:0}.rank-info strong{display:block;overflow:hidden;color:#eaf1ff;font-size:10px;text-overflow:ellipsis;white-space:nowrap}.rank-info small{color:#8da1c5;font-size:8px}.rank-total{color:#8debd2;font-size:10px;font-weight:900;white-space:nowrap}.metric-conversion{background:linear-gradient(145deg,rgba(33,39,77,.95),rgba(15,23,44,.95))}
+    @media(max-width:1050px){.analytics-grid{grid-template-columns:1fr}}
+    @media(max-width:700px){.shell{grid-template-columns:1fr}.sidebar{background:rgba(10,19,36,.97);border:1px solid #ffffff16;border-radius:0 0 17px 17px;position:relative;height:auto;padding:13px;gap:10px}.nav{display:flex;overflow:auto}.nav a{flex:0 0 auto;padding:10px 12px}.main{padding:17px 13px 30px}.hero{padding:18px;border-radius:17px}.panel{padding:14px}.analytics-grid{gap:12px}.chart{height:155px}}
   `],
   template:`
     <div class="shell">
@@ -33,7 +50,7 @@ type FeeSettings = { merchantCommissionRatePercent:number; buyerServiceFeeRatePe
         <a routerLink="/" class="brand"><span class="mark">M</span><span>MERKATO<small>ADMIN CONSOLE</small></span></a>
         <div class="profile"><span class="avatar">{{user?.fullName?.slice(0,1) || 'A'}}</span><div><strong>{{user?.fullName || 'Administrator'}}</strong><small>Platform administrator</small></div></div>
         <span class="nav-label">CONTROL CENTER</span>
-        <nav class="nav"><a class="active" href="#overview">▦ &nbsp; Overview</a><a href="#orders">▤ &nbsp; Orders</a><a href="#merchants">♙ &nbsp; Merchants</a><a href="#disputes">⚑ &nbsp; Disputes</a><a routerLink="/admin/payments">▣ &nbsp; Payment receipts</a><a href="#fees">◈ &nbsp; Commission & fees</a><a routerLink="/admin/operations">⚙ &nbsp; Operations center</a></nav>
+        <nav class="nav"><a class="active" href="#overview">▦ &nbsp; Dashboard</a><a href="#merchants">▤ &nbsp; Products</a><a href="#orders">▣ &nbsp; Orders</a><a href="#merchants">♙ &nbsp; Customers & Sellers</a><a href="#analytics">⌁ &nbsp; Analytics</a><a href="#reports">▧ &nbsp; Reports</a><a routerLink="/admin/operations">⚙ &nbsp; Settings</a><a href="#disputes">⚑ &nbsp; Disputes</a><a routerLink="/admin/payments">▣ &nbsp; Payment reviews</a><a href="#fees">◈ &nbsp; Fees</a></nav>
         <div class="bottom"><a routerLink="/" class="nav-link">↗ &nbsp; Open marketplace</a><button class="logout" (click)="logout()">⇥ &nbsp; Sign out</button></div>
       </aside>
       <main class="main" id="overview">
@@ -41,10 +58,20 @@ type FeeSettings = { merchantCommissionRatePercent:number; buyerServiceFeeRatePe
         <section class="hero"><div><span class="eyebrow" style="color:#d9bd7c">CONTROL YOUR MARKETPLACE</span><h2>Welcome back, {{firstName}}.</h2><p>Monitor marketplace activity, protect buyer and merchant trust, and manage MERKATO's launch fee policy from one place.</p></div><span class="hero-status">● ADMIN ACCESS</span></section>
         <div class="page-error" *ngIf="loadError">{{loadError}}</div>
         <section class="metrics">
-          <article class="metric"><div class="metric-head">TOTAL USERS <span class="metric-icon">♙</span></div><strong>{{analytics?.totalUsers ?? '—'}}</strong><small>{{analytics?.buyerCount ?? 0}} buyers · {{analytics?.merchantCount ?? 0}} merchants</small></article>
-          <article class="metric"><div class="metric-head">ACTIVE LISTINGS <span class="metric-icon">▤</span></div><strong>{{analytics?.activeProducts ?? '—'}}</strong><small>{{analytics?.totalProducts ?? 0}} total products</small></article>
-          <article class="metric"><div class="metric-head">TOTAL ORDERS <span class="metric-icon">▣</span></div><strong>{{analytics?.totalOrders ?? '—'}}</strong><small>Recorded marketplace orders</small></article>
-          <article class="metric"><div class="metric-head">GROSS ORDER VALUE <span class="metric-icon">◈</span></div><strong>{{(analytics?.grossOrderValueEtb ?? 0) | number:'1.0-0'}}</strong><small>ETB · gross, not settled revenue</small></article>
+          <article class="metric"><div class="metric-head">TOTAL SALES VALUE <span class="metric-icon">◈</span></div><strong>{{(analytics?.grossOrderValueEtb ?? 0) | number:'1.0-0'}}</strong><small>ETB · gross order value, not settled revenue</small></article>
+          <article class="metric"><div class="metric-head">TOTAL ORDERS <span class="metric-icon">▣</span></div><strong>{{analytics?.totalOrders ?? '—'}}</strong><small>All recorded marketplace orders</small></article>
+          <article class="metric"><div class="metric-head">CUSTOMERS <span class="metric-icon">♙</span></div><strong>{{analytics?.buyerCount ?? '—'}}</strong><small>{{analytics?.merchantCount ?? 0}} registered merchants</small></article>
+          <article class="metric metric-conversion"><div class="metric-head">CONVERSION RATE <span class="metric-icon">⌁</span></div><strong>—</strong><small>Not tracked by current analytics API</small></article>
+        </section>
+        <section class="analytics-grid" id="analytics">
+          <article class="panel"><div class="panel-head"><div><h3>Sales analytics</h3><p class="sub">Gross order value by month · calculated from available order records</p></div><span class="count">6 MONTHS</span></div>
+            <div class="chart" *ngIf="monthlySales.length; else noSales"><div class="chart-col" *ngFor="let point of monthlySales"><div class="chart-value">{{point.value | number:'1.0-0'}}</div><div class="chart-bar-wrap"><div class="chart-bar" [style.height.%]="point.height"></div></div><div class="chart-label">{{point.label}}</div></div></div>
+            <ng-template #noSales><div class="empty">Sales chart will appear when order records are available.</div></ng-template>
+          </article>
+          <article class="panel"><div class="panel-head"><div><h3>Top products</h3><p class="sub">Ranked by order value in the available records</p></div><span class="count">TOP 5</span></div>
+            <div *ngIf="topProducts.length; else noTopProducts"><div class="product-rank" *ngFor="let product of topProducts; let i=index"><span class="rank-no">{{i+1}}</span><div class="rank-info"><strong>{{product.name}}</strong><small>{{product.count}} order{{product.count===1?'':'s'}}</small></div><span class="rank-total">{{product.value | number:'1.0-0'}} ETB</span></div></div>
+            <ng-template #noTopProducts><div class="empty">No product sales data is available yet.</div></ng-template>
+          </article>
         </section>
         <section class="columns">
           <div class="column">
@@ -80,6 +107,14 @@ export class AdminDashboardComponent implements OnInit {
   feeDraft={merchantCommissionRatePercent:1,buyerServiceFeeRatePercent:0.5,isEnabled:true};
   loading=false; savingFees=false; loadError=''; feeError=''; feeMessage=''; busySellerId:number|null=null; busyDisputeId:number|null=null;
   get firstName():string{return this.user?.fullName?.trim().split(/\\s+/)[0]||'Administrator'}
+  get monthlySales():Array<{label:string;value:number;height:number}>{
+    const now=new Date();const rows=Array.from({length:6},(_,i)=>{const d=new Date(now.getFullYear(),now.getMonth()-5+i,1);return{key:d.getFullYear()+'-'+d.getMonth(),label:d.toLocaleDateString('en',{month:'short'}),value:0}});
+    for(const order of this.orders){const d=new Date(order.createdAt);if(Number.isNaN(d.getTime()))continue;const key=d.getFullYear()+'-'+d.getMonth();const row=rows.find(x=>x.key===key);if(row)row.value+=Number(order.totalAmountEtb)||0}
+    const max=Math.max(1,...rows.map(x=>x.value));return rows.map(x=>({label:x.label,value:x.value,height:x.value?Math.max(7,x.value/max*100):2}));
+  }
+  get topProducts():Array<{name:string;count:number;value:number}>{
+    const map=new Map<string,{name:string;count:number;value:number}>();for(const order of this.orders){const name=(order.productTitle||'Unspecified product').trim();const row=map.get(name)||{name,count:0,value:0};row.count++;row.value+=Number(order.totalAmountEtb)||0;map.set(name,row)}return[...map.values()].sort((a,b)=>b.value-a.value).slice(0,5);
+  }
   get recentOrders():MerkatoOrder[]{return [...this.orders].sort((a,b)=>Date.parse(b.createdAt||'')-Date.parse(a.createdAt||'')).slice(0,8)}
   get pendingMerchants():number{return this.sellerVerifications.filter(x=>x.status==='PENDING').length}
   get openDisputes():number{return this.disputes.filter(x=>['OPEN','UNDER_REVIEW'].includes(x.status)).length}
