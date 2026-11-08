@@ -169,6 +169,7 @@ export class AdminDashboardComponent implements OnInit {
   @HostListener('document:click',['$event']) closeAccountOnOutsideClick(event:MouseEvent):void{const menu=document.querySelector('.admin-header .account-menu');if(menu&&!menu.contains(event.target as Node))menu.removeAttribute('open')}
   @HostListener('document:keydown.escape') closeAdminOverlays():void{this.closeSidebar();document.querySelector('.admin-header .account-menu')?.removeAttribute('open')}
   toggleSidebar():void{this.sidebarOpen=!this.sidebarOpen}
+  closeSidebar():void{this.sidebarOpen=false}
   jumpToDisputes():void{document.getElementById('disputes')?.scrollIntoView({behavior:'smooth',block:'start'})}
   setLanguage(event:Event):void{const value=(event.target as HTMLSelectElement).value;this.language=value==='om'||value==='am'?value:'en';window.dispatchEvent(new CustomEvent('merkato-language-change',{detail:this.language}))}
 
