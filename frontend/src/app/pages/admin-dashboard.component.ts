@@ -57,7 +57,7 @@ type FeeSettings = { merchantCommissionRatePercent:number; buyerServiceFeeRatePe
     .empty{display:grid;justify-items:center;gap:7px;padding:28px 16px;text-align:center;color:var(--text-muted);font-size:13px;line-height:1.5}
     .empty-icon{display:grid;place-items:center;width:38px;height:38px;border-radius:12px;background:#1c2d49;color:#9ecfff;font-size:18px}
     .empty strong{font-size:14px;color:var(--text)}.empty span:last-child{max-width:360px}
-    .page-error{font-size:13px;padding:13px}
+    .page-error{font-size:13px;padding:13px}.skeleton-card{min-height:108px;padding:18px;border:1px solid var(--border);border-radius:16px;background:var(--surface);display:grid;align-content:start;gap:13px}.skeleton-line{height:12px;border-radius:7px;background:linear-gradient(90deg,#1a2b45 25%,#2a3e5e 38%,#1a2b45 62%);background-size:400% 100%;animation:admin-shimmer 1.35s ease infinite}.skeleton-line.short{width:42%}.skeleton-line.value{height:28px;width:58%}
     .skeleton{height:12px;border-radius:7px;background:linear-gradient(90deg,#1a2b45 25%,#2a3e5e 38%,#1a2b45 62%);background-size:400% 100%;animation:admin-shimmer 1.35s ease infinite}
     @keyframes admin-shimmer{0%{background-position:100% 0}100%{background-position:0 0}}
     .nav-icon{width:20px;height:20px;display:inline-grid;place-items:center;flex:0 0 20px;font-size:16px;line-height:1}
@@ -118,7 +118,7 @@ type FeeSettings = { merchantCommissionRatePercent:number; buyerServiceFeeRatePe
           <article class="metric"><div class="metric-head">TOTAL ORDERS <span class="metric-icon">▣</span></div><strong>{{analytics?.totalOrders ?? '—'}}</strong><small>All recorded marketplace orders</small></article>
           <article class="metric" id="customers"><div class="metric-head">CUSTOMERS <span class="metric-icon">♙</span></div><strong>{{analytics?.buyerCount ?? '—'}}</strong><small>{{analytics?.merchantCount ?? 0}} registered merchants</small></article>
           <article class="metric metric-conversion"><div class="metric-head">CONVERSION RATE <span class="metric-icon">⌁</span></div><strong>—</strong><small>Not tracked by current analytics API</small></article>
-        </section>
+        </ng-container></section>
         <section class="analytics-grid" id="analytics">
           <article class="panel"><div class="panel-head"><div><h3>Sales analytics</h3><p class="sub">Gross order value by month · calculated from available order records</p></div><span class="count">6 MONTHS</span></div>
             <div class="chart" *ngIf="monthlySales.length; else noSales"><div class="chart-col" *ngFor="let point of monthlySales"><div class="chart-value">{{point.value | number:'1.0-0'}}</div><div class="chart-bar-wrap"><div class="chart-bar" [style.height.%]="point.height"></div></div><div class="chart-label">{{point.label}}</div></div></div>
