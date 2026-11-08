@@ -13,9 +13,10 @@ public sealed class SellerCommissionLedgerTests
         var ledger = SellerCommissionLedger.CreateAccrual(42, 7, 125.50m, "TX-ABC");
         Assert.Equal("SELLER_DIRECT_COMMISSION", ledger.TransactionType);
         Assert.Equal(2, ledger.Entries.Count);
-        Assert.Equal(125.50m, ledger.Entries.Sum(x => x.AmountEtb));
-        Assert.Contains(ledger.Entries, x => x.AccountType == LedgerAccountType.MERCHANT_RECEIVABLE && x.UserId == 7 && x.EntryType == LedgerEntryType.DEBIT);
-        Assert.Contains(ledger.Entries, x => x.AccountType == LedgerAccountType.PLATFORM_FEE && x.EntryType == LedgerEntryType.CREDIT);
+        var debit = Assert.Single(ledger.Entries.Where(x => x.AccountType == LedgerAccountType.MERCHANT_RECEIVABLE && x.UserId == 7 && x.EntryType == LedgerEntryType.DEBIT));
+        var credit = Assert.Single(ledger.Entries.Where(x => x.AccountType == LedgerAccountType.PLATFORM_FEE && x.EntryType == LedgerEntryType.CREDIT));
+        Assert.Equal(125.50m, debit.AmountEtb);
+        Assert.Equal(debit.AmountEtb, credit.AmountEtb);
     }
 
     [Theory]
@@ -44,7 +45,7 @@ public sealed class SellerCommissionLedgerTests
     }
 
     [Fact]
-    public void DuplicatePaymentReferenceIsStableAndNormalized()
+    public void DuplicatePaymentReferenceProducesSameIdempotencyKey()
     {
         const string reference = " BANK-REF-001 ";
         var key1 = $"merchant-commission-settlement:{reference.Trim().ToUpperInvariant()}";
@@ -55,8 +56,8 @@ public sealed class SellerCommissionLedgerTests
     [Fact]
     public void CancelledOrRefundedOrdersMustNotAccrueCommissionWithoutMerchantPaymentConfirmation()
     {
-        // Accrual factory is intentionally called only by the verified seller-direct
-        // receipt path; order cancellation/refund alone does not create a commission.
+        // The accrual factory is invoked only from the verified seller-direct
+        // payment confirmation handler, never from cancellation or refund handlers.
         Assert.NotNull(typeof(SellerCommissionLedger).GetMethod(nameof(SellerCommissionLedger.CreateAccrual)));
     }
 }
