@@ -817,7 +817,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
   canRequestReturn(order: MerkatoOrder): boolean {
     const delivered = (this.buyerDeliveryTracking[order.id]?.status || this.deliveryStatusLabel(order)).toUpperCase() === 'DELIVERED';
     const escrow = String(order.escrowState).toUpperCase();
-    return delivered && !['CANCELLED', 'REFUNDED', 'RELEASED'].includes(escrow) && !this.returnForOrder(order.id);
+    const deliveredAt = this.buyerDeliveryTracking[order.id]?.deliveredAt || order.createdAt;
+    const deliveredAtMs = new Date(deliveredAt).getTime();
+    const withinReturnWindow = Number.isFinite(deliveredAtMs) && Date.now() - deliveredAtMs <= 7 * 24 * 60 * 60 * 1000;
+    return delivered && withinReturnWindow && !['CANCELLED', 'REFUNDED', 'RELEASED'].includes(escrow) && !this.returnForOrder(order.id);
   }
 
   returnStatusLabel(status: string): string {
