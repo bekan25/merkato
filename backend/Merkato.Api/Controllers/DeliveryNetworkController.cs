@@ -166,6 +166,80 @@ public sealed class DeliveryNetworkController : ControllerBase
         return Ok(rows.Select(x => new { deliveryId = x.Id, x.OrderId, x.OrderNumber, x.CityArea, x.DeliveryAddress, x.FeeEtb, selectedMode = x.DeliveryCourier }));
     }
 
+    [HttpGet("deliveries/seller-active")]
+    [Authorize(Roles = "MERCHANT,ADMIN")]
+    public async Task<IActionResult> SellerManagedDeliveries(CancellationToken ct)
+    {
+        var actorId = CurrentUserId;
+        if (actorId is null) return Unauthorized();
+        var query = from assignment in _db.DeliveryAssignments.AsNoTracking()
+                    join provider in _db.DeliveryProviders.AsNoTracking() on assignment.ProviderId equals provider.Id
+                    join delivery in _db.Deliveries.AsNoTracking() on assignment.DeliveryId equals delivery.Id
+                    join order in _db.Orders.AsNoTracking() on delivery.OrderId equals order.Id
+                    where provider.Code == "SELLER" && assignment.Status == "ACCEPTED" && delivery.Status != DeliveryStatus.DELIVERED
+                    select new { assignment.Id, assignment.DeliveryId, delivery.DeliveryId, assignment.Status, delivery.Status, delivery.FeeEtb, order.OrderNumber, order.CityArea, order.DeliveryAddress, order.SellerId };
+        if (!User.IsInRole("ADMIN")) query = query.Where(x => x.SellerId == actorId.Value);
+        return Ok(await query.OrderBy(x => x.OrderNumber).ToListAsync(ct));
+    }
+
+    [HttpPost("assignments/{assignmentId:long}/seller-status")]
+    [Authorize(Roles = "MERCHANT,ADMIN")]
+    public async Task<IActionResult> UpdateSellerManagedStatus(long assignmentId, [FromBody] DeliveryAssignmentStatusRequest request, CancellationToken ct)
+    {
+        var actorId = CurrentUserId;
+        if (actorId is null) return Unauthorized();
+        if (_deliveryService is null) return StatusCode(503);
+        var assignment = await _db.DeliveryAssignments.FirstOrDefaultAsync(x => x.Id == assignmentId && x.Status == "ACCEPTED", ct);
+        if (assignment is null) return NotFound();
+        var provider = await _db.DeliveryProviders.AsNoTracking().FirstOrDefaultAsync(x => x.Id == assignment.ProviderId && x.Code == "SELLER", ct);
+        var delivery = await _db.Deliveries.AsNoTracking().FirstOrDefaultAsync(x => x.Id == assignment.DeliveryId, ct);
+        if (provider is null || delivery is null) return NotFound();
+        var order = await _db.Orders.AsNoTracking().FirstOrDefaultAsync(x => x.Id == delivery.OrderId, ct);
+        if (order is null || (!User.IsInRole("ADMIN") && (order.SellerId != actorId || assignment.AssignedByUserId != actorId)))
+            return NotFound();
+        if (!Enum.TryParse<DeliveryStatus>(request.Status, true, out var nextStatus) ||
+            nextStatus is DeliveryStatus.CREATED or DeliveryStatus.ASSIGNED_COURIER or DeliveryStatus.DELIVERED)
+            return BadRequest(new { message = "Choose a valid delivery progress status. Completion requires buyer OTP." });
+        try
+        {
+            var updated = await _deliveryService.UpdateDeliveryStatusAsync(delivery.DeliveryId, nextStatus, ct);
+            _db.DeliveryTrackingEvents.Add(new DeliveryTrackingEvent { DeliveryId = delivery.Id, AssignmentId = assignment.Id, Source = "MERKATO", EventKey = $"seller-status:{assignment.Id}:{nextStatus}:{updated.RowVersion}", Status = nextStatus.ToString(), Description = $"Seller updated delivery status to {nextStatus}." });
+            await _db.SaveChangesAsync(ct);
+            return Ok(new { updated.DeliveryId, status = updated.Status.ToString(), updated.UpdatedAt });
+        }
+        catch (InvalidOperationException ex) { return Conflict(new { message = ex.Message }); }
+    }
+
+    [HttpPost("assignments/{assignmentId:long}/seller-verify-otp")]
+    [Authorize(Roles = "MERCHANT,ADMIN")]
+    public async Task<IActionResult> VerifySellerManagedOtp(long assignmentId, [FromBody] DeliveryAssignmentOtpRequest request, CancellationToken ct)
+    {
+        var actorId = CurrentUserId;
+        if (actorId is null) return Unauthorized();
+        if (_deliveryService is null) return StatusCode(503);
+        var assignment = await _db.DeliveryAssignments.FirstOrDefaultAsync(x => x.Id == assignmentId && x.Status == "ACCEPTED", ct);
+        if (assignment is null) return NotFound();
+        var provider = await _db.DeliveryProviders.AsNoTracking().FirstOrDefaultAsync(x => x.Id == assignment.ProviderId && x.Code == "SELLER", ct);
+        var delivery = await _db.Deliveries.AsNoTracking().FirstOrDefaultAsync(x => x.Id == assignment.DeliveryId, ct);
+        if (provider is null || delivery is null) return NotFound();
+        var order = await _db.Orders.AsNoTracking().FirstOrDefaultAsync(x => x.Id == delivery.OrderId, ct);
+        if (order is null || (!User.IsInRole("ADMIN") && (order.SellerId != actorId || assignment.AssignedByUserId != actorId)))
+            return NotFound();
+        if (string.IsNullOrWhiteSpace(request.OtpCode) || request.OtpCode.Length is < 4 or > 8 || !request.OtpCode.All(char.IsDigit))
+            return BadRequest(new { message = "OTP must contain 4–8 digits." });
+        try
+        {
+            var completed = await _deliveryService.VerifyOtpAndCompleteHandoverAsync(delivery.DeliveryId, actorId.Value, request.OtpCode, ct);
+            assignment.Status = "COMPLETED";
+            assignment.CompletedAt = DateTime.UtcNow;
+            _db.DeliveryTrackingEvents.Add(new DeliveryTrackingEvent { DeliveryId = delivery.Id, AssignmentId = assignment.Id, Source = "MERKATO", EventKey = $"seller-completed:{assignment.Id}", Status = "DELIVERED", Description = "Seller delivery completed after buyer OTP verification." });
+            await _db.SaveChangesAsync(ct);
+            return Ok(new { completed.DeliveryId, status = completed.Status.ToString(), completed.DeliveredAt });
+        }
+        catch (UnauthorizedAccessException ex) { return BadRequest(new { message = ex.Message }); }
+        catch (InvalidOperationException ex) { return Conflict(new { message = ex.Message }); }
+    }
+
     [HttpPost("deliveries/{deliveryId:long}/assignments")]
     [Authorize(Roles = "MERCHANT,ADMIN")]
     public async Task<IActionResult> Assign(long deliveryId, [FromBody] DeliveryAssignmentRequest request, CancellationToken ct)
