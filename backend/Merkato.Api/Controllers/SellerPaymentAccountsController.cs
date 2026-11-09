@@ -120,15 +120,22 @@ public sealed class SellerPaymentAccountsController : ControllerBase
              order.InventoryReservationExpiresAt <= DateTime.UtcNow))
             return Conflict(new { error = "This order's inventory reservation has expired. Place a new order before transferring money." });
 
-        var account = await _db.SellerPaymentAccounts.AsNoTracking()
-            .Where(x => x.SellerId == order.SellerId && x.PaymentRail == order.PaymentRail && x.IsActive)
-            .Select(x => new
-            {
-                paymentRail = x.PaymentRail.ToString(),
-                x.AccountHolderName, x.AccountIdentifier, x.BankName, x.Instructions
-            }).FirstOrDefaultAsync(ct);
-        if (account is null)
-            return Conflict(new { error = "This seller has not configured an active account for the selected payment method. Contact the seller or choose another payment method." });
+        // Use only the immutable destination captured when this order was placed.
+        // Falling back to the seller's current account could send a buyer's payment
+        // to a different destination after an account edit.
+        if (string.IsNullOrWhiteSpace(order.SellerPaymentAccountHolderName) ||
+            string.IsNullOrWhiteSpace(order.SellerPaymentAccountIdentifier) ||
+            !order.SellerPaymentDestinationCapturedAt.HasValue)
+            return Conflict(new { error = "A payment destination was not captured for this order. Contact MERKATO support before transferring money." });
+
+        var account = new
+        {
+            paymentRail = order.PaymentRail.ToString(),
+            accountHolderName = order.SellerPaymentAccountHolderName,
+            accountIdentifier = order.SellerPaymentAccountIdentifier,
+            bankName = order.SellerPaymentBankName,
+            instructions = order.SellerPaymentInstructions
+        };
 
         return Ok(new
         {
@@ -138,7 +145,8 @@ public sealed class SellerPaymentAccountsController : ControllerBase
             amountEtb = order.TotalAmountEtb,
             currency = "ETB",
             paymentDestination = account,
-            notice = "Transfer directly to the seller. MERKATO does not receive or hold this payment. Upload your receipt, then wait for the seller to confirm receipt in their own account."
+            destinationCapturedAt = order.SellerPaymentDestinationCapturedAt,
+            notice = "Transfer directly to the seller using the destination saved for this order. MERKATO does not receive or hold this payment. Upload your receipt, then wait for the seller to confirm receipt in their own account."
         });
     }
 

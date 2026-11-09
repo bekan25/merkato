@@ -173,8 +173,10 @@ public class OrdersController : ControllerBase
             user.Id == request.SellerId && user.Role == UserRole.MERCHANT, ct))
             return Conflict(new { message = "The selected seller is no longer an active merchant account." });
 
-        if (!await _db.SellerPaymentAccounts.AsNoTracking().AnyAsync(x =>
-            x.SellerId == request.SellerId && x.PaymentRail == request.PaymentRail && x.IsActive, ct))
+        var sellerPaymentAccount = await _db.SellerPaymentAccounts.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.SellerId == request.SellerId &&
+                x.PaymentRail == request.PaymentRail && x.IsActive, ct);
+        if (sellerPaymentAccount is null)
             return Conflict(new { message = "The seller payment destination is no longer active. Refresh checkout and choose an available payment method." });
 
         PromotionCoupon? appliedCoupon = null;
@@ -264,6 +266,11 @@ public class OrdersController : ControllerBase
             BuyerServiceFeeEtb = buyerServiceFee,
             PaymentRail = request.PaymentRail,
             PaymentMode = "SELLER_DIRECT",
+            SellerPaymentAccountHolderName = sellerPaymentAccount.AccountHolderName,
+            SellerPaymentAccountIdentifier = sellerPaymentAccount.AccountIdentifier,
+            SellerPaymentBankName = sellerPaymentAccount.BankName,
+            SellerPaymentInstructions = sellerPaymentAccount.Instructions,
+            SellerPaymentDestinationCapturedAt = reservationTime,
             DeliveryCourier = string.IsNullOrWhiteSpace(request.DeliveryCourier) ? "BEU_DELIVERY" : request.DeliveryCourier.Trim(),
             DeliveryAddress = request.DeliveryAddress.Trim(),
             CityArea = string.IsNullOrWhiteSpace(request.CityArea) ? "Addis Ababa" : request.CityArea.Trim(),
