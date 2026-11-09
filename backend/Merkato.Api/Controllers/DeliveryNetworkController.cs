@@ -40,7 +40,7 @@ public sealed class DeliveryNetworkController : ControllerBase
             .Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x.Trim())
             .Distinct(StringComparer.OrdinalIgnoreCase).Take(30).ToArray();
         if (areas.Length == 0 || string.IsNullOrWhiteSpace(request.TransportMode) ||
-            request.TransportMode.Length > 30 || request.VehicleDescription?.Length > 200 ||
+            (request.TransportMode?.Length ?? 0) > 30 || request.VehicleDescription?.Length > 200 ||
             request.CapacityKg is < 0 or > 10000)
             return BadRequest(new { message = "Provide at least one service area, a transport mode and valid vehicle capacity." });
 
@@ -72,6 +72,26 @@ public sealed class DeliveryNetworkController : ControllerBase
         }
         await _db.SaveChangesAsync(ct);
         return Ok(new { status = "PENDING", message = "Application submitted for administrator review." });
+    }
+
+    [HttpGet("partners/available")]
+    [Authorize(Roles = "MERCHANT,ADMIN")]
+    public async Task<IActionResult> AvailablePartners([FromQuery] string city, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(city) || city.Length > 100)
+            return BadRequest(new { message = "Provide a valid delivery city or area." });
+        var candidates = await _db.DeliveryPartnerProfiles.AsNoTracking()
+            .Where(x => x.ApprovalStatus == "APPROVED")
+            .Join(_db.Users.AsNoTracking(), profile => profile.UserId, user => user.Id,
+                (profile, user) => new { profile, user.FullName, user.IsSuspended })
+            .Where(x => !x.IsSuspended)
+            .ToListAsync(ct);
+        var eligible = candidates.Where(x =>
+            (JsonSerializer.Deserialize<string[]>(x.profile.ServiceAreasJson) ?? [])
+                .Contains(city.Trim(), StringComparer.OrdinalIgnoreCase))
+            .Select(x => new { userId = x.profile.UserId, name = x.FullName, x.profile.TransportMode, x.profile.VehicleDescription, x.profile.CapacityKg })
+            .ToList();
+        return Ok(eligible);
     }
 
     [HttpGet("partners/mine")]
@@ -167,14 +187,15 @@ public sealed class DeliveryNetworkController : ControllerBase
             AcceptedAt = provider.ProviderKind == "SELLER" ? DateTime.UtcNow : null
         };
         _db.DeliveryAssignments.Add(assignment);
+        try { await _db.SaveChangesAsync(ct); }
+        catch (DbUpdateException) { return Conflict(new { message = "This delivery already has an active assignment. Refresh its tracking history." }); }
         _db.DeliveryTrackingEvents.Add(new DeliveryTrackingEvent
         {
             DeliveryId = delivery.Id, AssignmentId = assignment.Id,
             Source = "MERKATO", EventKey = $"assignment-created:{request.IdempotencyKey}",
             Status = assignment.Status, Description = $"Delivery assigned to {provider.DisplayName}."
         });
-        try { await _db.SaveChangesAsync(ct); }
-        catch (DbUpdateException) { return Conflict(new { message = "This delivery already has an active assignment. Refresh its tracking history." }); }
+        await _db.SaveChangesAsync(ct);
         return Ok(new { assignment.Id, assignment.Status, assignment.DeliveryId, provider.Code, provider.DisplayName, assignment.PartnerUserId, assignment.AgreedFeeEtb });
     }
 
