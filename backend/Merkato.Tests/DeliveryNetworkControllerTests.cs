@@ -91,6 +91,7 @@ public sealed class DeliveryNetworkControllerTests
         var ok = Assert.IsType<OkObjectResult>(result);
         var providers = Assert.IsAssignableFrom<System.Collections.IEnumerable>(ok.Value);
         Assert.NotNull(providers);
-        Assert.Single((System.Collections.IEnumerable)ok.Value!);
+        var providerCount = ((System.Collections.IEnumerable)ok.Value!).Cast<object>().Count();
+        Assert.Equal(1, providerCount);
     }
 }
