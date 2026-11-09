@@ -1,0 +1,235 @@
+using System.Security.Claims;
+using System.Text.Json;
+using Merkato.Domain.Entities;
+using Merkato.Infrastructure.Persistence;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+
+namespace Merkato.Api.Controllers;
+
+[ApiController]
+[Route("api/v1/delivery")]
+public sealed class DeliveryNetworkController : ControllerBase
+{
+    private readonly MerkatoDbContext _db;
+    public DeliveryNetworkController(MerkatoDbContext db) => _db = db;
+
+    private long? CurrentUserId =>
+        long.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : null;
+
+    [HttpGet("providers")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetProviders(CancellationToken ct)
+    {
+        var providers = await _db.DeliveryProviders.AsNoTracking()
+            .Where(x => x.IsEnabled)
+            .OrderBy(x => x.ProviderKind).ThenBy(x => x.DisplayName)
+            .Select(x => new { x.Code, x.DisplayName, x.ProviderKind, x.SupportsQuotes, x.SupportsBooking, x.SupportsTracking })
+            .ToListAsync(ct);
+        return Ok(providers);
+    }
+
+    [HttpPost("partners/apply")]
+    [Authorize]
+    public async Task<IActionResult> Apply([FromBody] DeliveryPartnerApplication request, CancellationToken ct)
+    {
+        var userId = CurrentUserId;
+        if (userId is null) return Unauthorized();
+        var areas = (request.ServiceAreas ?? Array.Empty<string>())
+            .Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase).Take(30).ToArray();
+        if (areas.Length == 0 || string.IsNullOrWhiteSpace(request.TransportMode) ||
+            request.TransportMode.Length > 30 || request.VehicleDescription?.Length > 200 ||
+            request.CapacityKg is < 0 or > 10000)
+            return BadRequest(new { message = "Provide at least one service area, a transport mode and valid vehicle capacity." });
+
+        var existing = await _db.DeliveryPartnerProfiles.FirstOrDefaultAsync(x => x.UserId == userId, ct);
+        if (existing is not null)
+        {
+            if (existing.ApprovalStatus is "APPROVED" or "PENDING")
+                return Conflict(new { message = "A delivery partner application is already active." });
+            existing.ApprovalStatus = "PENDING";
+            existing.ServiceAreasJson = JsonSerializer.Serialize(areas);
+            existing.TransportMode = request.TransportMode.Trim();
+            existing.VehicleDescription = request.VehicleDescription?.Trim();
+            existing.CapacityKg = request.CapacityKg;
+            existing.ReviewNote = null;
+            existing.ReviewerUserId = null;
+            existing.AppliedAt = DateTime.UtcNow;
+            existing.ReviewedAt = null;
+        }
+        else
+        {
+            _db.DeliveryPartnerProfiles.Add(new DeliveryPartnerProfile
+            {
+                UserId = userId.Value,
+                ServiceAreasJson = JsonSerializer.Serialize(areas),
+                TransportMode = request.TransportMode.Trim(),
+                VehicleDescription = request.VehicleDescription?.Trim(),
+                CapacityKg = request.CapacityKg
+            });
+        }
+        await _db.SaveChangesAsync(ct);
+        return Ok(new { status = "PENDING", message = "Application submitted for administrator review." });
+    }
+
+    [HttpGet("partners/mine")]
+    [Authorize]
+    public async Task<IActionResult> MyApplication(CancellationToken ct)
+    {
+        var userId = CurrentUserId;
+        if (userId is null) return Unauthorized();
+        var profile = await _db.DeliveryPartnerProfiles.AsNoTracking().FirstOrDefaultAsync(x => x.UserId == userId, ct);
+        if (profile is null) return NotFound();
+        return Ok(new { profile.Id, profile.ApprovalStatus, serviceAreas = JsonSerializer.Deserialize<string[]>(profile.ServiceAreasJson) ?? [], profile.TransportMode, profile.VehicleDescription, profile.CapacityKg, profile.AppliedAt, profile.ReviewedAt, profile.ReviewNote });
+    }
+
+    [HttpGet("admin/partners")]
+    [Authorize(Roles = "ADMIN")]
+    public async Task<IActionResult> ReviewQueue([FromQuery] string status = "PENDING", CancellationToken ct = default)
+    {
+        var profiles = await _db.DeliveryPartnerProfiles.AsNoTracking()
+            .Where(x => x.ApprovalStatus == status)
+            .OrderBy(x => x.AppliedAt)
+            .Select(x => new { x.Id, x.UserId, x.ApprovalStatus, x.ServiceAreasJson, x.TransportMode, x.VehicleDescription, x.CapacityKg, x.AppliedAt })
+            .ToListAsync(ct);
+        return Ok(profiles.Select(x => new { x.Id, x.UserId, x.ApprovalStatus, serviceAreas = JsonSerializer.Deserialize<string[]>(x.ServiceAreasJson) ?? [], x.TransportMode, x.VehicleDescription, x.CapacityKg, x.AppliedAt }));
+    }
+
+    [HttpPost("admin/partners/{profileId:long}/review")]
+    [Authorize(Roles = "ADMIN")]
+    public async Task<IActionResult> Review(long profileId, [FromBody] DeliveryPartnerReview request, CancellationToken ct)
+    {
+        var reviewerId = CurrentUserId;
+        if (reviewerId is null) return Unauthorized();
+        var status = request.Status?.Trim().ToUpperInvariant();
+        if (status is not ("APPROVED" or "REJECTED" or "SUSPENDED") || request.Note?.Length > 1000)
+            return BadRequest(new { message = "Status must be APPROVED, REJECTED or SUSPENDED." });
+        var profile = await _db.DeliveryPartnerProfiles.FirstOrDefaultAsync(x => x.Id == profileId, ct);
+        if (profile is null) return NotFound();
+        profile.ApprovalStatus = status;
+        profile.ReviewerUserId = reviewerId;
+        profile.ReviewNote = request.Note?.Trim();
+        profile.ReviewedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync(ct);
+        return Ok(new { profile.Id, profile.ApprovalStatus, profile.ReviewedAt });
+    }
+
+    [HttpPost("deliveries/{deliveryId:long}/assignments")]
+    [Authorize(Roles = "MERCHANT,ADMIN")]
+    public async Task<IActionResult> Assign(long deliveryId, [FromBody] DeliveryAssignmentRequest request, CancellationToken ct)
+    {
+        var actorId = CurrentUserId;
+        if (actorId is null) return Unauthorized();
+        var delivery = await _db.Deliveries.FirstOrDefaultAsync(x => x.Id == deliveryId, ct);
+        if (delivery is null) return NotFound();
+        var order = await _db.Orders.FirstOrDefaultAsync(x => x.Id == delivery.OrderId, ct);
+        if (order is null) return NotFound();
+        if (!User.IsInRole("ADMIN") && order.SellerId != actorId)
+            return NotFound();
+
+        var providerCode = request.ProviderCode?.Trim().ToUpperInvariant();
+        var provider = await _db.DeliveryProviders.FirstOrDefaultAsync(x => x.Code == providerCode && x.IsEnabled, ct);
+        if (provider is null) return BadRequest(new { message = "This delivery provider is not enabled." });
+        if (request.AgreedFeeEtb < 0 || request.AgreedFeeEtb > 1000000 || string.IsNullOrWhiteSpace(request.IdempotencyKey) || request.IdempotencyKey.Length > 100)
+            return BadRequest(new { message = "Provide a valid delivery fee and idempotency key." });
+
+        if (provider.ProviderKind == "COMPANY" && !provider.SupportsBooking)
+            return Conflict(new { message = "This carrier is not bookable yet. Official partner API integration is required." });
+
+        if (provider.ProviderKind == "INDIVIDUAL")
+        {
+            if (request.PartnerUserId is null) return BadRequest(new { message = "Choose an approved individual delivery partner." });
+            var profile = await _db.DeliveryPartnerProfiles.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.UserId == request.PartnerUserId && x.ApprovalStatus == "APPROVED", ct);
+            if (profile is null) return BadRequest(new { message = "The selected individual courier is not approved." });
+            var areas = JsonSerializer.Deserialize<string[]>(profile.ServiceAreasJson) ?? [];
+            if (!areas.Contains(order.CityArea, StringComparer.OrdinalIgnoreCase))
+                return BadRequest(new { message = "The individual courier does not serve this delivery area." });
+        }
+        else if (provider.Code == "SELLER" && request.PartnerUserId is not null)
+            return BadRequest(new { message = "Seller delivery does not accept a separate courier user." });
+
+        var duplicate = await _db.DeliveryAssignments.FirstOrDefaultAsync(x => x.IdempotencyKey == request.IdempotencyKey, ct);
+        if (duplicate is not null)
+            return Ok(new { duplicate.Id, duplicate.Status, duplicate.DeliveryId, duplicate.ProviderId, duplicate.AgreedFeeEtb });
+
+        var assignment = new DeliveryAssignment
+        {
+            DeliveryId = delivery.Id,
+            ProviderId = provider.Id,
+            PartnerUserId = request.PartnerUserId,
+            AssignedByUserId = actorId.Value,
+            Status = provider.ProviderKind == "SELLER" ? "ACCEPTED" : "OFFERED",
+            AgreedFeeEtb = request.AgreedFeeEtb,
+            IdempotencyKey = request.IdempotencyKey.Trim(),
+            AcceptedAt = provider.ProviderKind == "SELLER" ? DateTime.UtcNow : null
+        };
+        _db.DeliveryAssignments.Add(assignment);
+        _db.DeliveryTrackingEvents.Add(new DeliveryTrackingEvent
+        {
+            DeliveryId = delivery.Id, AssignmentId = assignment.Id,
+            Source = "MERKATO", EventKey = $"assignment-created:{request.IdempotencyKey}",
+            Status = assignment.Status, Description = $"Delivery assigned to {provider.DisplayName}."
+        });
+        try { await _db.SaveChangesAsync(ct); }
+        catch (DbUpdateException) { return Conflict(new { message = "This delivery already has an active assignment. Refresh its tracking history." }); }
+        return Ok(new { assignment.Id, assignment.Status, assignment.DeliveryId, provider.Code, provider.DisplayName, assignment.PartnerUserId, assignment.AgreedFeeEtb });
+    }
+
+    [HttpPost("assignments/{assignmentId:long}/accept")]
+    [Authorize]
+    public async Task<IActionResult> Accept(long assignmentId, CancellationToken ct)
+    {
+        var userId = CurrentUserId;
+        if (userId is null) return Unauthorized();
+        var assignment = await _db.DeliveryAssignments.FirstOrDefaultAsync(x => x.Id == assignmentId, ct);
+        if (assignment is null || assignment.PartnerUserId != userId) return NotFound();
+        var profile = await _db.DeliveryPartnerProfiles.AsNoTracking().FirstOrDefaultAsync(x => x.UserId == userId && x.ApprovalStatus == "APPROVED", ct);
+        if (profile is null) return Forbid();
+        if (assignment.Status != "OFFERED") return Conflict(new { message = "This delivery offer is no longer available." });
+        assignment.Status = "ACCEPTED";
+        assignment.AcceptedAt = DateTime.UtcNow;
+        _db.DeliveryTrackingEvents.Add(new DeliveryTrackingEvent { DeliveryId = assignment.DeliveryId, AssignmentId = assignment.Id, Source = "MERKATO", EventKey = $"assignment-accepted:{assignment.Id}", Status = "ACCEPTED", Description = "Individual courier accepted the delivery." });
+        await _db.SaveChangesAsync(ct);
+        return Ok(new { assignment.Id, assignment.Status, assignment.AcceptedAt });
+    }
+
+    [HttpPost("assignments/{assignmentId:long}/reject")]
+    [Authorize]
+    public async Task<IActionResult> Reject(long assignmentId, CancellationToken ct)
+    {
+        var userId = CurrentUserId;
+        if (userId is null) return Unauthorized();
+        var assignment = await _db.DeliveryAssignments.FirstOrDefaultAsync(x => x.Id == assignmentId, ct);
+        if (assignment is null || assignment.PartnerUserId != userId) return NotFound();
+        if (assignment.Status != "OFFERED") return Conflict(new { message = "This delivery offer is no longer available." });
+        assignment.Status = "REJECTED";
+        _db.DeliveryTrackingEvents.Add(new DeliveryTrackingEvent { DeliveryId = assignment.DeliveryId, AssignmentId = assignment.Id, Source = "MERKATO", EventKey = $"assignment-rejected:{assignment.Id}", Status = "REJECTED", Description = "Individual courier declined the delivery." });
+        await _db.SaveChangesAsync(ct);
+        return Ok(new { assignment.Id, assignment.Status });
+    }
+
+    [HttpGet("deliveries/{deliveryId:long}/tracking")]
+    [Authorize]
+    public async Task<IActionResult> Tracking(long deliveryId, CancellationToken ct)
+    {
+        var userId = CurrentUserId;
+        if (userId is null) return Unauthorized();
+        var delivery = await _db.Deliveries.AsNoTracking().FirstOrDefaultAsync(x => x.Id == deliveryId, ct);
+        if (delivery is null) return NotFound();
+        var order = await _db.Orders.AsNoTracking().FirstOrDefaultAsync(x => x.Id == delivery.OrderId, ct);
+        if (order is null) return NotFound();
+        var authorized = User.IsInRole("ADMIN") || order.BuyerId == userId || order.SellerId == userId ||
+            await _db.DeliveryAssignments.AnyAsync(x => x.DeliveryId == deliveryId && x.PartnerUserId == userId, ct);
+        if (!authorized) return NotFound();
+        var events = await _db.DeliveryTrackingEvents.AsNoTracking().Where(x => x.DeliveryId == deliveryId)
+            .OrderBy(x => x.OccurredAt).Select(x => new { x.Status, x.Description, x.Source, x.OccurredAt }).ToListAsync(ct);
+        return Ok(new { delivery.Id, delivery.DeliveryId, delivery.Status, delivery.FeeEtb, events });
+    }
+}
+
+public sealed record DeliveryPartnerApplication(string[]? ServiceAreas, string TransportMode, string? VehicleDescription, decimal? CapacityKg);
+public sealed record DeliveryPartnerReview(string Status, string? Note);
+public sealed record DeliveryAssignmentRequest(string ProviderCode, long? PartnerUserId, decimal AgreedFeeEtb, string IdempotencyKey);
