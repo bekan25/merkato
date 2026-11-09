@@ -348,7 +348,7 @@ import { ApiService, MerkatoProduct, MerkatoOrder, MerkatoDispute, MerchantAnaly
         <section class="buyer-shortcuts" *ngIf="user?.role === 'MERCHANT'">
           <a href="#products" class="buyer-shortcut"><span>▤</span><strong>Manage products</strong><small>Add or edit what you sell</small></a>
           <a href="#merchant-orders" class="buyer-shortcut"><span>▣</span><strong>Incoming orders</strong><small>See what buyers have ordered</small></a>
-          <a routerLink="/merchant/payment-reviews" class="buyer-shortcut"><span>✓</span><strong>Confirm payments</strong><small>Check buyer receipts against your account</small></a>
+          <a routerLink="/merchant/payment-reviews" class="buyer-shortcut"><span>✓</span><strong>Confirm payments</strong><small>Check buyer receipts against your account</small></a>\n           <a routerLink="/merchant/delivery" class="buyer-shortcut"><span>🚚</span><strong>Delivery dispatch</strong><small>Assign approved couriers and manage delivery</small></a>
           <a routerLink="/merchant/payment-settings" class="buyer-shortcut"><span>◈</span><strong>Payment accounts</strong><small>Where buyers send your money</small></a>
         </section>
          <section class="buyer-shortcuts" *ngIf="user?.role === 'BUYER'">
