@@ -1313,6 +1313,15 @@ modelBuilder.Entity("Merkato.Domain.Entities.SellerChapaAccount", b =>
                 b.ToTable("SellerPaymentAccounts");
             });
 
+            modelBuilder.Entity("Merkato.Domain.Entities.SellerChapaAccount", b =>
+            {
+                b.HasOne("Merkato.Domain.Entities.User", null)
+                    .WithMany()
+                    .HasForeignKey("SellerId")
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .IsRequired();
+            });
+
             modelBuilder.Entity("Merkato.Domain.Entities.SellerPaymentAccount", b =>
             {
                 b.HasOne("Merkato.Domain.Entities.User", null).WithMany().HasForeignKey("SellerId").OnDelete(DeleteBehavior.Restrict).IsRequired();
