@@ -34,7 +34,7 @@ public sealed class MerchantSettlementController(MerkatoDbContext db) : Controll
             where tx.TransactionType == "SELLER_DIRECT_COMMISSION_REVERSAL" && entry.AccountType == LedgerAccountType.MERCHANT_RECEIVABLE && entry.UserId == sellerId && entry.EntryType == LedgerEntryType.CREDIT
             select new { tx.Id, tx.OrderId, tx.ReferenceId, tx.CreatedAt, entry.AmountEtb }).ToListAsync(ct);
         var due = accruals.Sum(x => x.AmountEtb); var paid = settlements.Sum(x => x.AmountEtb); var reversed = reversals.Sum(x => x.AmountEtb);
-        return Ok(new { currency = "ETB", commissionDue = due, reversed, paid, outstanding = due - paid - reversed,
+        return Ok(new { currency = "ETB", commissionDue = due, reversed, paid, outstanding = SellerCommissionLedger.CalculateOutstanding(due, paid, reversed),
             accrualHistory = accruals.OrderByDescending(x => x.CreatedAt), reversalHistory = reversals.OrderByDescending(x => x.CreatedAt),
             paymentHistory = settlements.OrderByDescending(x => x.CreatedAt) });
     }
@@ -55,7 +55,7 @@ public sealed class MerchantSettlementController(MerkatoDbContext db) : Controll
         var ids = due.Select(x => x.MerchantId).ToArray();
         var users = await db.Users.AsNoTracking().Where(x => ids.Contains(x.Id)).Select(x => new { x.Id, x.FullName, x.PhoneNumber }).ToDictionaryAsync(x => x.Id, ct);
         return Ok(due.Select(x => new { x.MerchantId, merchant = users.GetValueOrDefault(x.MerchantId), commissionDue = x.Amount,
-            paid = paid.GetValueOrDefault(x.MerchantId), reversed = reversed.GetValueOrDefault(x.MerchantId), outstanding = x.Amount - paid.GetValueOrDefault(x.MerchantId) - reversed.GetValueOrDefault(x.MerchantId) }).OrderByDescending(x => x.outstanding));
+            paid = paid.GetValueOrDefault(x.MerchantId), reversed = reversed.GetValueOrDefault(x.MerchantId), outstanding = SellerCommissionLedger.CalculateOutstanding(x.Amount, paid.GetValueOrDefault(x.MerchantId), reversed.GetValueOrDefault(x.MerchantId)) }).OrderByDescending(x => x.outstanding));
     }
 
     [HttpPost("admin/record-payment")]
