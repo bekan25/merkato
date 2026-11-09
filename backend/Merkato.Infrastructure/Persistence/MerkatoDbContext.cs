@@ -346,7 +346,7 @@ modelBuilder.Entity<UserAddress>(e =>
         modelBuilder.Entity<DeliveryAssignment>(e =>
         {
             e.HasIndex(x => new { x.DeliveryId, x.Status });
-            e.HasIndex(x => x.DeliveryId).IsUnique().HasFilter("\\"Status\\" IN ('OFFERED','ACCEPTED')");
+            e.HasIndex(x => x.DeliveryId).IsUnique().HasFilter("\"Status\" IN ('OFFERED','ACCEPTED')");
             e.HasIndex(x => new { x.PartnerUserId, x.Status });
             e.HasIndex(x => x.IdempotencyKey).IsUnique();
             e.Property(x => x.Status).HasMaxLength(20).IsRequired();
