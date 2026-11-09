@@ -106,7 +106,7 @@ public sealed class AddMultiProviderDeliveryCore : Migration
         migrationBuilder.CreateIndex("IX_DeliveryAssignments_ProviderId", "DeliveryAssignments", "ProviderId");
         migrationBuilder.CreateIndex("IX_DeliveryAssignments_PartnerUserId_Status", "DeliveryAssignments", new[] { "PartnerUserId", "Status" });
         migrationBuilder.CreateIndex("IX_DeliveryAssignments_AssignedByUserId", "DeliveryAssignments", "AssignedByUserId");
-        migrationBuilder.CreateIndex("IX_DeliveryAssignments_IdempotencyKey", "DeliveryAssignments", "IdempotencyKey", unique: true);
+        migrationBuilder.CreateIndex("IX_DeliveryAssignments_DeliveryId_IdempotencyKey", "DeliveryAssignments", new[] { "DeliveryId", "IdempotencyKey" }, unique: true);
         migrationBuilder.CreateIndex("IX_DeliveryTrackingEvents_DeliveryId_OccurredAt", "DeliveryTrackingEvents", new[] { "DeliveryId", "OccurredAt" });
         migrationBuilder.CreateIndex("IX_DeliveryTrackingEvents_AssignmentId", "DeliveryTrackingEvents", "AssignmentId");
         migrationBuilder.CreateIndex("IX_DeliveryTrackingEvents_Source_EventKey", "DeliveryTrackingEvents", new[] { "Source", "EventKey" }, unique: true);
