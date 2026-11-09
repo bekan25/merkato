@@ -117,6 +117,27 @@ public sealed class SellerCommissionLedgerTests
         Assert.Equal(expected, SellerCommissionLedger.ShouldAccrueCommission(payment, state, commission));
     }
 
+
+    [Theory]
+    [InlineData(125.50, 40, 0, 85.50)]
+    [InlineData(125.50, 75, 10, 40.50)]
+    [InlineData(100, 100, 0, 0)]
+    [InlineData(100, 120, 0, 0)]
+    [InlineData(100, 80, 30, 0)]
+    public void OutstandingNeverGoesBelowZeroWhenLedgerEntriesAreOverpaid(
+        decimal accrued, decimal paid, decimal reversed, decimal expected)
+    {
+        Assert.Equal(expected, SellerCommissionLedger.CalculateOutstanding(accrued, paid, reversed));
+    }
+
+    [Fact]
+    public void OverpaidOrFullyReversedBalanceCannotAcceptAnotherSettlement()
+    {
+        var outstanding = SellerCommissionLedger.CalculateOutstanding(100m, 80m, 20m);
+        Assert.Equal(0m, outstanding);
+        Assert.False(SellerCommissionLedger.CanRecordSettlement(0.01m, outstanding));
+    }
+
 }
 
 public sealed class SellerRefundHistoryTests
