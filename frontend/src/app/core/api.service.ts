@@ -251,6 +251,10 @@ export class ApiService {
     return this.http.get<DeliveryPartnerCandidate[]>(`${this.baseUrl}/v1/delivery/partners/available`, { params });
   }
 
+  getDeliveryDispatchQueue(): Observable<Array<{deliveryId:number;orderId:number;orderNumber:string;cityArea:string;deliveryAddress:string;feeEtb:number;selectedMode:string}>> {
+    return this.http.get<Array<{deliveryId:number;orderId:number;orderNumber:string;cityArea:string;deliveryAddress:string;feeEtb:number;selectedMode:string}>>(`${this.baseUrl}/v1/delivery/deliveries/dispatch-queue`);
+  }
+
   createDeliveryAssignment(deliveryId: number, payload: { providerCode: string; partnerUserId?: number | null; agreedFeeEtb: number; idempotencyKey: string }): Observable<DeliveryAssignmentResult> {
     return this.http.post<DeliveryAssignmentResult>(`${this.baseUrl}/v1/delivery/deliveries/${deliveryId}/assignments`, payload);
   }
