@@ -56,11 +56,12 @@ public sealed class DeliveryNetworkController : ControllerBase
         if (userId is null) return Unauthorized();
         var applicant = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userId, ct);
         if (applicant is null || applicant.IsSuspended) return Forbid();
+        var transportMode = request.TransportMode?.Trim() ?? string.Empty;
         var areas = (request.ServiceAreas ?? Array.Empty<string>())
             .Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x.Trim())
             .Distinct(StringComparer.OrdinalIgnoreCase).Take(30).ToArray();
-        if (areas.Length == 0 || string.IsNullOrWhiteSpace(request.TransportMode) ||
-            (request.TransportMode?.Length ?? 0) > 30 || request.VehicleDescription?.Length > 200 ||
+        if (areas.Length == 0 || string.IsNullOrWhiteSpace(transportMode) ||
+            transportMode.Length > 30 || request.VehicleDescription?.Length > 200 ||
             request.CapacityKg is < 0 or > 10000)
             return BadRequest(new { message = "Provide at least one service area, a transport mode and valid vehicle capacity." });
 
@@ -71,7 +72,7 @@ public sealed class DeliveryNetworkController : ControllerBase
                 return Conflict(new { message = "A delivery partner application is already active." });
             existing.ApprovalStatus = "PENDING";
             existing.ServiceAreasJson = JsonSerializer.Serialize(areas);
-            existing.TransportMode = request.TransportMode.Trim();
+            existing.TransportMode = transportMode;
             existing.VehicleDescription = request.VehicleDescription?.Trim();
             existing.CapacityKg = request.CapacityKg;
             existing.ReviewNote = null;
