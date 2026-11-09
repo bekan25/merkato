@@ -317,21 +317,16 @@ public sealed class PaymentReceiptsController : ControllerBase
                 receipt.PaymentTransactionId, expectedAmountEtb = payment.AmountEtb,
                 receipt.TransactionReference, receipt.FileName, receipt.ContentType,
                 receipt.Sha256, receipt.Status, receipt.CreatedAt, receipt.Content,
-                OrderCreatedAt = order.CreatedAt, OrderRail = order.PaymentRail
+                OrderCreatedAt = order.CreatedAt, OrderRail = order.PaymentRail,
+                ExpectedReceiver = order.SellerPaymentAccountIdentifier
             }).Take(100).ToListAsync(ct);
-
-        var accounts = await _db.SellerPaymentAccounts.AsNoTracking()
-            .Where(x => x.SellerId == sellerId && x.IsActive)
-            .OrderByDescending(x => x.UpdatedAt)
-            .ToListAsync(ct);
         var result = new List<object>(records.Count);
         foreach (var item in records)
         {
             var extension = item.ContentType == "image/png" ? ".png" : ".jpg";
             var ocr = await _ocr.ReadAsync(item.Content, extension, item.expectedAmountEtb, ct);
-            var receiver = accounts.FirstOrDefault(a => a.PaymentRail == item.OrderRail)?.AccountIdentifier;
             var check = ReceiptCrossCheck.Evaluate(new ReceiptCrossCheckInput(
-                ocr, item.TransactionReference, item.OrderCreatedAt, item.OrderRail, receiver, DateTime.UtcNow));
+                ocr, item.TransactionReference, item.OrderCreatedAt, item.OrderRail, item.ExpectedReceiver, DateTime.UtcNow));
             result.Add(new
             {
                 item.Id, item.OrderId, item.OrderNumber, item.BuyerId, item.PaymentTransactionId,
@@ -384,9 +379,12 @@ public sealed class PaymentReceiptsController : ControllerBase
         if (order.SellerId != sellerId) return Forbid();
         if (order.PaymentMode != "SELLER_DIRECT")
             return Conflict(new { error = "This receipt belongs to an escrow-mode order and must follow the existing admin review workflow." });
-        if (!await _db.SellerPaymentAccounts.AnyAsync(x =>
-            x.SellerId == sellerId && x.PaymentRail == order.PaymentRail && x.IsActive, ct))
-            return Conflict(new { error = "Configure and activate the matching seller payment account before reviewing this transfer." });
+        // The buyer paid the immutable destination captured on this order.
+        // A later account edit/deactivation must not block review or redirect verification.
+        if (string.IsNullOrWhiteSpace(order.SellerPaymentAccountHolderName) ||
+            string.IsNullOrWhiteSpace(order.SellerPaymentAccountIdentifier) ||
+            !order.SellerPaymentDestinationCapturedAt.HasValue)
+            return Conflict(new { error = "This order has no captured seller payment destination. Contact MERKATO support before reviewing the receipt." });
         if (order.EscrowState != EscrowState.AWAITING_PAYMENT)
             return Conflict(new { error = "This order is not awaiting seller payment confirmation." });
         if (receipt.Status != "PENDING_REVIEW")

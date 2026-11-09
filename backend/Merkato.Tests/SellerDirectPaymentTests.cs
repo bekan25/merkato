@@ -188,10 +188,10 @@ public sealed class SellerDirectPaymentTests
     }
 
     [Fact]
-    public async Task SellerDirectReceiptConfirmationRequiresActiveSellerAccountAndVerifiedReference()
+    public async Task SellerDirectReceiptConfirmationUsesCapturedDestinationAfterSellerAccountChanges()
     {
         var options = new DbContextOptionsBuilder<MerkatoDbContext>()
-            .UseInMemoryDatabase(nameof(SellerDirectReceiptConfirmationRequiresActiveSellerAccountAndVerifiedReference))
+            .UseInMemoryDatabase(nameof(SellerDirectReceiptConfirmationUsesCapturedDestinationAfterSellerAccountChanges))
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning)).Options;
         await using var db = new MerkatoDbContext(options);
         db.Products.Add(new Product { Id = 901, SellerId = 22, Name = "Test Product", PriceEtb = 250m });
@@ -200,6 +200,9 @@ public sealed class SellerDirectPaymentTests
             Id = 801, SellerId = 22, BuyerId = 33, PaymentMode = "SELLER_DIRECT",
             ProductId = 901, UnitPriceEtb = 250m, Quantity = 1, ProductSubtotalEtb = 250m,
             PaymentRail = PaymentRail.TELEBIRR, TotalAmountEtb = 250m,
+            SellerPaymentAccountHolderName = "Test Seller",
+            SellerPaymentAccountIdentifier = "0911223344",
+            SellerPaymentDestinationCapturedAt = DateTime.UtcNow.AddMinutes(-10),
             EscrowState = EscrowState.AWAITING_PAYMENT
         });
         db.PaymentTransactions.Add(new PaymentTransaction
@@ -216,7 +219,7 @@ public sealed class SellerDirectPaymentTests
         db.SellerPaymentAccounts.Add(new SellerPaymentAccount
         {
             Id = 804, SellerId = 22, PaymentRail = PaymentRail.TELEBIRR,
-            AccountHolderName = "Test Seller", AccountIdentifier = "0911223344", IsActive = true
+            AccountHolderName = "Updated Seller", AccountIdentifier = "0999000000", IsActive = false
         });
         db.AffiliateProfiles.Add(new AffiliateProfile
         {
@@ -262,10 +265,10 @@ public sealed class SellerDirectPaymentTests
     }
 
     [Fact]
-    public async Task SellerDirectReceiptCannotBeConfirmedWithoutActiveMatchingPaymentAccount()
+    public async Task SellerDirectReceiptCannotBeConfirmedWithoutCapturedDestination()
     {
         var options = new DbContextOptionsBuilder<MerkatoDbContext>()
-            .UseInMemoryDatabase(nameof(SellerDirectReceiptCannotBeConfirmedWithoutActiveMatchingPaymentAccount))
+            .UseInMemoryDatabase(nameof(SellerDirectReceiptCannotBeConfirmedWithoutCapturedDestination))
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning)).Options;
         await using var db = new MerkatoDbContext(options);
         db.Orders.Add(new Order
