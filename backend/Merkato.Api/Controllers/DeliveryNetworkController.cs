@@ -199,6 +199,21 @@ public sealed class DeliveryNetworkController : ControllerBase
         return Ok(new { assignment.Id, assignment.Status, assignment.DeliveryId, provider.Code, provider.DisplayName, assignment.PartnerUserId, assignment.AgreedFeeEtb });
     }
 
+    [HttpGet("assignments/mine")]
+    [Authorize]
+    public async Task<IActionResult> MyAssignments(CancellationToken ct)
+    {
+        var userId = CurrentUserId;
+        if (userId is null) return Unauthorized();
+        var assignments = await _db.DeliveryAssignments.AsNoTracking()
+            .Where(x => x.PartnerUserId == userId)
+            .OrderByDescending(x => x.AssignedAt)
+            .Join(_db.DeliveryProviders.AsNoTracking(), a => a.ProviderId, p => p.Id,
+                (a, p) => new { a.Id, a.DeliveryId, a.Status, a.AgreedFeeEtb, a.AssignedAt, a.AcceptedAt, p.DisplayName, p.Code })
+            .ToListAsync(ct);
+        return Ok(assignments);
+    }
+
     [HttpPost("assignments/{assignmentId:long}/accept")]
     [Authorize]
     public async Task<IActionResult> Accept(long assignmentId, CancellationToken ct)
