@@ -251,6 +251,18 @@ export class ApiService {
     return this.http.get<DeliveryPartnerCandidate[]>(`${this.baseUrl}/v1/delivery/partners/available`, { params });
   }
 
+  getSellerManagedDeliveries(): Observable<Array<{assignmentId:number;deliveryRecordId:number;publicDeliveryId:string;assignmentStatus:string;deliveryStatus:string;feeEtb:number;orderNumber:string;cityArea:string;deliveryAddress:string}>> {
+    return this.http.get<Array<{assignmentId:number;deliveryRecordId:number;publicDeliveryId:string;assignmentStatus:string;deliveryStatus:string;feeEtb:number;orderNumber:string;cityArea:string;deliveryAddress:string}>>(`${this.baseUrl}/v1/delivery/deliveries/seller-active`);
+  }
+
+  updateSellerDeliveryStatus(assignmentId:number,status:string):Observable<unknown>{
+    return this.http.post(`${this.baseUrl}/v1/delivery/assignments/${assignmentId}/seller-status`,{status});
+  }
+
+  verifySellerDeliveryOtp(assignmentId:number,otpCode:string):Observable<unknown>{
+    return this.http.post(`${this.baseUrl}/v1/delivery/assignments/${assignmentId}/seller-verify-otp`,{otpCode});
+  }
+
   getDeliveryDispatchQueue(): Observable<Array<{deliveryId:number;orderId:number;orderNumber:string;cityArea:string;deliveryAddress:string;feeEtb:number;selectedMode:string}>> {
     return this.http.get<Array<{deliveryId:number;orderId:number;orderNumber:string;cityArea:string;deliveryAddress:string;feeEtb:number;selectedMode:string}>>(`${this.baseUrl}/v1/delivery/deliveries/dispatch-queue`);
   }
