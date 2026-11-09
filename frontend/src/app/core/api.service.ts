@@ -66,6 +66,26 @@ export interface BuyerReturnRequest {
   resolutionNote?: string | null; createdAt: string; updatedAt: string;
 }
 
+export interface DeliveryProviderOption {
+  code: string; displayName: string; providerKind: 'COMPANY' | 'INDIVIDUAL' | 'SELLER' | string;
+  supportsQuotes: boolean; supportsBooking: boolean; supportsTracking: boolean;
+}
+export interface DeliveryPartnerApplication {
+  serviceAreas: string[]; transportMode: string; vehicleDescription?: string | null; capacityKg?: number | null;
+}
+export interface DeliveryPartnerProfile {
+  id: number; userId?: number; approvalStatus: 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED' | string;
+  serviceAreas?: string[]; transportMode?: string; vehicleDescription?: string | null;
+  capacityKg?: number | null; appliedAt?: string; reviewedAt?: string | null; reviewNote?: string | null;
+}
+export interface DeliveryPartnerCandidate {
+  userId: number; name: string; transportMode: string; vehicleDescription?: string | null; capacityKg?: number | null;
+}
+export interface DeliveryAssignmentResult {
+  id: number; status: string; deliveryId: number; providerCode?: string; displayName?: string;
+  partnerUserId?: number | null; agreedFeeEtb: number;
+}
+
 export interface OrderDeliveryTracking {
   deliveryId?: string | null; orderId: number; status: string;
   courierType?: string | null; riderName?: string | null; riderPhone?: string | null;
@@ -203,6 +223,78 @@ export class ApiService {
 
   updateMarketplaceFees(payload: { merchantCommissionRatePercent: number; buyerServiceFeeRatePercent: number; isEnabled: boolean }): Observable<unknown> {
     return this.http.put(`${this.baseUrl}/v1/marketplace/fees`, payload);
+  }
+
+  getDeliveryProviders(city = ''): Observable<DeliveryProviderOption[]> {
+    let params = new HttpParams();
+    if (city.trim()) params = params.set('city', city.trim());
+    return this.http.get<DeliveryProviderOption[]>(`${this.baseUrl}/v1/delivery/providers`, { params });
+  }
+
+  applyAsDeliveryPartner(payload: DeliveryPartnerApplication): Observable<{ status: string; message: string }> {
+    return this.http.post<{ status: string; message: string }>(`${this.baseUrl}/v1/delivery/partners/apply`, payload);
+  }
+
+  getMyDeliveryPartnerApplication(): Observable<DeliveryPartnerProfile> {
+    return this.http.get<DeliveryPartnerProfile>(`${this.baseUrl}/v1/delivery/partners/mine`);
+  }
+
+  getDeliveryPartnerReviewQueue(status = 'PENDING'): Observable<DeliveryPartnerProfile[]> {
+    const params = new HttpParams().set('status', status);
+    return this.http.get<DeliveryPartnerProfile[]>(`${this.baseUrl}/v1/delivery/admin/partners`, { params });
+  }
+
+  reviewDeliveryPartner(profileId: number, status: 'APPROVED' | 'REJECTED' | 'SUSPENDED', note = ''): Observable<unknown> {
+    return this.http.post(`${this.baseUrl}/v1/delivery/admin/partners/${profileId}/review`, { status, note });
+  }
+
+  getAvailableDeliveryPartners(city: string): Observable<DeliveryPartnerCandidate[]> {
+    const params = new HttpParams().set('city', city.trim());
+    return this.http.get<DeliveryPartnerCandidate[]>(`${this.baseUrl}/v1/delivery/partners/available`, { params });
+  }
+
+  getSellerManagedDeliveries(): Observable<Array<{assignmentId:number;deliveryRecordId:number;publicDeliveryId:string;assignmentStatus:string;deliveryStatus:string;feeEtb:number;orderNumber:string;cityArea:string;deliveryAddress:string}>> {
+    return this.http.get<Array<{assignmentId:number;deliveryRecordId:number;publicDeliveryId:string;assignmentStatus:string;deliveryStatus:string;feeEtb:number;orderNumber:string;cityArea:string;deliveryAddress:string}>>(`${this.baseUrl}/v1/delivery/deliveries/seller-active`);
+  }
+
+  updateSellerDeliveryStatus(assignmentId:number,status:string):Observable<unknown>{
+    return this.http.post(`${this.baseUrl}/v1/delivery/assignments/${assignmentId}/seller-status`,{status});
+  }
+
+  verifySellerDeliveryOtp(assignmentId:number,otpCode:string):Observable<unknown>{
+    return this.http.post(`${this.baseUrl}/v1/delivery/assignments/${assignmentId}/seller-verify-otp`,{otpCode});
+  }
+
+  getDeliveryDispatchQueue(): Observable<Array<{deliveryId:number;orderId:number;orderNumber:string;cityArea:string;deliveryAddress:string;feeEtb:number;selectedMode:string}>> {
+    return this.http.get<Array<{deliveryId:number;orderId:number;orderNumber:string;cityArea:string;deliveryAddress:string;feeEtb:number;selectedMode:string}>>(`${this.baseUrl}/v1/delivery/deliveries/dispatch-queue`);
+  }
+
+  createDeliveryAssignment(deliveryId: number, payload: { providerCode: string; partnerUserId?: number | null; agreedFeeEtb: number; idempotencyKey: string }): Observable<DeliveryAssignmentResult> {
+    return this.http.post<DeliveryAssignmentResult>(`${this.baseUrl}/v1/delivery/deliveries/${deliveryId}/assignments`, payload);
+  }
+
+  getMyDeliveryAssignments(): Observable<Array<{ id: number; deliveryId: number; status: string; deliveryStatus: string; agreedFeeEtb: number; assignedAt: string; acceptedAt?: string | null; displayName: string; code: string }>> {
+    return this.http.get<Array<{ id: number; deliveryId: number; status: string; deliveryStatus: string; agreedFeeEtb: number; assignedAt: string; acceptedAt?: string | null; displayName: string; code: string }>>(`${this.baseUrl}/v1/delivery/assignments/mine`);
+  }
+
+  acceptDeliveryAssignment(assignmentId: number): Observable<unknown> {
+    return this.http.post(`${this.baseUrl}/v1/delivery/assignments/${assignmentId}/accept`, {});
+  }
+
+  rejectDeliveryAssignment(assignmentId: number): Observable<unknown> {
+    return this.http.post(`${this.baseUrl}/v1/delivery/assignments/${assignmentId}/reject`, {});
+  }
+
+  updateAssignedDeliveryStatus(assignmentId: number, status: string): Observable<unknown> {
+    return this.http.post(`${this.baseUrl}/v1/delivery/assignments/${assignmentId}/status`, { status });
+  }
+
+  verifyAssignedDeliveryOtp(assignmentId: number, otpCode: string): Observable<unknown> {
+    return this.http.post(`${this.baseUrl}/v1/delivery/assignments/${assignmentId}/verify-otp`, { otpCode });
+  }
+
+  getDeliveryNetworkTracking(deliveryId: number): Observable<unknown> {
+    return this.http.get(`${this.baseUrl}/v1/delivery/deliveries/${deliveryId}/tracking`);
   }
 
   getDeliveryFeeQuote(cityArea: string): Observable<{ cityArea: string; feeEtb: number; currency: string; quoteType: string; note: string }> {

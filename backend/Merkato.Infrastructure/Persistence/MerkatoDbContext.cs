@@ -47,6 +47,10 @@ public class MerkatoDbContext : DbContext
     public DbSet<InspectionWindow> InspectionWindows => Set<InspectionWindow>();
     public DbSet<Dispute> Disputes => Set<Dispute>();
     public DbSet<Delivery> Deliveries => Set<Delivery>();
+    public DbSet<DeliveryProvider> DeliveryProviders => Set<DeliveryProvider>();
+    public DbSet<DeliveryPartnerProfile> DeliveryPartnerProfiles => Set<DeliveryPartnerProfile>();
+    public DbSet<DeliveryAssignment> DeliveryAssignments => Set<DeliveryAssignment>();
+    public DbSet<DeliveryTrackingEvent> DeliveryTrackingEvents => Set<DeliveryTrackingEvent>();
     public DbSet<OtpAttemptTracker> OtpAttemptTrackers => Set<OtpAttemptTracker>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<IdempotencyRecord> IdempotencyRecords => Set<IdempotencyRecord>();
@@ -316,6 +320,55 @@ modelBuilder.Entity<UserAddress>(e =>
 
             entity.Property(d => d.RowVersion)
                 .IsConcurrencyToken();
+        });
+
+        // Multi-provider delivery network. Active assignments are protected by a PostgreSQL partial unique index.
+        modelBuilder.Entity<DeliveryProvider>(e =>
+        {
+            e.HasIndex(x => x.Code).IsUnique();
+            e.Property(x => x.Code).HasMaxLength(40).IsRequired();
+            e.Property(x => x.DisplayName).HasMaxLength(120).IsRequired();
+            e.Property(x => x.ProviderKind).HasMaxLength(30).IsRequired();
+        });
+        modelBuilder.Entity<DeliveryPartnerProfile>(e =>
+        {
+            e.HasIndex(x => x.UserId).IsUnique();
+            e.HasIndex(x => x.ApprovalStatus);
+            e.Property(x => x.ApprovalStatus).HasMaxLength(20).IsRequired();
+            e.Property(x => x.ServiceAreasJson).HasColumnType("jsonb").IsRequired();
+            e.Property(x => x.TransportMode).HasMaxLength(30).IsRequired();
+            e.Property(x => x.VehicleDescription).HasMaxLength(200);
+            e.Property(x => x.CapacityKg).HasColumnType("numeric(10,2)");
+            e.Property(x => x.ReviewNote).HasMaxLength(1000);
+            e.HasOne<User>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<User>().WithMany().HasForeignKey(x => x.ReviewerUserId).OnDelete(DeleteBehavior.Restrict);
+        });
+        modelBuilder.Entity<DeliveryAssignment>(e =>
+        {
+            e.HasIndex(x => new { x.DeliveryId, x.Status });
+            e.HasIndex(x => x.DeliveryId).IsUnique().HasFilter("\"Status\" IN ('OFFERED','ACCEPTED')");
+            e.HasIndex(x => new { x.PartnerUserId, x.Status });
+            e.HasIndex(x => new { x.DeliveryId, x.IdempotencyKey }).IsUnique();
+            e.Property(x => x.Status).HasMaxLength(20).IsRequired();
+            e.Property(x => x.Currency).HasMaxLength(3).IsRequired();
+            e.Property(x => x.ExternalBookingReference).HasMaxLength(120);
+            e.Property(x => x.IdempotencyKey).HasMaxLength(100).IsRequired();
+            e.Property(x => x.AgreedFeeEtb).HasColumnType("numeric(18,4)");
+            e.HasOne<Delivery>().WithMany().HasForeignKey(x => x.DeliveryId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<DeliveryProvider>().WithMany().HasForeignKey(x => x.ProviderId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<User>().WithMany().HasForeignKey(x => x.PartnerUserId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<User>().WithMany().HasForeignKey(x => x.AssignedByUserId).OnDelete(DeleteBehavior.Restrict);
+        });
+        modelBuilder.Entity<DeliveryTrackingEvent>(e =>
+        {
+            e.HasIndex(x => new { x.DeliveryId, x.OccurredAt });
+            e.HasIndex(x => new { x.Source, x.EventKey }).IsUnique();
+            e.Property(x => x.Source).HasMaxLength(30).IsRequired();
+            e.Property(x => x.EventKey).HasMaxLength(120).IsRequired();
+            e.Property(x => x.Status).HasMaxLength(30).IsRequired();
+            e.Property(x => x.Description).HasMaxLength(500).IsRequired();
+            e.HasOne<Delivery>().WithMany().HasForeignKey(x => x.DeliveryId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<DeliveryAssignment>().WithMany().HasForeignKey(x => x.AssignmentId).OnDelete(DeleteBehavior.SetNull);
         });
 
         // OTP

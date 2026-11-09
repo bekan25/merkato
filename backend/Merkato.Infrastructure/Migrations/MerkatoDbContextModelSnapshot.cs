@@ -1357,6 +1357,109 @@ modelBuilder.Entity("Merkato.Domain.Entities.UserAddress", b =>
                 b.HasOne("Merkato.Domain.Entities.User", null).WithMany().HasForeignKey("UserId").OnDelete(DeleteBehavior.Cascade).IsRequired();
             });
             
+            modelBuilder.Entity("Merkato.Domain.Entities.DeliveryProvider", b =>
+            {
+                b.Property<long>("Id").ValueGeneratedOnAdd().HasColumnType("bigint");
+                NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+                b.Property<string>("Code").IsRequired().HasMaxLength(40).HasColumnType("character varying(40)");
+                b.Property<string>("DisplayName").IsRequired().HasMaxLength(120).HasColumnType("character varying(120)");
+                b.Property<string>("ProviderKind").IsRequired().HasMaxLength(30).HasColumnType("character varying(30)");
+                b.Property<bool>("IsEnabled").HasColumnType("boolean");
+                b.Property<bool>("SupportsQuotes").HasColumnType("boolean");
+                b.Property<bool>("SupportsBooking").HasColumnType("boolean");
+                b.Property<bool>("SupportsTracking").HasColumnType("boolean");
+                b.Property<DateTime>("CreatedAt").HasColumnType("timestamp with time zone");
+                b.HasKey("Id");
+                b.HasIndex("Code").IsUnique();
+                b.ToTable("DeliveryProviders");
+            });
+
+            modelBuilder.Entity("Merkato.Domain.Entities.DeliveryPartnerProfile", b =>
+            {
+                b.Property<long>("Id").ValueGeneratedOnAdd().HasColumnType("bigint");
+                NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+                b.Property<long>("UserId").HasColumnType("bigint");
+                b.Property<string>("ApprovalStatus").IsRequired().HasMaxLength(20).HasColumnType("character varying(20)");
+                b.Property<string>("ServiceAreasJson").IsRequired().HasColumnType("jsonb");
+                b.Property<string>("TransportMode").IsRequired().HasMaxLength(30).HasColumnType("character varying(30)");
+                b.Property<string>("VehicleDescription").HasMaxLength(200).HasColumnType("character varying(200)");
+                b.Property<decimal?>("CapacityKg").HasColumnType("numeric(10,2)");
+                b.Property<long?>("ReviewerUserId").HasColumnType("bigint");
+                b.Property<string>("ReviewNote").HasMaxLength(1000).HasColumnType("character varying(1000)");
+                b.Property<DateTime>("AppliedAt").HasColumnType("timestamp with time zone");
+                b.Property<DateTime?>("ReviewedAt").HasColumnType("timestamp with time zone");
+                b.HasKey("Id");
+                b.HasIndex("UserId").IsUnique();
+                b.HasIndex("ApprovalStatus");
+                b.HasIndex("ReviewerUserId");
+                b.ToTable("DeliveryPartnerProfiles");
+            });
+
+            modelBuilder.Entity("Merkato.Domain.Entities.DeliveryAssignment", b =>
+            {
+                b.Property<long>("Id").ValueGeneratedOnAdd().HasColumnType("bigint");
+                NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+                b.Property<long>("DeliveryId").HasColumnType("bigint");
+                b.Property<long>("ProviderId").HasColumnType("bigint");
+                b.Property<long?>("PartnerUserId").HasColumnType("bigint");
+                b.Property<long>("AssignedByUserId").HasColumnType("bigint");
+                b.Property<string>("Status").IsRequired().HasMaxLength(20).HasColumnType("character varying(20)");
+                b.Property<decimal>("AgreedFeeEtb").HasColumnType("numeric(18,4)");
+                b.Property<string>("Currency").IsRequired().HasMaxLength(3).HasColumnType("character varying(3)");
+                b.Property<string>("ExternalBookingReference").HasMaxLength(120).HasColumnType("character varying(120)");
+                b.Property<string>("IdempotencyKey").IsRequired().HasMaxLength(100).HasColumnType("character varying(100)");
+                b.Property<DateTime>("AssignedAt").HasColumnType("timestamp with time zone");
+                b.Property<DateTime?>("AcceptedAt").HasColumnType("timestamp with time zone");
+                b.Property<DateTime?>("CompletedAt").HasColumnType("timestamp with time zone");
+                b.HasKey("Id");
+                b.HasIndex("DeliveryId", "Status");
+                b.HasIndex("DeliveryId").IsUnique().HasFilter("\"Status\" IN ('OFFERED','ACCEPTED')");
+                b.HasIndex("ProviderId");
+                b.HasIndex("PartnerUserId", "Status");
+                b.HasIndex("AssignedByUserId");
+                b.HasIndex("DeliveryId", "IdempotencyKey").IsUnique();
+                b.ToTable("DeliveryAssignments");
+            });
+
+            modelBuilder.Entity("Merkato.Domain.Entities.DeliveryTrackingEvent", b =>
+            {
+                b.Property<long>("Id").ValueGeneratedOnAdd().HasColumnType("bigint");
+                NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+                b.Property<long>("DeliveryId").HasColumnType("bigint");
+                b.Property<long?>("AssignmentId").HasColumnType("bigint");
+                b.Property<string>("Source").IsRequired().HasMaxLength(30).HasColumnType("character varying(30)");
+                b.Property<string>("EventKey").IsRequired().HasMaxLength(120).HasColumnType("character varying(120)");
+                b.Property<string>("Status").IsRequired().HasMaxLength(30).HasColumnType("character varying(30)");
+                b.Property<string>("Description").IsRequired().HasMaxLength(500).HasColumnType("character varying(500)");
+                b.Property<DateTime>("OccurredAt").HasColumnType("timestamp with time zone");
+                b.Property<DateTime>("ReceivedAt").HasColumnType("timestamp with time zone");
+                b.HasKey("Id");
+                b.HasIndex("DeliveryId", "OccurredAt");
+                b.HasIndex("AssignmentId");
+                b.HasIndex("Source", "EventKey").IsUnique();
+                b.ToTable("DeliveryTrackingEvents");
+            });
+
+            modelBuilder.Entity("Merkato.Domain.Entities.DeliveryPartnerProfile", b =>
+            {
+                b.HasOne("Merkato.Domain.Entities.User", null).WithMany().HasForeignKey("UserId").OnDelete(DeleteBehavior.Cascade).IsRequired();
+                b.HasOne("Merkato.Domain.Entities.User", null).WithMany().HasForeignKey("ReviewerUserId").OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity("Merkato.Domain.Entities.DeliveryAssignment", b =>
+            {
+                b.HasOne("Merkato.Domain.Entities.Delivery", null).WithMany().HasForeignKey("DeliveryId").OnDelete(DeleteBehavior.Cascade).IsRequired();
+                b.HasOne("Merkato.Domain.Entities.DeliveryProvider", null).WithMany().HasForeignKey("ProviderId").OnDelete(DeleteBehavior.Restrict).IsRequired();
+                b.HasOne("Merkato.Domain.Entities.User", null).WithMany().HasForeignKey("PartnerUserId").OnDelete(DeleteBehavior.Restrict);
+                b.HasOne("Merkato.Domain.Entities.User", null).WithMany().HasForeignKey("AssignedByUserId").OnDelete(DeleteBehavior.Restrict).IsRequired();
+            });
+
+            modelBuilder.Entity("Merkato.Domain.Entities.DeliveryTrackingEvent", b =>
+            {
+                b.HasOne("Merkato.Domain.Entities.Delivery", null).WithMany().HasForeignKey("DeliveryId").OnDelete(DeleteBehavior.Cascade).IsRequired();
+                b.HasOne("Merkato.Domain.Entities.DeliveryAssignment", null).WithMany().HasForeignKey("AssignmentId").OnDelete(DeleteBehavior.SetNull);
+            });
+
 #pragma warning restore 612, 618
         }
     }

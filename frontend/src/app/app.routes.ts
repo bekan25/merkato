@@ -16,6 +16,9 @@ import { AdminPaymentReviewsComponent } from './pages/admin-payment-reviews.comp
 import { SellerPaymentSettingsComponent } from './pages/seller-payment-settings.component';
 import { SellerPaymentReviewsComponent } from './pages/seller-payment-reviews.component';
 import { authGuard, roleGuard } from './core/route.guards';
+import { DeliveryPartnerComponent } from './pages/delivery-partner.component';
+import { AdminDeliveryPartnersComponent } from './pages/admin-delivery-partners.component';
+import { MerchantDeliveryDispatchComponent } from './pages/merchant-delivery-dispatch.component';
 
 export const routes: Routes = [
   { path: '', component: StorefrontComponent, title: 'MERKATO | Marketplace' },
@@ -28,8 +31,11 @@ export const routes: Routes = [
   { path: 'affiliate', component: AffiliateDashboardComponent, canActivate: [authGuard], title: 'Affiliate Earnings | MERKATO' },
   { path: 'wholesale/:productId', component: WholesaleComponent, canActivate: [authGuard], title: 'Wholesale | MERKATO' },
   { path: 'dashboard', component: DashboardComponent, canActivate: [authGuard], title: 'Dashboard | MERKATO' },
+  { path: 'delivery-partner', component: DeliveryPartnerComponent, canActivate: [authGuard], title: 'Delivery Partner | MERKATO' },
+  { path: 'admin/delivery-partners', component: AdminDeliveryPartnersComponent, canActivate: [roleGuard], data: { roles: ['ADMIN'] }, title: 'Delivery Partner Review | MERKATO' },
   { path: 'account', component: AccountComponent, canActivate: [authGuard], title: 'My Account | MERKATO' },
   { path: 'merchant', component: DashboardComponent, canActivate: [roleGuard], data: { roles: ['MERCHANT', 'ADMIN'] } },
+  { path: 'merchant/delivery', component: MerchantDeliveryDispatchComponent, canActivate: [roleGuard], data: { roles: ['MERCHANT', 'ADMIN'] }, title: 'Delivery Dispatch | MERKATO' },
   { path: 'merchant/payment-settings', component: SellerPaymentSettingsComponent, canActivate: [roleGuard], data: { roles: ['MERCHANT'] }, title: 'Seller payment accounts | MERKATO' },
   { path: 'merchant/payment-reviews', component: SellerPaymentReviewsComponent, canActivate: [roleGuard], data: { roles: ['MERCHANT'] }, title: 'Seller payment reviews | MERKATO' },
   { path: 'admin', component: AdminDashboardComponent, canActivate: [roleGuard], data: { roles: ['ADMIN'] }, title: 'Admin Console | MERKATO' },

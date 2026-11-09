@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
-import { ApiService, MerkatoProduct, UserDeliveryAddress } from '../core/api.service';
+import { ApiService, DeliveryProviderOption, MerkatoProduct, UserDeliveryAddress } from '../core/api.service';
 import { AuthService } from '../core/auth.service';
 
 interface CartLine { product: MerkatoProduct; quantity: number; }
@@ -78,6 +78,13 @@ interface CartLine { product: MerkatoProduct; quantity: number; }
               <option *ngFor="let city of supportedCities" [value]="city">{{city}}</option>
             </select></label>
             <div class="delivery-quote" *ngIf="deliveryFeeEtb !== null"><strong>{{deliveryFeeEtb | number:'1.2-2'}} ETB / order</strong><small>MERKATO indicative estimate · final courier charge may differ</small></div>
+            <label>Delivery method
+              <select name="deliveryProvider" [(ngModel)]="deliveryProviderCode">
+                <option *ngFor="let provider of deliveryProviders" [value]="provider.code">{{provider.displayName}}</option>
+              </select>
+              <small *ngIf="deliveryProviderCode==='MERKATO_INDIVIDUAL'">An approved individual courier will be assigned by the seller after the order is confirmed.</small>
+              <small *ngIf="deliveryProviderCode==='SELLER'">The seller will arrange and manage delivery.</small>
+            </label>
             <div class="coupon-box">
               <label for="coupon-code">Discount or referral coupon</label>
               <label class="coupon-product-label">Apply to product<select name="couponProduct" [(ngModel)]="couponProductId" [disabled]="couponValidating || !!appliedCoupon"><option *ngFor="let line of lines" [ngValue]="line.product.id">{{line.product.name}} · {{line.product.priceEtb | number:'1.0-2'}} ETB</option></select></label>
@@ -238,6 +245,8 @@ export class CartComponent implements OnInit, OnDestroy {
   cityArea = 'Addis Ababa';
   readonly supportedCities = ['Addis Ababa','Adama','Hawassa','Bahir Dar','Dire Dawa','Jimma','Mekelle','Gondar','Dessie'];
   deliveryFeeEtb: number | null = null;
+  deliveryProviders: DeliveryProviderOption[] = [];
+  deliveryProviderCode = 'SELLER';
 
   deliveryQuoteError = '';
   deliveryQuoteLoading = false;
@@ -262,6 +271,13 @@ export class CartComponent implements OnInit, OnDestroy {
 
 
   ngOnInit(): void {
+    this.api.getDeliveryProviders(this.cityArea).subscribe({next: providers => {
+      this.deliveryProviders = providers;
+      if (!providers.some(provider => provider.code === this.deliveryProviderCode) && providers.length) {
+        this.deliveryProviderCode = providers[0].code;
+      }
+    }, error: () => { this.deliveryProviders = []; }});
+
     window.addEventListener('merkato-language-change', this.languageListener);
     this.loadDeliveryQuote();
     if (this.auth.user?.role === 'BUYER') this.loadSavedAddresses();
@@ -345,6 +361,11 @@ export class CartComponent implements OnInit, OnDestroy {
   }
 
   onCityChange(): void {
+    this.api.getDeliveryProviders(this.cityArea).subscribe({next: providers => {
+      this.deliveryProviders = providers;
+      if (!providers.some(provider => provider.code === this.deliveryProviderCode) && providers.length) this.deliveryProviderCode = providers[0].code;
+    }, error: () => { this.deliveryProviders = []; this.deliveryProviderCode = 'SELLER'; }});
+
     this.addressSelectionNotice = '';
     this.loadDeliveryQuote();
   }
@@ -458,7 +479,7 @@ export class CartComponent implements OnInit, OnDestroy {
           amountEtb: line.product.priceEtb * line.quantity,
           deliveryFeeEtb: this.deliveryFeeEtb!,
           paymentRail: this.paymentRail,
-          deliveryCourier: 'BEU_DELIVERY',
+          deliveryCourier: this.deliveryProviderCode,
           deliveryAddress: this.address.trim(),
           cityArea: this.cityArea.trim(),
           ...(!couponConsumed && this.appliedCoupon && line.product.id === this.couponProductId ? { couponCode: this.appliedCoupon.code } : {})
