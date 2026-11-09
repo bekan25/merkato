@@ -1271,7 +1271,31 @@ b.Property<long>("SellerId")
                 b.ToTable("CreatorCommissions");
             });
 
-modelBuilder.Entity("Merkato.Domain.Entities.SellerPaymentAccount", b =>
+modelBuilder.Entity("Merkato.Domain.Entities.SellerChapaAccount", b =>
+            {
+                b.Property<long>("Id").ValueGeneratedOnAdd().HasColumnType("bigint");
+                NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+                b.Property<long>("SellerId").HasColumnType("bigint");
+                b.Property<string>("ChapaSubaccountId").HasMaxLength(120).HasColumnType("character varying(120)");
+                b.Property<string>("ProviderReference").HasMaxLength(120).HasColumnType("character varying(120)");
+                b.Property<string>("BusinessName").HasMaxLength(120).HasColumnType("character varying(120)");
+                b.Property<string>("AccountName").HasMaxLength(120).HasColumnType("character varying(120)");
+                b.Property<string>("BankCode").HasMaxLength(40).HasColumnType("character varying(40)");
+                b.Property<string>("AccountNumberLast4").HasMaxLength(4).HasColumnType("character varying(4)");
+                b.Property<string>("OnboardingStatus").IsRequired().HasMaxLength(24).HasColumnType("character varying(24)");
+                b.Property<string>("ReviewNote").HasMaxLength(500).HasColumnType("character varying(500)");
+                b.Property<DateTime?>("SubmittedAt").HasColumnType("timestamp with time zone");
+                b.Property<DateTime?>("VerifiedAt").HasColumnType("timestamp with time zone");
+                b.Property<DateTime>("CreatedAt").HasColumnType("timestamp with time zone");
+                b.Property<DateTime>("UpdatedAt").HasColumnType("timestamp with time zone");
+                b.HasKey("Id");
+                b.HasIndex("SellerId").IsUnique();
+                b.HasIndex("ChapaSubaccountId").IsUnique().HasFilter("\"ChapaSubaccountId\" IS NOT NULL");
+                b.HasIndex("ProviderReference").IsUnique().HasFilter("\"ProviderReference\" IS NOT NULL");
+                b.ToTable("SellerChapaAccounts");
+            });
+
+            modelBuilder.Entity("Merkato.Domain.Entities.SellerPaymentAccount", b =>
             {
                 b.Property<long>("Id").ValueGeneratedOnAdd().HasColumnType("bigint");
                 NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
