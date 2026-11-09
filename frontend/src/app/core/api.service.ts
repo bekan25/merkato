@@ -271,6 +271,14 @@ export class ApiService {
     return this.http.post(`${this.baseUrl}/v1/delivery/assignments/${assignmentId}/reject`, {});
   }
 
+  updateAssignedDeliveryStatus(assignmentId: number, status: string): Observable<unknown> {
+    return this.http.post(`${this.baseUrl}/v1/delivery/assignments/${assignmentId}/status`, { status });
+  }
+
+  verifyAssignedDeliveryOtp(assignmentId: number, otpCode: string): Observable<unknown> {
+    return this.http.post(`${this.baseUrl}/v1/delivery/assignments/${assignmentId}/verify-otp`, { otpCode });
+  }
+
   getDeliveryNetworkTracking(deliveryId: number): Observable<unknown> {
     return this.http.get(`${this.baseUrl}/v1/delivery/deliveries/${deliveryId}/tracking`);
   }
