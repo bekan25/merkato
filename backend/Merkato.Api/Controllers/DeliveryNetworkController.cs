@@ -202,7 +202,7 @@ public sealed class DeliveryNetworkController : ControllerBase
         else if (provider.Code == "SELLER" && request.PartnerUserId is not null)
             return BadRequest(new { message = "Seller delivery does not accept a separate courier user." });
 
-        var duplicate = await _db.DeliveryAssignments.FirstOrDefaultAsync(x => x.IdempotencyKey == request.IdempotencyKey, ct);
+        var duplicate = await _db.DeliveryAssignments.FirstOrDefaultAsync(x => x.DeliveryId == delivery.Id && x.IdempotencyKey == request.IdempotencyKey, ct);
         if (duplicate is not null)
             return Ok(new { duplicate.Id, duplicate.Status, duplicate.DeliveryId, duplicate.ProviderId, duplicate.AgreedFeeEtb });
 
