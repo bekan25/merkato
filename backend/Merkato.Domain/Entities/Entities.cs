@@ -65,7 +65,16 @@ public class Order
     
     public PaymentRail PaymentRail { get; set; }
     // ESCROW preserves the legacy held-funds workflow; SELLER_DIRECT is confirmed by the merchant.
+    [MaxLength(24)]
     public string PaymentMode { get; set; } = "ESCROW";
+
+    // Immutable seller destination captured at checkout. Never resolve old orders
+    // against the seller's current account, which may have changed since purchase.
+    [MaxLength(120)] public string? SellerPaymentAccountHolderName { get; set; }
+    [MaxLength(120)] public string? SellerPaymentAccountIdentifier { get; set; }
+    [MaxLength(120)] public string? SellerPaymentBankName { get; set; }
+    [MaxLength(500)] public string? SellerPaymentInstructions { get; set; }
+    public DateTime? SellerPaymentDestinationCapturedAt { get; set; }
     public string DeliveryCourier { get; set; } = "BEU_DELIVERY";
     public string ProductTitle { get; set; } = string.Empty;
     public string DeliveryAddress { get; set; } = string.Empty;
