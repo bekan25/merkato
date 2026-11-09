@@ -12,9 +12,8 @@ using Xunit;
 namespace Merkato.Tests;
 
 /// <summary>
-/// Ownership-boundary tests exercise controller actions against a persisted EF
-/// test database and authenticated claims. They complement the frontend route
-/// guards by checking server-side data scoping and mutation ownership.
+/// Controller ownership-boundary tests against EF persistence and authenticated claims.
+/// These are not HTTP-host integration tests; those are added separately with the API host.
 /// </summary>
 public sealed class AuthorizationOrderOwnershipTests
 {
@@ -39,6 +38,8 @@ public sealed class AuthorizationOrderOwnershipTests
         };
     }
 
+    private static readonly JsonSerializerOptions ApiJson = new(JsonSerializerDefaults.Web);
+
     [Fact]
     public async Task BuyerOrderListContainsOnlyOrdersOwnedByAuthenticatedBuyer()
     {
@@ -52,7 +53,7 @@ public sealed class AuthorizationOrderOwnershipTests
         Authenticate(controller, 11, "BUYER");
 
         var result = Assert.IsType<OkObjectResult>(await controller.GetMyOrders(CancellationToken.None));
-        var json = JsonSerializer.SerializeToDocument(result.Value, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+        var json = JsonSerializer.SerializeToDocument(result.Value, ApiJson);
         var ids = json.RootElement.EnumerateArray().Select(x => x.GetProperty("id").GetInt64()).ToArray();
 
         Assert.Equal(new long[] { 101 }, ids);
@@ -71,7 +72,7 @@ public sealed class AuthorizationOrderOwnershipTests
         Authenticate(controller, 21, "MERCHANT");
 
         var result = Assert.IsType<OkObjectResult>(await controller.GetMerchantOrders(CancellationToken.None));
-        var json = JsonSerializer.SerializeToDocument(result.Value);
+        var json = JsonSerializer.SerializeToDocument(result.Value, ApiJson);
         var ids = json.RootElement.EnumerateArray().Select(x => x.GetProperty("id").GetInt64()).ToArray();
 
         Assert.Equal(new long[] { 201 }, ids);
@@ -117,7 +118,7 @@ public sealed class AuthorizationOrderOwnershipTests
         Authenticate(controller, 21, "MERCHANT");
 
         var result = Assert.IsType<OkObjectResult>(await controller.SellerQueue(CancellationToken.None));
-        var json = JsonSerializer.SerializeToDocument(result.Value);
+        var json = JsonSerializer.SerializeToDocument(result.Value, ApiJson);
         var ids = json.RootElement.EnumerateArray().Select(x => x.GetProperty("id").GetInt64()).ToArray();
 
         Assert.Equal(new long[] { 601 }, ids);
