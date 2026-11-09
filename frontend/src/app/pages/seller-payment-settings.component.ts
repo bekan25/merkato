@@ -129,6 +129,12 @@ export class SellerPaymentSettingsComponent implements OnInit {
     });
   }
 
+  chapaStatusLabel(): string {
+    if (this.chapa?.hasApprovedSubaccount) return 'Seller subaccount approved';
+    const status = this.chapa?.onboardingStatus || 'NOT_STARTED';
+    return ({ NOT_STARTED: 'Not connected', PENDING: 'Approval pending', REJECTED: 'Needs review' } as Record<string, string>)[status] || status;
+  }
+
   railName(rail: string): string {
     return ({ TELEBIRR: 'Telebirr', CBE_BIRR: 'CBE Birr', AWASH_BIRR: 'Awash Birr', BANK_OF_ABYSSINIA: 'Bank of Abyssinia' } as Record<string,string>)[rail] || rail;
   }
