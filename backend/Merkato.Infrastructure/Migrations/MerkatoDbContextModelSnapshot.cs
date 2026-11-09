@@ -1282,7 +1282,7 @@ modelBuilder.Entity("Merkato.Domain.Entities.SellerChapaAccount", b =>
                 b.Property<string>("AccountName").HasMaxLength(120).HasColumnType("character varying(120)");
                 b.Property<string>("BankCode").HasMaxLength(40).HasColumnType("character varying(40)");
                 b.Property<string>("AccountNumberLast4").HasMaxLength(4).HasColumnType("character varying(4)");
-                b.Property<string>("OnboardingStatus").IsRequired().HasMaxLength(24).HasColumnType("character varying(24)");
+                b.Property<string>("OnboardingStatus").IsRequired().HasMaxLength(24).HasDefaultValue("NOT_STARTED").HasColumnType("character varying(24)");
                 b.Property<string>("ReviewNote").HasMaxLength(500).HasColumnType("character varying(500)");
                 b.Property<DateTime?>("SubmittedAt").HasColumnType("timestamp with time zone");
                 b.Property<DateTime?>("VerifiedAt").HasColumnType("timestamp with time zone");
