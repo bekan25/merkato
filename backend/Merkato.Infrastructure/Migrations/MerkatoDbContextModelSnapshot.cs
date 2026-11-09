@@ -500,6 +500,25 @@ b.Property<long>("SellerId")
                         .HasColumnType("integer");
                 b.Property<string>("PaymentMode").IsRequired().HasMaxLength(24).HasColumnType("character varying(24)");
 
+                    b.Property<string>("SellerPaymentAccountHolderName")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("SellerPaymentAccountIdentifier")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("SellerPaymentBankName")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("SellerPaymentInstructions")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("SellerPaymentDestinationCapturedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<long?>("ProductId")
                         .HasColumnType("bigint");
 
