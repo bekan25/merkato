@@ -265,7 +265,7 @@ public sealed class SellerDirectPaymentTests
     }
 
     [Fact]
-    public async Task SellerDirectReceiptCannotBeConfirmedWithoutActiveMatchingPaymentAccount()
+    public async Task SellerDirectReceiptCannotBeConfirmedWithoutCapturedDestination()
     {
         var options = new DbContextOptionsBuilder<MerkatoDbContext>()
             .UseInMemoryDatabase(nameof(SellerDirectReceiptCannotBeConfirmedWithoutActiveMatchingPaymentAccount))
