@@ -54,6 +54,24 @@ Ask Chapa in writing to distinguish the requirements for:
 
 Do not enter fabricated company registration, license, or TIN details in Chapa's forms. If Chapa requires these documents even for sandbox access, request its official alternative path for an early-stage individual developer. Keep live payment collection disabled until Chapa confirms eligibility and all applicable legal requirements are met.
 
+## Verified Chapa documentation constraints (reviewed 2026-11-09)
+
+The current official documentation gives a more precise onboarding and API boundary:
+
+- Chapa's Getting Started page explicitly says **Individuals, Startups and Enterprises** can create accounts. MERKATO's founder can therefore ask to register accurately as an individual; do not invent an incorporated company.
+- Chapa's dashboard quick-start says accounts whose compliance form is not accepted are limited to **test mode**. This supports requesting test access while compliance is pending, but does not guarantee approval of marketplace split features.
+- The published split-payment guide currently documents the split flow on the **v1** endpoints: create subaccount at `POST https://api.chapa.co/v1/subaccount`, then initialize at `POST https://api.chapa.co/v1/transaction/initialize` with the seller subaccount ID. Keep the v1 base URL for this specific split flow unless Chapa provides a newer split-capable contract in writing. The homepage's v2 hosted-payment example is not, by itself, evidence that v2 supports subaccount split settlement.
+- Chapa's response documentation says API-based subaccount creation requires **live mode**; it also lists cases where the merchant must create subaccounts from the dashboard instead. Therefore do not assume seller subaccounts can be created in sandbox. Ask Chapa whether they can provision test subaccounts manually or provide a sandbox exception, and whether the full split flow can be tested without live mode.
+- The split-payment guide states that Chapa fees are charged to the platform/customer and that dispute/chargeback amounts may be taken from the platform merchant account. This is a material commercial risk: get written fee allocation and liability terms before enabling split payments.
+
+Official references reviewed:
+
+- Individual/startup eligibility: https://developer.chapa.co/getting-started
+- Test-mode eligibility: https://developer.chapa.co/dashboard/quick-start
+- Split-payment v1 contract: https://developer.chapa.co/integrations/split-payment
+- API response constraints for subaccounts: https://developer.chapa.co/integrations/responses
+- Current homepage v2 hosted-payment example: https://chapa.co/
+
 ## Required implementation before sandbox checkout
 
 1. Add seller-owned Chapa subaccount identity with explicit onboarding status, verified bank destination, provider response reference, and audit history. Never let a seller submit an arbitrary subaccount ID for another seller.
