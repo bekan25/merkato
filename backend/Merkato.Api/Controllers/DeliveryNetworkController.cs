@@ -138,6 +138,22 @@ public sealed class DeliveryNetworkController : ControllerBase
         return Ok(new { profile.Id, profile.ApprovalStatus, profile.ReviewedAt });
     }
 
+    [HttpGet("deliveries/dispatch-queue")]
+    [Authorize(Roles = "MERCHANT,ADMIN")]
+    public async Task<IActionResult> DispatchQueue(CancellationToken ct)
+    {
+        var actorId = CurrentUserId;
+        if (actorId is null) return Unauthorized();
+        var query = from delivery in _db.Deliveries.AsNoTracking()
+                    join order in _db.Orders.AsNoTracking() on delivery.OrderId equals order.Id
+                    where delivery.Status == DeliveryStatus.CREATED &&
+                        !_db.DeliveryAssignments.Any(a => a.DeliveryId == delivery.Id && (a.Status == "OFFERED" || a.Status == "ACCEPTED"))
+                    select new { delivery.Id, delivery.OrderId, order.OrderNumber, order.SellerId, order.CityArea, order.DeliveryAddress, delivery.FeeEtb, order.DeliveryCourier };
+        if (!User.IsInRole("ADMIN")) query = query.Where(x => x.SellerId == actorId.Value);
+        var rows = await query.OrderBy(x => x.OrderNumber).ToListAsync(ct);
+        return Ok(rows.Select(x => new { deliveryId = x.Id, x.OrderId, x.OrderNumber, x.CityArea, x.DeliveryAddress, x.FeeEtb, selectedMode = x.DeliveryCourier }));
+    }
+
     [HttpPost("deliveries/{deliveryId:long}/assignments")]
     [Authorize(Roles = "MERCHANT,ADMIN")]
     public async Task<IActionResult> Assign(long deliveryId, [FromBody] DeliveryAssignmentRequest request, CancellationToken ct)
