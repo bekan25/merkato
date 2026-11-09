@@ -87,7 +87,7 @@ public sealed class DeliveryNetworkControllerTests
         await db.SaveChangesAsync();
         var controller = new DeliveryNetworkController(db);
 
-        var result = await controller.GetProviders(CancellationToken.None);
+        var result = await controller.GetProviders(null, CancellationToken.None);
 
         var ok = Assert.IsType<OkObjectResult>(result);
         var providers = Assert.IsAssignableFrom<System.Collections.IEnumerable>(ok.Value);
