@@ -28,13 +28,23 @@ public sealed class DeliveryNetworkController : ControllerBase
 
     [HttpGet("providers")]
     [AllowAnonymous]
-    public async Task<IActionResult> GetProviders(CancellationToken ct)
+    public async Task<IActionResult> GetProviders([FromQuery] string? city, CancellationToken ct)
     {
         var providers = await _db.DeliveryProviders.AsNoTracking()
             .Where(x => x.IsEnabled)
             .OrderBy(x => x.ProviderKind).ThenBy(x => x.DisplayName)
             .Select(x => new { x.Code, x.DisplayName, x.ProviderKind, x.SupportsQuotes, x.SupportsBooking, x.SupportsTracking })
             .ToListAsync(ct);
+        var approvedProfiles = await _db.DeliveryPartnerProfiles.AsNoTracking()
+            .Where(x => x.ApprovalStatus == "APPROVED")
+            .Join(_db.Users.AsNoTracking().Where(x => !x.IsSuspended), profile => profile.UserId, user => user.Id, (profile, user) => profile.ServiceAreasJson)
+            .ToListAsync(ct);
+        var hasEligibleIndividual = approvedProfiles.Any(json =>
+        {
+            var areas = JsonSerializer.Deserialize<string[]>(json) ?? [];
+            return string.IsNullOrWhiteSpace(city) || areas.Contains(city.Trim(), StringComparer.OrdinalIgnoreCase);
+        });
+        if (!hasEligibleIndividual) providers.RemoveAll(x => x.Code == "MERKATO_INDIVIDUAL");
         return Ok(providers);
     }
 
