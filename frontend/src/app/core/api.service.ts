@@ -225,8 +225,10 @@ export class ApiService {
     return this.http.put(`${this.baseUrl}/v1/marketplace/fees`, payload);
   }
 
-  getDeliveryProviders(): Observable<DeliveryProviderOption[]> {
-    return this.http.get<DeliveryProviderOption[]>(`${this.baseUrl}/v1/delivery/providers`);
+  getDeliveryProviders(city = ''): Observable<DeliveryProviderOption[]> {
+    let params = new HttpParams();
+    if (city.trim()) params = params.set('city', city.trim());
+    return this.http.get<DeliveryProviderOption[]>(`${this.baseUrl}/v1/delivery/providers`, { params });
   }
 
   applyAsDeliveryPartner(payload: DeliveryPartnerApplication): Observable<{ status: string; message: string }> {
