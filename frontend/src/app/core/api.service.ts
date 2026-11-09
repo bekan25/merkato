@@ -255,6 +255,10 @@ export class ApiService {
     return this.http.post<DeliveryAssignmentResult>(`${this.baseUrl}/v1/delivery/deliveries/${deliveryId}/assignments`, payload);
   }
 
+  getMyDeliveryAssignments(): Observable<Array<{ id: number; deliveryId: number; status: string; agreedFeeEtb: number; assignedAt: string; acceptedAt?: string | null; displayName: string; code: string }>> {
+    return this.http.get<Array<{ id: number; deliveryId: number; status: string; agreedFeeEtb: number; assignedAt: string; acceptedAt?: string | null; displayName: string; code: string }>>(`${this.baseUrl}/v1/delivery/assignments/mine`);
+  }
+
   acceptDeliveryAssignment(assignmentId: number): Observable<unknown> {
     return this.http.post(`${this.baseUrl}/v1/delivery/assignments/${assignmentId}/accept`, {});
   }
