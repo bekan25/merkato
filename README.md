@@ -1,5 +1,7 @@
 # MERKATO — Ethiopian Digital Marketplace
 
+> **Release:** MERKATO `v1.0.0` (documented baseline, 2026-11-09). See [VERSION](VERSION) and [CHANGELOG](CHANGELOG.md). This release is a preview baseline; live provider payments, automated settlements, and external courier integrations are not yet enabled.
+
 MERKATO is a full-stack marketplace that connects Ethiopian buyers and merchants. The repository uses Angular 18 for the web client and ASP.NET Core 10 LTS, Entity Framework Core 10 and PostgreSQL for the API and persistence layer.
 
 ## Product strategy
