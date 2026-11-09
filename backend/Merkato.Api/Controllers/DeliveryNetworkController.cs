@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using System.Text.Json;
+using Merkato.Application.Interfaces;
 using Merkato.Domain.Entities;
 using Merkato.Domain.Enums;
 using Merkato.Domain.StateMachines;
@@ -15,7 +16,12 @@ namespace Merkato.Api.Controllers;
 public sealed class DeliveryNetworkController : ControllerBase
 {
     private readonly MerkatoDbContext _db;
-    public DeliveryNetworkController(MerkatoDbContext db) => _db = db;
+    private readonly IDeliveryService? _deliveryService;
+    public DeliveryNetworkController(MerkatoDbContext db, IDeliveryService? deliveryService = null)
+    {
+        _db = db;
+        _deliveryService = deliveryService;
+    }
 
     private long? CurrentUserId =>
         long.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : null;
@@ -280,6 +286,59 @@ public sealed class DeliveryNetworkController : ControllerBase
         return Ok(new { assignment.Id, assignment.Status });
     }
 
+    [HttpPost("assignments/{assignmentId:long}/status")]
+    [Authorize]
+    public async Task<IActionResult> UpdateAssignedDeliveryStatus(long assignmentId, [FromBody] DeliveryAssignmentStatusRequest request, CancellationToken ct)
+    {
+        var userId = CurrentUserId;
+        if (userId is null) return Unauthorized();
+        if (_deliveryService is null) return StatusCode(503);
+        var assignment = await _db.DeliveryAssignments.AsNoTracking().FirstOrDefaultAsync(x => x.Id == assignmentId && x.PartnerUserId == userId && x.Status == "ACCEPTED", ct);
+        if (assignment is null) return NotFound();
+        if (!Enum.TryParse<DeliveryStatus>(request.Status, true, out var nextStatus) ||
+            nextStatus is DeliveryStatus.CREATED or DeliveryStatus.ASSIGNED_COURIER or DeliveryStatus.DELIVERED)
+            return BadRequest(new { message = "Choose a valid courier progress status. Delivery completion requires buyer OTP." });
+        var delivery = await _db.Deliveries.AsNoTracking().FirstOrDefaultAsync(x => x.Id == assignment.DeliveryId, ct);
+        if (delivery is null) return NotFound();
+        try
+        {
+            var updated = await _deliveryService.UpdateDeliveryStatusAsync(delivery.DeliveryId, nextStatus, ct);
+            _db.DeliveryTrackingEvents.Add(new DeliveryTrackingEvent { DeliveryId = delivery.Id, AssignmentId = assignment.Id, Source = "MERKATO", EventKey = $"partner-status:{assignment.Id}:{nextStatus}:{updated.RowVersion}", Status = nextStatus.ToString(), Description = $"Individual courier updated delivery status to {nextStatus}." });
+            await _db.SaveChangesAsync(ct);
+            return Ok(new { updated.DeliveryId, status = updated.Status.ToString(), updated.UpdatedAt });
+        }
+        catch (InvalidOperationException ex) { return Conflict(new { message = ex.Message }); }
+        catch (KeyNotFoundException) { return NotFound(); }
+    }
+
+    [HttpPost("assignments/{assignmentId:long}/verify-otp")]
+    [Authorize]
+    public async Task<IActionResult> VerifyAssignedDeliveryOtp(long assignmentId, [FromBody] DeliveryAssignmentOtpRequest request, CancellationToken ct)
+    {
+        var userId = CurrentUserId;
+        if (userId is null) return Unauthorized();
+        if (_deliveryService is null) return StatusCode(503);
+        var assignment = await _db.DeliveryAssignments.AsNoTracking().FirstOrDefaultAsync(x => x.Id == assignmentId && x.PartnerUserId == userId && x.Status == "ACCEPTED", ct);
+        if (assignment is null) return NotFound();
+        if (string.IsNullOrWhiteSpace(request.OtpCode) || request.OtpCode.Length is < 4 or > 8 || !request.OtpCode.All(char.IsDigit))
+            return BadRequest(new { message = "OTP must contain 4–8 digits." });
+        var delivery = await _db.Deliveries.AsNoTracking().FirstOrDefaultAsync(x => x.Id == assignment.DeliveryId, ct);
+        if (delivery is null) return NotFound();
+        try
+        {
+            var completed = await _deliveryService.VerifyOtpAndCompleteHandoverAsync(delivery.DeliveryId, userId.Value, request.OtpCode, ct);
+            assignment = await _db.DeliveryAssignments.FirstAsync(x => x.Id == assignmentId, ct);
+            assignment.Status = "COMPLETED";
+            assignment.CompletedAt = DateTime.UtcNow;
+            _db.DeliveryTrackingEvents.Add(new DeliveryTrackingEvent { DeliveryId = delivery.Id, AssignmentId = assignment.Id, Source = "MERKATO", EventKey = $"partner-completed:{assignment.Id}", Status = "DELIVERED", Description = "Buyer OTP verified and delivery completed." });
+            await _db.SaveChangesAsync(ct);
+            return Ok(new { completed.DeliveryId, status = completed.Status.ToString(), completed.DeliveredAt });
+        }
+        catch (UnauthorizedAccessException ex) { return BadRequest(new { message = ex.Message }); }
+        catch (InvalidOperationException ex) { return Conflict(new { message = ex.Message }); }
+        catch (KeyNotFoundException) { return NotFound(); }
+    }
+
     [HttpGet("deliveries/{deliveryId:long}/tracking")]
     [Authorize]
     public async Task<IActionResult> Tracking(long deliveryId, CancellationToken ct)
@@ -302,3 +361,6 @@ public sealed class DeliveryNetworkController : ControllerBase
 public sealed record DeliveryPartnerApplication(string[]? ServiceAreas, string TransportMode, string? VehicleDescription, decimal? CapacityKg);
 public sealed record DeliveryPartnerReview(string Status, string? Note);
 public sealed record DeliveryAssignmentRequest(string ProviderCode, long? PartnerUserId, decimal AgreedFeeEtb, string IdempotencyKey);
+
+public sealed record DeliveryAssignmentStatusRequest(string Status);
+public sealed record DeliveryAssignmentOtpRequest(string OtpCode);
