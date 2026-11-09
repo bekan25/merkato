@@ -26,6 +26,22 @@ The buyer must select exactly one method. The API must bind the selected method 
 - `PaymentTransaction` has no durable checkout URL/provider reference pair suitable for a hosted Chapa checkout.
 - Therefore this branch deliberately adds only disabled configuration and this integration contract. It does **not** pretend that a checkout, split, webhook, or seller subaccount is already implemented.
 
+## Merchant onboarding — currently blocked
+
+The MERKATO owner has confirmed that a Chapa sandbox merchant account has **not yet been opened**. Until Chapa issues test credentials and confirms split-payment eligibility, keep Chapa disabled and continue using the existing seller-direct flow.
+
+Before engineering can safely call the provider, complete these steps in Chapa's official merchant onboarding channel:
+
+1. Register/contact Chapa as a marketplace merchant and explain that MERKATO needs hosted checkout with **seller subaccount split settlement**, not a platform wallet or escrow.
+2. Ask Chapa to enable a sandbox/test merchant account and issue a test secret key. Do not send credentials in chat, email them to developers, or commit them to Git.
+3. Ask for written confirmation that the merchant is eligible to create/manage seller subaccounts and use subaccounts during transaction initialization.
+4. Confirm the exact sandbox API contract for subaccount creation, bank-code catalogue, split calculation, transaction verification, webhook signature headers/secret, refunds, and idempotency.
+5. Confirm which payment methods are enabled for the merchant in Ethiopia; do not assume every Ethiopian bank or wallet is available.
+6. Confirm platform chargeback/dispute liability, settlement timing, fees, seller KYC requirements, and whether each seller needs separate approval.
+7. Once issued, add the test secret and webhook secret directly to the Render **Environment** for the staging/sandbox service. Keep `Chapa__Enabled=false` until implementation and tests are ready. Never paste secrets into this repository or this conversation.
+
+Useful official starting points: https://chapa.co/ and https://developer.chapa.co/. Use the contact/onboarding channel published by Chapa to request sandbox access and written split-payment eligibility.
+
 ## Required implementation before sandbox checkout
 
 1. Add seller-owned Chapa subaccount identity with explicit onboarding status, verified bank destination, provider response reference, and audit history. Never let a seller submit an arbitrary subaccount ID for another seller.
@@ -55,6 +71,7 @@ Put real credentials only in Render Environment / secret storage. Never commit c
 
 ## Official references
 
+- Merchant onboarding: https://chapa.co/
 - Developer portal: https://developer.chapa.co/
 - Payment methods: https://developer.chapa.co/payment-methods
 - Split payment: https://developer.chapa.co/integrations/split-payment
@@ -62,4 +79,4 @@ Put real credentials only in Render Environment / secret storage. Never commit c
 
 ## Status
 
-**Readiness/configuration only — not a working or live Chapa integration.** The next engineering increment requires implementing and migrating the seller subaccount and hosted-checkout persistence model, then testing against Chapa sandbox. Existing seller-direct payment remains the active safe path.
+**Readiness/configuration only — not a working or live Chapa integration.** Chapa is disabled by default. The next engineering increment requires sandbox access and written confirmation of seller subaccount eligibility; then implement and migrate the seller subaccount and hosted-checkout persistence model, and test against Chapa sandbox. Existing seller-direct payment remains the active safe path.
