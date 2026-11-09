@@ -59,7 +59,7 @@ public sealed class DeliveryNetworkControllerTests
         await using var db = CreateDb();
         db.Users.AddRange(
             new User { Id = 1, FullName = "Admin", PhoneNumber = "+251911000001", PinHash = "test" },
-            new User { Id = 2, FullName = "Courier", PhoneNumber = "+251911000002", PinHash = "test" });
+            new User { Id = 2, FullName = "Courier", PhoneNumber = "+251911000002", PinHash = "test", IsFaydaVerified = true });
         db.DeliveryPartnerProfiles.Add(new DeliveryPartnerProfile
         {
             UserId = 2, ApprovalStatus = "PENDING", ServiceAreasJson = "[\"Bole\"]", TransportMode = "MOTORCYCLE"
