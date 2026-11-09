@@ -1,6 +1,8 @@
 using System.Security.Claims;
 using System.Text.Json;
 using Merkato.Domain.Entities;
+using Merkato.Domain.Enums;
+using Merkato.Domain.StateMachines;
 using Merkato.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -225,8 +227,23 @@ public sealed class DeliveryNetworkController : ControllerBase
         var profile = await _db.DeliveryPartnerProfiles.AsNoTracking().FirstOrDefaultAsync(x => x.UserId == userId && x.ApprovalStatus == "APPROVED", ct);
         if (profile is null) return Forbid();
         if (assignment.Status != "OFFERED") return Conflict(new { message = "This delivery offer is no longer available." });
+        var delivery = await _db.Deliveries.FirstOrDefaultAsync(x => x.Id == assignment.DeliveryId, ct);
+        if (delivery is null) return NotFound();
+        var order = await _db.Orders.FirstOrDefaultAsync(x => x.Id == delivery.OrderId, ct);
+        if (order is null) return NotFound();
+        if (delivery.Status == DeliveryStatus.CREATED)
+        {
+            DeliveryStateMachine.ValidateTransition(delivery.Status, DeliveryStatus.ASSIGNED_COURIER);
+            delivery.Status = DeliveryStatus.ASSIGNED_COURIER;
+            delivery.UpdatedAt = DateTime.UtcNow;
+            order.DeliveryStatus = DeliveryStatus.ASSIGNED_COURIER;
+            order.UpdatedAt = DateTime.UtcNow;
+        }
+        var courier = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userId, ct);
         assignment.Status = "ACCEPTED";
         assignment.AcceptedAt = DateTime.UtcNow;
+        delivery.RiderName = courier?.FullName;
+        delivery.RiderPhone = courier?.PhoneNumber;
         _db.DeliveryTrackingEvents.Add(new DeliveryTrackingEvent { DeliveryId = assignment.DeliveryId, AssignmentId = assignment.Id, Source = "MERKATO", EventKey = $"assignment-accepted:{assignment.Id}", Status = "ACCEPTED", Description = "Individual courier accepted the delivery." });
         await _db.SaveChangesAsync(ct);
         return Ok(new { assignment.Id, assignment.Status, assignment.AcceptedAt });
