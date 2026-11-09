@@ -93,7 +93,7 @@ public sealed class PaymentReceiptsController : ControllerBase
             string.IsNullOrWhiteSpace(transactionReference) ? null : reference,
             order.CreatedAt,
             order.PaymentRail,
-            await ExpectedReceiverAsync(order.SellerId, order.PaymentRail, order.PaymentMode, ct),
+            ExpectedReceiver(order),
             DateTime.UtcNow));
 
         var contentType = extension == ".png" ? "image/png" : "image/jpeg";
@@ -462,15 +462,12 @@ public sealed class PaymentReceiptsController : ControllerBase
         });
     }
 
-    // Only seller-direct orders pay into an account MERKATO knows about (the seller's own destination).
-    private Task<string?> ExpectedReceiverAsync(long sellerId, PaymentRail rail, string paymentMode, CancellationToken ct) =>
-        paymentMode == "SELLER_DIRECT"
-            ? _db.SellerPaymentAccounts.AsNoTracking()
-                .Where(x => x.SellerId == sellerId && x.PaymentRail == rail && x.IsActive)
-                .OrderByDescending(x => x.UpdatedAt)
-                .Select(x => x.AccountIdentifier)
-                .FirstOrDefaultAsync(ct)
-            : Task.FromResult<string?>(null);
+    // Receipt cross-checks must use the same immutable destination the buyer saw
+    // for this order, never the seller's subsequently edited current account.
+    private static string? ExpectedReceiver(Order order) =>
+        order.PaymentMode == "SELLER_DIRECT"
+            ? order.SellerPaymentAccountIdentifier
+            : null;
 
     private static bool HasValidImageSignature(byte[] bytes, string extension)
     {
