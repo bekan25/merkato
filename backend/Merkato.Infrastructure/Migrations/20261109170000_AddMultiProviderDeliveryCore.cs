@@ -111,16 +111,15 @@ public sealed class AddMultiProviderDeliveryCore : Migration
         migrationBuilder.CreateIndex("IX_DeliveryTrackingEvents_AssignmentId", "DeliveryTrackingEvents", "AssignmentId");
         migrationBuilder.CreateIndex("IX_DeliveryTrackingEvents_Source_EventKey", "DeliveryTrackingEvents", new[] { "Source", "EventKey" }, unique: true);
 
-        migrationBuilder.InsertData(
-            table: "DeliveryProviders",
-            columns: new[] { "Code", "DisplayName", "ProviderKind", "IsEnabled", "SupportsQuotes", "SupportsBooking", "SupportsTracking", "CreatedAt" },
-            values: new object[,]
-            {
-                { "SELLER", "Seller's own delivery", "SELLER", true, false, false, false, new DateTime(2026, 11, 9, 0, 0, 0, DateTimeKind.Utc) },
-                { "MERKATO_INDIVIDUAL", "MERKATO individual courier", "INDIVIDUAL", true, false, false, false, new DateTime(2026, 11, 9, 0, 0, 0, DateTimeKind.Utc) },
-                { "KLIK", "Klik Delivery", "COMPANY", false, false, false, false, new DateTime(2026, 11, 9, 0, 0, 0, DateTimeKind.Utc) },
-                { "OTHER_COURIER", "Other courier company", "COMPANY", false, false, false, false, new DateTime(2026, 11, 9, 0, 0, 0, DateTimeKind.Utc) }
-            });
+        migrationBuilder.Sql("""
+            INSERT INTO "DeliveryProviders"
+                ("Code", "DisplayName", "ProviderKind", "IsEnabled", "SupportsQuotes", "SupportsBooking", "SupportsTracking", "CreatedAt")
+            VALUES
+                ('SELLER', 'Seller''s own delivery', 'SELLER', TRUE, FALSE, FALSE, FALSE, CURRENT_TIMESTAMP),
+                ('MERKATO_INDIVIDUAL', 'MERKATO individual courier', 'INDIVIDUAL', TRUE, FALSE, FALSE, FALSE, CURRENT_TIMESTAMP),
+                ('KLIK', 'Klik Delivery', 'COMPANY', FALSE, FALSE, FALSE, FALSE, CURRENT_TIMESTAMP),
+                ('OTHER_COURIER', 'Other courier company', 'COMPANY', FALSE, FALSE, FALSE, FALSE, CURRENT_TIMESTAMP);
+            """);
     }
 
     protected override void Down(MigrationBuilder migrationBuilder)
