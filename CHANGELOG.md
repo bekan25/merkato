@@ -38,5 +38,3 @@ First documented MERKATO 1.0 release baseline.
 - Merchant settlement entries record independently verified payments; MERKATO does not automatically transfer settlement funds.
 - External courier integrations and tariffs require provider agreements and validation.
 - The current Render Free deployment is a preview environment, not approval for commercial payment collection.
-
-[1.0.0]: https://github.com/bekan25/merkato/tree/v1.0.0
