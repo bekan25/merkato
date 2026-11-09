@@ -271,7 +271,7 @@ export class CartComponent implements OnInit, OnDestroy {
 
 
   ngOnInit(): void {
-    this.api.getDeliveryProviders().subscribe({next: providers => {
+    this.api.getDeliveryProviders(this.cityArea).subscribe({next: providers => {
       this.deliveryProviders = providers;
       if (!providers.some(provider => provider.code === this.deliveryProviderCode) && providers.length) {
         this.deliveryProviderCode = providers[0].code;
@@ -361,6 +361,11 @@ export class CartComponent implements OnInit, OnDestroy {
   }
 
   onCityChange(): void {
+    this.api.getDeliveryProviders(this.cityArea).subscribe({next: providers => {
+      this.deliveryProviders = providers;
+      if (!providers.some(provider => provider.code === this.deliveryProviderCode) && providers.length) this.deliveryProviderCode = providers[0].code;
+    }, error: () => { this.deliveryProviders = []; this.deliveryProviderCode = 'SELLER'; }});
+
     this.addressSelectionNotice = '';
     this.loadDeliveryQuote();
   }
