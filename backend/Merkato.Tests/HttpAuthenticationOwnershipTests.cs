@@ -5,6 +5,7 @@ using System.Text.Json;
 using Merkato.Domain.Entities;
 using Merkato.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -47,8 +48,6 @@ public sealed class MerkatoHttpHostFixture : WebApplicationFactory<Program>
 [Collection(MerkatoHttpCollection.Name)]
 public sealed class HttpAuthenticationOwnershipTests(MerkatoHttpHostFixture factory)
 {
-    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
-
     [Fact]
     public async Task JwtRolesAndOrderOwnershipAreEnforcedOverHttp()
     {
