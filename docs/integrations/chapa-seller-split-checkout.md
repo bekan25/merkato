@@ -42,6 +42,18 @@ Before engineering can safely call the provider, complete these steps in Chapa's
 
 Useful official starting points: https://chapa.co/ and https://developer.chapa.co/. Use the contact/onboarding channel published by Chapa to request sandbox access and written split-payment eligibility.
 
+## Founder and legal-registration position
+
+MERKATO is currently being built and operated by an individual founder/developer. The founder has confirmed that they do not currently hold a Business License or TIN certificate and have not yet opened a Chapa sandbox merchant account. This is an explicit onboarding constraint, not a reason to misrepresent MERKATO as an incorporated business.
+
+Ask Chapa in writing to distinguish the requirements for:
+
+- **Developer/test access:** whether an individual developer can create a test account or receive sandbox credentials before business registration, strictly for integration development with no real-money collection.
+- **Marketplace/split-payment approval:** whether an individual founder may obtain approval to create seller subaccounts and initiate split transactions, and what legal/KYC documents are mandatory.
+- **Production/live payments:** which business-registration, tax, beneficial-owner, seller-KYC, and compliance documents must be completed before accepting real customer payments.
+
+Do not enter fabricated company registration, license, or TIN details in Chapa's forms. If Chapa requires these documents even for sandbox access, request its official alternative path for an early-stage individual developer. Keep live payment collection disabled until Chapa confirms eligibility and all applicable legal requirements are met.
+
 ## Required implementation before sandbox checkout
 
 1. Add seller-owned Chapa subaccount identity with explicit onboarding status, verified bank destination, provider response reference, and audit history. Never let a seller submit an arbitrary subaccount ID for another seller.
