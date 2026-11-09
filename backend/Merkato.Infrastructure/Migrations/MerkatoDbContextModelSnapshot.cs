@@ -1417,7 +1417,7 @@ modelBuilder.Entity("Merkato.Domain.Entities.UserAddress", b =>
                 b.HasIndex("ProviderId");
                 b.HasIndex("PartnerUserId", "Status");
                 b.HasIndex("AssignedByUserId");
-                b.HasIndex("IdempotencyKey").IsUnique();
+                b.HasIndex("DeliveryId", "IdempotencyKey").IsUnique();
                 b.ToTable("DeliveryAssignments");
             });
 
