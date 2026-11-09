@@ -177,7 +177,7 @@ public sealed class DeliveryNetworkController : ControllerBase
                     join delivery in _db.Deliveries.AsNoTracking() on assignment.DeliveryId equals delivery.Id
                     join order in _db.Orders.AsNoTracking() on delivery.OrderId equals order.Id
                     where provider.Code == "SELLER" && assignment.Status == "ACCEPTED" && delivery.Status != DeliveryStatus.DELIVERED
-                    select new { assignment.Id, assignment.DeliveryId, delivery.DeliveryId, assignment.Status, delivery.Status, delivery.FeeEtb, order.OrderNumber, order.CityArea, order.DeliveryAddress, order.SellerId };
+                    select new { AssignmentId = assignment.Id, DeliveryRecordId = assignment.DeliveryId, PublicDeliveryId = delivery.DeliveryId, AssignmentStatus = assignment.Status, DeliveryStatus = delivery.Status, FeeEtb = delivery.FeeEtb, order.OrderNumber, order.CityArea, order.DeliveryAddress, order.SellerId };
         if (!User.IsInRole("ADMIN")) query = query.Where(x => x.SellerId == actorId.Value);
         return Ok(await query.OrderBy(x => x.OrderNumber).ToListAsync(ct));
     }
