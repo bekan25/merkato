@@ -44,6 +44,8 @@ public sealed class DeliveryNetworkController : ControllerBase
     {
         var userId = CurrentUserId;
         if (userId is null) return Unauthorized();
+        var applicant = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userId, ct);
+        if (applicant is null || applicant.IsSuspended) return Forbid();
         var areas = (request.ServiceAreas ?? Array.Empty<string>())
             .Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x.Trim())
             .Distinct(StringComparer.OrdinalIgnoreCase).Take(30).ToArray();
@@ -136,6 +138,10 @@ public sealed class DeliveryNetworkController : ControllerBase
             return BadRequest(new { message = "Status must be APPROVED, REJECTED or SUSPENDED." });
         var profile = await _db.DeliveryPartnerProfiles.FirstOrDefaultAsync(x => x.Id == profileId, ct);
         if (profile is null) return NotFound();
+        var applicant = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == profile.UserId, ct);
+        if (applicant is null || applicant.IsSuspended) return Conflict(new { message = "Suspended or unavailable accounts cannot become delivery partners." });
+        if (status == "APPROVED" && !applicant.IsFaydaVerified)
+            return Conflict(new { message = "Fayda identity verification is required before approving an individual delivery partner." });
         profile.ApprovalStatus = status;
         profile.ReviewerUserId = reviewerId;
         profile.ReviewNote = request.Note?.Trim();
@@ -187,7 +193,8 @@ public sealed class DeliveryNetworkController : ControllerBase
             if (request.PartnerUserId is null) return BadRequest(new { message = "Choose an approved individual delivery partner." });
             var profile = await _db.DeliveryPartnerProfiles.AsNoTracking()
                 .FirstOrDefaultAsync(x => x.UserId == request.PartnerUserId && x.ApprovalStatus == "APPROVED", ct);
-            if (profile is null) return BadRequest(new { message = "The selected individual courier is not approved." });
+            var partner = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == request.PartnerUserId && !x.IsSuspended, ct);
+            if (profile is null || partner is null) return BadRequest(new { message = "The selected individual courier is not approved or is suspended." });
             var areas = JsonSerializer.Deserialize<string[]>(profile.ServiceAreasJson) ?? [];
             if (!areas.Contains(order.CityArea, StringComparer.OrdinalIgnoreCase))
                 return BadRequest(new { message = "The individual courier does not serve this delivery area." });
@@ -249,7 +256,8 @@ public sealed class DeliveryNetworkController : ControllerBase
         var assignment = await _db.DeliveryAssignments.FirstOrDefaultAsync(x => x.Id == assignmentId, ct);
         if (assignment is null || assignment.PartnerUserId != userId) return NotFound();
         var profile = await _db.DeliveryPartnerProfiles.AsNoTracking().FirstOrDefaultAsync(x => x.UserId == userId && x.ApprovalStatus == "APPROVED", ct);
-        if (profile is null) return Forbid();
+        var activePartner = await _db.Users.AsNoTracking().AnyAsync(x => x.Id == userId && !x.IsSuspended, ct);
+        if (profile is null || !activePartner) return Forbid();
         if (assignment.Status != "OFFERED") return Conflict(new { message = "This delivery offer is no longer available." });
         var delivery = await _db.Deliveries.FirstOrDefaultAsync(x => x.Id == assignment.DeliveryId, ct);
         if (delivery is null) return NotFound();
