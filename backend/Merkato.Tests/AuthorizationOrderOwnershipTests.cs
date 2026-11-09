@@ -52,7 +52,7 @@ public sealed class AuthorizationOrderOwnershipTests
         Authenticate(controller, 11, "BUYER");
 
         var result = Assert.IsType<OkObjectResult>(await controller.GetMyOrders(CancellationToken.None));
-        var json = JsonSerializer.SerializeToDocument(result.Value);
+        var json = JsonSerializer.SerializeToDocument(result.Value, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
         var ids = json.RootElement.EnumerateArray().Select(x => x.GetProperty("id").GetInt64()).ToArray();
 
         Assert.Equal(new long[] { 101 }, ids);
