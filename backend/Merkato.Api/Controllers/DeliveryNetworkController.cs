@@ -229,13 +229,15 @@ public sealed class DeliveryNetworkController : ControllerBase
     {
         var userId = CurrentUserId;
         if (userId is null) return Unauthorized();
-        var assignments = await _db.DeliveryAssignments.AsNoTracking()
-            .Where(x => x.PartnerUserId == userId)
-            .OrderByDescending(x => x.AssignedAt)
-            .Join(_db.DeliveryProviders.AsNoTracking(), a => a.ProviderId, p => p.Id,
-                (a, p) => new { a.Id, a.DeliveryId, a.Status, a.AgreedFeeEtb, a.AssignedAt, a.AcceptedAt, p.DisplayName, p.Code })
-            .ToListAsync(ct);
-        return Ok(assignments);
+        var assignments = await (
+            from assignment in _db.DeliveryAssignments.AsNoTracking()
+            join provider in _db.DeliveryProviders.AsNoTracking() on assignment.ProviderId equals provider.Id
+            join delivery in _db.Deliveries.AsNoTracking() on assignment.DeliveryId equals delivery.Id
+            where assignment.PartnerUserId == userId
+            orderby assignment.AssignedAt descending
+            select new { assignment.Id, assignment.DeliveryId, assignment.Status, assignment.AgreedFeeEtb, assignment.AssignedAt, assignment.AcceptedAt, provider.DisplayName, provider.Code, DeliveryStatus = delivery.Status }
+        ).ToListAsync(ct);
+        return Ok(assignments.Select(x => new { x.Id, x.DeliveryId, x.Status, x.AgreedFeeEtb, x.AssignedAt, x.AcceptedAt, x.DisplayName, x.Code, deliveryStatus = x.DeliveryStatus.ToString() }));
     }
 
     [HttpPost("assignments/{assignmentId:long}/accept")]
