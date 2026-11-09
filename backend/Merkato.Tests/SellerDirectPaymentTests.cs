@@ -268,7 +268,7 @@ public sealed class SellerDirectPaymentTests
     public async Task SellerDirectReceiptCannotBeConfirmedWithoutCapturedDestination()
     {
         var options = new DbContextOptionsBuilder<MerkatoDbContext>()
-            .UseInMemoryDatabase(nameof(SellerDirectReceiptCannotBeConfirmedWithoutActiveMatchingPaymentAccount))
+            .UseInMemoryDatabase(nameof(SellerDirectReceiptCannotBeConfirmedWithoutCapturedDestination))
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning)).Options;
         await using var db = new MerkatoDbContext(options);
         db.Orders.Add(new Order
