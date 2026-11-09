@@ -41,6 +41,7 @@ public class MerkatoDbContext : DbContext
     public DbSet<PaymentTransaction> PaymentTransactions => Set<PaymentTransaction>();
     public DbSet<PaymentReceipt> PaymentReceipts => Set<PaymentReceipt>();
     public DbSet<SellerPaymentAccount> SellerPaymentAccounts => Set<SellerPaymentAccount>();
+    public DbSet<SellerChapaAccount> SellerChapaAccounts => Set<SellerChapaAccount>();
     public DbSet<EscrowAccount> EscrowAccounts => Set<EscrowAccount>();
     public DbSet<LedgerTransaction> LedgerTransactions => Set<LedgerTransaction>();
     public DbSet<LedgerEntry> LedgerEntries => Set<LedgerEntry>();
@@ -233,6 +234,18 @@ modelBuilder.Entity<UserAddress>(e =>
             entity.Property(x => x.AccountIdentifier).HasMaxLength(120).IsRequired();
             entity.Property(x => x.BankName).HasMaxLength(120);
             entity.Property(x => x.Instructions).HasMaxLength(500);
+            entity.HasOne<User>().WithMany().HasForeignKey(x => x.SellerId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // Chapa marketplace subaccount identity is seller-scoped and provider-approved.
+        modelBuilder.Entity<SellerChapaAccount>(entity =>
+        {
+            entity.HasIndex(x => x.SellerId).IsUnique();
+            entity.HasIndex(x => x.ChapaSubaccountId).IsUnique()
+                .HasFilter("\"ChapaSubaccountId\" IS NOT NULL");
+            entity.HasIndex(x => x.ProviderReference).IsUnique()
+                .HasFilter("\"ProviderReference\" IS NOT NULL");
+            entity.Property(x => x.OnboardingStatus).HasMaxLength(24).IsRequired();
             entity.HasOne<User>().WithMany().HasForeignKey(x => x.SellerId).OnDelete(DeleteBehavior.Restrict);
         });
 
