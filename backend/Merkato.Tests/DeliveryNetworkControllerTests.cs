@@ -1,3 +1,4 @@
+using Xunit;
 using System.Security.Claims;
 using Merkato.Api.Controllers;
 using Merkato.Domain.Entities;
