@@ -1,0 +1,26 @@
+import { CommonModule } from '@angular/common';
+import { Component, OnInit, inject } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { ApiService, DeliveryPartnerCandidate, DeliveryProviderOption } from '../core/api.service';
+
+interface DispatchItem { deliveryId:number; orderId:number; orderNumber:string; cityArea:string; deliveryAddress:string; feeEtb:number; selectedMode:string; }
+@Component({standalone:true,selector:'app-merchant-delivery-dispatch',imports:[CommonModule,FormsModule],template:`
+<main class="page"><small>MERKATO MERCHANT WORKSPACE</small><h1>Delivery dispatch</h1><p>Assign approved individual couriers or manage delivery through your shop.</p>
+<p class="notice" *ngIf="message">{{message}}</p>
+<article class="panel" *ngFor="let d of queue"><div class="heading"><div><h2>{{d.orderNumber}}</h2><p>{{d.cityArea}} · {{d.deliveryAddress}}</p></div><strong>{{d.feeEtb|number:'1.2-2'}} ETB</strong></div>
+<label>Delivery provider<select [(ngModel)]="selectedProvider[d.deliveryId]" (ngModelChange)="providerChanged(d,$event)"><option *ngFor="let p of providers" [value]="p.code">{{p.displayName}}</option></select></label>
+<label *ngIf="selectedProvider[d.deliveryId]==='MERKATO_INDIVIDUAL'">Approved individual courier
+<select [(ngModel)]="selectedPartner[d.deliveryId]"><option [ngValue]="0">Choose courier</option><option *ngFor="let p of partners[d.deliveryId]||[]" [ngValue]="p.userId">{{p.name}} · {{p.transportMode}}</option></select></label>
+<p *ngIf="selectedProvider[d.deliveryId]==='MERKATO_INDIVIDUAL' && !(partners[d.deliveryId]||[]).length" class="warning">No approved individual courier serves this area yet.</p>
+<button [disabled]="busyId===d.deliveryId || (selectedProvider[d.deliveryId]==='MERKATO_INDIVIDUAL' && !selectedPartner[d.deliveryId])" (click)="assign(d)">Assign delivery</button>
+</article><p class="empty" *ngIf="!queue.length">No deliveries are waiting for assignment.</p></main>`,
+styles:[`.page{max-width:950px;margin:36px auto;padding:0 18px 50px;color:#173d2d}.page>small{color:#16834f;font-weight:800;letter-spacing:1.4px}.page h1{font-size:35px}.page>p{color:#68766d}.panel{padding:21px;margin:16px 0;border:1px solid #e3eae4;border-radius:16px;background:#fff}.heading{display:flex;justify-content:space-between;gap:15px}.heading h2{margin:0 0 6px;font-size:18px}.heading p{margin:0 0 14px;color:#65736a}.panel label{display:grid;gap:7px;margin:13px 0;font-size:13px;font-weight:750}.panel select{padding:12px;border:1px solid #dce5dd;border-radius:9px;background:#fbfcfb}.panel button{padding:11px 15px;border:0;border-radius:9px;background:#176b43;color:white;font-weight:800}.panel button:disabled{opacity:.45}.warning{color:#94631d}.notice{padding:12px;background:#edf8ef;border-radius:9px}.empty{padding:30px;text-align:center}`]})
+export class MerchantDeliveryDispatchComponent implements OnInit{
+ private api=inject(ApiService);queue:DispatchItem[]=[];providers:DeliveryProviderOption[]=[];
+ partners:Record<number,DeliveryPartnerCandidate[]>={};selectedProvider:Record<number,string>={};selectedPartner:Record<number,number>={};busyId=0;message='';
+ ngOnInit():void{this.api.getDeliveryProviders().subscribe({next:p=>this.providers=p});this.load();}
+ load():void{this.api.getDeliveryDispatchQueue().subscribe({next:rows=>{this.queue=rows;for(const d of rows){this.selectedProvider[d.deliveryId]=this.selectedProvider[d.deliveryId]||d.selectedMode||'SELLER';this.loadPartners(d);}},error:e=>this.message=e?.error?.message||'Could not load dispatch queue.'});}
+ loadPartners(d:DispatchItem):void{this.api.getAvailableDeliveryPartners(d.cityArea).subscribe({next:p=>this.partners[d.deliveryId]=p,error:()=>this.partners[d.deliveryId]=[]});}
+ providerChanged(d:DispatchItem,code:string):void{this.selectedProvider[d.deliveryId]=code;if(code==='MERKATO_INDIVIDUAL')this.loadPartners(d);}
+ assign(d:DispatchItem):void{const code=this.selectedProvider[d.deliveryId]||'SELLER';this.busyId=d.deliveryId;this.api.createDeliveryAssignment(d.deliveryId,{providerCode:code,partnerUserId:code==='MERKATO_INDIVIDUAL'?this.selectedPartner[d.deliveryId]:null,agreedFeeEtb:d.feeEtb,idempotencyKey:'seller-dispatch-'+d.deliveryId+'-'+Date.now()}).subscribe({next:()=>{this.message='Delivery assignment saved.';this.busyId=0;this.load();},error:e=>{this.message=e?.error?.message||'Assignment failed.';this.busyId=0;}});}
+}
