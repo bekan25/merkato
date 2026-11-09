@@ -28,12 +28,12 @@ The buyer must select exactly one method. The API must bind the selected method 
 
 ## Merchant onboarding — currently blocked
 
-The MERKATO owner has confirmed that a Chapa sandbox merchant account has **not yet been opened**. Until Chapa issues test credentials and confirms split-payment eligibility, keep Chapa disabled and continue using the existing seller-direct flow.
+The MERKATO owner has now opened a Chapa merchant dashboard account, enabled Test Mode, generated replacement test credentials, and added the new test secret to Render Environment. The previously exposed test credentials must not be reused. This confirms dashboard/test-key setup only; it does **not** confirm sandbox seller-subaccount or split-payment eligibility. Keep Chapa disabled and continue using the existing seller-direct flow.
 
 Before engineering can safely call the provider, complete these steps in Chapa's official merchant onboarding channel:
 
 1. Register/contact Chapa as a marketplace merchant and explain that MERKATO needs hosted checkout with **seller subaccount split settlement**, not a platform wallet or escrow.
-2. Ask Chapa to enable a sandbox/test merchant account and issue a test secret key. Do not send credentials in chat, email them to developers, or commit them to Git.
+2. Confirm that the existing Test Mode account is enabled for the full marketplace split-payment sandbox flow. Test credentials have been generated and the replacement secret is stored in Render; never send credentials in chat, email them to developers, or commit them to Git.
 3. Ask for written confirmation that the merchant is eligible to create/manage seller subaccounts and use subaccounts during transaction initialization.
 4. Confirm the exact sandbox API contract for subaccount creation, bank-code catalogue, split calculation, transaction verification, webhook signature headers/secret, refunds, and idempotency.
 5. Confirm which payment methods are enabled for the merchant in Ethiopia; do not assume every Ethiopian bank or wallet is available.
@@ -44,7 +44,7 @@ Useful official starting points: https://chapa.co/ and https://developer.chapa.c
 
 ## Founder and legal-registration position
 
-MERKATO is currently being built and operated by an individual founder/developer. The founder has confirmed that they do not currently hold a Business License or TIN certificate and have not yet opened a Chapa sandbox merchant account. This is an explicit onboarding constraint, not a reason to misrepresent MERKATO as an incorporated business.
+MERKATO is currently being built and operated by an individual founder/developer. The founder has confirmed that they do not currently hold a Business License or TIN certificate. A Chapa dashboard account and Test Mode credentials have since been created; production and marketplace split-payment eligibility remain unconfirmed. This is an explicit onboarding constraint, not a reason to misrepresent MERKATO as an incorporated business.
 
 Ask Chapa in writing to distinguish the requirements for:
 
