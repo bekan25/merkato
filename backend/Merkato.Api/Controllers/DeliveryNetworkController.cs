@@ -291,6 +291,14 @@ public sealed class DeliveryNetworkController : ControllerBase
             IdempotencyKey = request.IdempotencyKey.Trim(),
             AcceptedAt = provider.ProviderKind == "SELLER" ? DateTime.UtcNow : null
         };
+        if (provider.ProviderKind == "SELLER" && delivery.Status == DeliveryStatus.CREATED)
+        {
+            DeliveryStateMachine.ValidateTransition(delivery.Status, DeliveryStatus.ASSIGNED_COURIER);
+            delivery.Status = DeliveryStatus.ASSIGNED_COURIER;
+            delivery.UpdatedAt = DateTime.UtcNow;
+            order.DeliveryStatus = DeliveryStatus.ASSIGNED_COURIER;
+            order.UpdatedAt = DateTime.UtcNow;
+        }
         _db.DeliveryAssignments.Add(assignment);
         try { await _db.SaveChangesAsync(ct); }
         catch (DbUpdateException) { return Conflict(new { message = "This delivery already has an active assignment. Refresh its tracking history." }); }
