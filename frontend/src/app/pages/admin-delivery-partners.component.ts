@@ -1,0 +1,12 @@
+import { CommonModule } from '@angular/common';
+import { Component, OnInit, inject } from '@angular/core';
+import { ApiService, DeliveryPartnerProfile } from '../core/api.service';
+@Component({standalone:true,selector:'app-admin-delivery-partners',imports:[CommonModule],template:`
+<main class="page"><small>MERKATO ADMIN</small><h1>Delivery partner verification</h1><p>Review partner applications and verify identity before approval.</p><p class="notice" *ngIf="message">{{message}}</p>
+<article class="panel" *ngFor="let p of profiles"><h2>Partner account #{{p.userId}}</h2><b>{{p.approvalStatus}}</b><p>{{(p.serviceAreas||[]).join(', ')}} · {{p.transportMode}}</p><p>{{p.vehicleDescription}} · {{p.capacityKg||'—'}} kg</p><div class="actions"><button (click)="review(p,'APPROVED')">Approve</button><button class="danger" (click)="review(p,'REJECTED')">Reject</button><button class="warn" (click)="review(p,'SUSPENDED')">Suspend</button></div></article><p *ngIf="!profiles.length">No pending applications.</p></main>`,styles:[`.page{max-width:900px;margin:36px auto;padding:0 18px;color:#173d2d}.page>small{color:#16834f;font-weight:800;letter-spacing:1.4px}.page h1{font-size:34px}.page>p{color:#68766d}.panel{padding:20px;margin:14px 0;border:1px solid #e4ebe5;border-radius:15px}.panel h2{font-size:18px}.panel p{color:#64736a}.actions{display:flex;gap:8px;flex-wrap:wrap}.actions button{border:0;border-radius:8px;padding:10px 13px;background:#176b43;color:white;font-weight:800}.actions .danger{background:#fff0ed;color:#a33b2d}.actions .warn{background:#fff4df;color:#94631d}.notice{padding:12px;background:#edf8ef;border-radius:8px}`]})
+export class AdminDeliveryPartnersComponent implements OnInit{
+ private api=inject(ApiService);profiles:DeliveryPartnerProfile[]=[];message='';
+ ngOnInit():void{this.load();}
+ load():void{this.api.getDeliveryPartnerReviewQueue().subscribe({next:x=>this.profiles=x,error:()=>this.message='Unable to load applications.'});}
+ review(p:DeliveryPartnerProfile,status:'APPROVED'|'REJECTED'|'SUSPENDED'):void{this.api.reviewDeliveryPartner(p.id,status).subscribe({next:()=>{this.message='Partner review saved.';this.load();},error:e=>this.message=e?.error?.message||'Review failed.'});}
+}
