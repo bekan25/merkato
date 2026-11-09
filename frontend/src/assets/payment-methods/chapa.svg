@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 64" role="img" aria-labelledby="title">
+  <title id="title">Chapa</title>
+  <rect x="1" y="1" width="158" height="62" rx="13" fill="#fff" stroke="#e9e4f3"/>
+  <path d="M26 18h12c10 0 16 6 16 14s-6 14-16 14H26V18Zm10 20c4 0 7-2 7-6s-3-6-7-6h-2v12h2Z" fill="#6d42c7"/>
+  <path d="M59 18h10v28H59z" fill="#e5a23b"/>
+  <text x="77" y="39" font-family="Arial,sans-serif" font-size="19" font-weight="700" fill="#30224d">Chapa</text>
+</svg>
