@@ -122,6 +122,9 @@ public sealed class SellerDirectPaymentTests
         {
             Id = 77, OrderNumber = "MK-TEST-77", SellerId = 31, BuyerId = 21,
             PaymentRail = PaymentRail.TELEBIRR, PaymentMode = "SELLER_DIRECT",
+            SellerPaymentAccountHolderName = "Seller Name",
+            SellerPaymentAccountIdentifier = "TEST-SELLER-ACCOUNT",
+            SellerPaymentDestinationCapturedAt = DateTime.UtcNow,
             InventoryReservationState = InventoryReservationState.RESERVED,
             InventoryReservationExpiresAt = DateTime.UtcNow.AddHours(1),
             TotalAmountEtb = 1250m
