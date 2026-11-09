@@ -66,6 +66,26 @@ export interface BuyerReturnRequest {
   resolutionNote?: string | null; createdAt: string; updatedAt: string;
 }
 
+export interface DeliveryProviderOption {
+  code: string; displayName: string; providerKind: 'COMPANY' | 'INDIVIDUAL' | 'SELLER' | string;
+  supportsQuotes: boolean; supportsBooking: boolean; supportsTracking: boolean;
+}
+export interface DeliveryPartnerApplication {
+  serviceAreas: string[]; transportMode: string; vehicleDescription?: string | null; capacityKg?: number | null;
+}
+export interface DeliveryPartnerProfile {
+  id: number; userId?: number; approvalStatus: 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED' | string;
+  serviceAreas?: string[]; transportMode?: string; vehicleDescription?: string | null;
+  capacityKg?: number | null; appliedAt?: string; reviewedAt?: string | null; reviewNote?: string | null;
+}
+export interface DeliveryPartnerCandidate {
+  userId: number; name: string; transportMode: string; vehicleDescription?: string | null; capacityKg?: number | null;
+}
+export interface DeliveryAssignmentResult {
+  id: number; status: string; deliveryId: number; providerCode?: string; displayName?: string;
+  partnerUserId?: number | null; agreedFeeEtb: number;
+}
+
 export interface OrderDeliveryTracking {
   deliveryId?: string | null; orderId: number; status: string;
   courierType?: string | null; riderName?: string | null; riderPhone?: string | null;
@@ -203,6 +223,48 @@ export class ApiService {
 
   updateMarketplaceFees(payload: { merchantCommissionRatePercent: number; buyerServiceFeeRatePercent: number; isEnabled: boolean }): Observable<unknown> {
     return this.http.put(`${this.baseUrl}/v1/marketplace/fees`, payload);
+  }
+
+  getDeliveryProviders(): Observable<DeliveryProviderOption[]> {
+    return this.http.get<DeliveryProviderOption[]>(`${this.baseUrl}/v1/delivery/providers`);
+  }
+
+  applyAsDeliveryPartner(payload: DeliveryPartnerApplication): Observable<{ status: string; message: string }> {
+    return this.http.post<{ status: string; message: string }>(`${this.baseUrl}/v1/delivery/partners/apply`, payload);
+  }
+
+  getMyDeliveryPartnerApplication(): Observable<DeliveryPartnerProfile> {
+    return this.http.get<DeliveryPartnerProfile>(`${this.baseUrl}/v1/delivery/partners/mine`);
+  }
+
+  getDeliveryPartnerReviewQueue(status = 'PENDING'): Observable<DeliveryPartnerProfile[]> {
+    const params = new HttpParams().set('status', status);
+    return this.http.get<DeliveryPartnerProfile[]>(`${this.baseUrl}/v1/delivery/admin/partners`, { params });
+  }
+
+  reviewDeliveryPartner(profileId: number, status: 'APPROVED' | 'REJECTED' | 'SUSPENDED', note = ''): Observable<unknown> {
+    return this.http.post(`${this.baseUrl}/v1/delivery/admin/partners/${profileId}/review`, { status, note });
+  }
+
+  getAvailableDeliveryPartners(city: string): Observable<DeliveryPartnerCandidate[]> {
+    const params = new HttpParams().set('city', city.trim());
+    return this.http.get<DeliveryPartnerCandidate[]>(`${this.baseUrl}/v1/delivery/partners/available`, { params });
+  }
+
+  createDeliveryAssignment(deliveryId: number, payload: { providerCode: string; partnerUserId?: number | null; agreedFeeEtb: number; idempotencyKey: string }): Observable<DeliveryAssignmentResult> {
+    return this.http.post<DeliveryAssignmentResult>(`${this.baseUrl}/v1/delivery/deliveries/${deliveryId}/assignments`, payload);
+  }
+
+  acceptDeliveryAssignment(assignmentId: number): Observable<unknown> {
+    return this.http.post(`${this.baseUrl}/v1/delivery/assignments/${assignmentId}/accept`, {});
+  }
+
+  rejectDeliveryAssignment(assignmentId: number): Observable<unknown> {
+    return this.http.post(`${this.baseUrl}/v1/delivery/assignments/${assignmentId}/reject`, {});
+  }
+
+  getDeliveryNetworkTracking(deliveryId: number): Observable<unknown> {
+    return this.http.get(`${this.baseUrl}/v1/delivery/deliveries/${deliveryId}/tracking`);
   }
 
   getDeliveryFeeQuote(cityArea: string): Observable<{ cityArea: string; feeEtb: number; currency: string; quoteType: string; note: string }> {
