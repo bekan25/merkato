@@ -245,7 +245,7 @@ modelBuilder.Entity<UserAddress>(e =>
                 .HasFilter("\"ChapaSubaccountId\" IS NOT NULL");
             entity.HasIndex(x => x.ProviderReference).IsUnique()
                 .HasFilter("\"ProviderReference\" IS NOT NULL");
-            entity.Property(x => x.OnboardingStatus).HasMaxLength(24).IsRequired();
+            entity.Property(x => x.OnboardingStatus).HasMaxLength(24).HasDefaultValue("NOT_STARTED").IsRequired();
             entity.HasOne<User>().WithMany().HasForeignKey(x => x.SellerId).OnDelete(DeleteBehavior.Restrict);
         });
 
