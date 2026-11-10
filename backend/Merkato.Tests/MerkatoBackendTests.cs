@@ -58,6 +58,21 @@ public class MerkatoBackendTests
         var inspection = new InspectionService(db, escrow, audit);
         var delivery = new DeliveryService(db, inspection, audit);
 
+        // Delivery creation correctly requires an existing order. Seed the order
+        // so this test exercises OTP lockout rather than the missing-order guard.
+        db.Orders.Add(new Order
+        {
+            Id = 101L,
+            OrderNumber = "TEST-ORDER-101",
+            BuyerId = 1L,
+            SellerId = 2L,
+            TotalAmountEtb = 500m,
+            DeliveryFeeEtb = 100m,
+            ProductTitle = "OTP lockout test product",
+            DeliveryAddress = "Test address"
+        });
+        await db.SaveChangesAsync();
+
         var created = await delivery.CreateDeliveryAsync(101L, "BEU_DELIVERY", 100m, "8899");
 
         // Attempt 1: Wrong OTP
