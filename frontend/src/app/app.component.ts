@@ -192,8 +192,8 @@ export class AppComponent implements OnInit {
 
   get isAdminRoute():boolean{return this.router.url.startsWith('/admin')}
   @HostListener('window:merkato-language-change',['$event'])
-  syncAdminLanguage(event:CustomEvent):void{
-    const value=event?.detail;
+  syncAdminLanguage(event: Event):void{
+    const value = (event as CustomEvent<string>).detail;
     if(value==='om'||value==='am'||value==='en'){
       this.language=value;
       try{localStorage.setItem('merkato_language',value)}catch{/* Storage may be unavailable. */}
