@@ -24,7 +24,10 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - name: Regenerate lockfile from package manifest
         working-directory: frontend
-        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+        run: |
+          rm -rf node_modules
+          rm -f package-lock.json
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
       - name: Commit regenerated lockfile
         run: |
           git config user.name "github-actions[bot]"
