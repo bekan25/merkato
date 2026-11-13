@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - chore/angular-22-security-upgrade
+  workflow_dispatch:
 
 permissions:
   contents: write
