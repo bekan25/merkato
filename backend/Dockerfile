@@ -9,6 +9,9 @@ RUN npm run build -- --configuration production
 # Build and publish the ASP.NET Core 10 API with the Angular application.
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
+ARG MERKATO_VERSION=unknown
+ARG MERKATO_COMMIT_SHA=unknown
+ARG MERKATO_BRANCH=unknown
 RUN dotnet tool install --global dotnet-ef --version 10.0.14
 ENV PATH="$PATH:/root/.dotnet/tools"
 
@@ -21,9 +24,18 @@ RUN dotnet restore backend/Merkato.Api/Merkato.Api.csproj
 COPY backend/ backend/
 COPY --from=frontend-build /frontend/dist/markatoo-web/browser/ backend/Merkato.Api/wwwroot/
 RUN dotnet publish backend/Merkato.Api/Merkato.Api.csproj -c Release -o /app/publish --no-restore
+RUN date -u +%Y-%m-%dT%H:%M:%SZ > /app/publish/merkato-build-time.txt
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
+ARG MERKATO_VERSION=unknown
+ARG MERKATO_COMMIT_SHA=unknown
+ARG MERKATO_BRANCH=unknown
+# Build metadata is non-secret. Render's RENDER_GIT_* runtime values take
+# precedence in VersionController so the response identifies the deployed ref.
+ENV MERKATO_VERSION=${MERKATO_VERSION}
+ENV MERKATO_COMMIT_SHA=${MERKATO_COMMIT_SHA}
+ENV MERKATO_BRANCH=${MERKATO_BRANCH}
 # Npgsql/GSSAPI may load the Kerberos GSSAPI shared library while connecting
 # to managed PostgreSQL. Install it in the runtime image (not just the SDK stage).
 RUN apt-get update \
@@ -33,5 +45,6 @@ ENV ASPNETCORE_URLS=http://+:8080
 ENV ASPNETCORE_HTTP_PORTS=8080
 EXPOSE 8080
 COPY --from=build /app/publish .
+COPY VERSION ./VERSION
 USER $APP_UID
 ENTRYPOINT ["dotnet", "Merkato.Api.dll"]
