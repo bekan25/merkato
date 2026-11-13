@@ -107,6 +107,42 @@ public sealed class SellerPaymentAccountsController : ControllerBase
         return NoContent();
     }
 
+    [HttpGet("chapa/mine")]
+    [Authorize(Roles = "MERCHANT")]
+    public async Task<IActionResult> ChapaMine(CancellationToken ct)
+    {
+        if (!TryGetUserId(out var sellerId)) return Unauthorized();
+        var account = await _db.SellerChapaAccounts.AsNoTracking()
+            .Where(x => x.SellerId == sellerId)
+            .Select(x => new
+            {
+                x.OnboardingStatus,
+                x.BusinessName,
+                x.AccountName,
+                x.BankCode,
+                x.AccountNumberLast4,
+                x.ProviderReference,
+                x.SubmittedAt,
+                x.VerifiedAt,
+                hasApprovedSubaccount = x.OnboardingStatus == "APPROVED" &&
+                    x.ChapaSubaccountId != null
+            })
+            .FirstOrDefaultAsync(ct);
+
+        return Ok(account ?? new
+        {
+            OnboardingStatus = "NOT_STARTED",
+            BusinessName = (string?)null,
+            AccountName = (string?)null,
+            BankCode = (string?)null,
+            AccountNumberLast4 = (string?)null,
+            ProviderReference = (string?)null,
+            SubmittedAt = (DateTime?)null,
+            VerifiedAt = (DateTime?)null,
+            hasApprovedSubaccount = false
+        });
+    }
+
     [HttpGet("order/{orderId:long}")]
     [Authorize(Roles = "BUYER,ADMIN")]
     public async Task<IActionResult> ForOrder(long orderId, CancellationToken ct)
