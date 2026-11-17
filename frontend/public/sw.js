@@ -5,7 +5,7 @@
 'use strict';
 
 const CACHE_PREFIX = 'merkato-pwa-';
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 const APP_CACHE = CACHE_PREFIX + CACHE_VERSION;
 const PRECACHE_URLS = ['/', '/offline.html'];
 
