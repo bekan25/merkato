@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'merkato-pwa-';
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 const APP_CACHE = CACHE_PREFIX + CACHE_VERSION;
 const OFFLINE_URL = '/offline.html';
 const NEVER_CACHE_PREFIXES = ['/api/', '/auth/', '/account', '/merchant', '/admin', '/payment', '/checkout'];
@@ -49,7 +49,9 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  if (url.pathname.startsWith('/assets/') || url.pathname.startsWith('/icons/')) {
+  const staticDestination = ['script', 'style', 'image', 'font', 'worker'].includes(request.destination);
+  const publicAsset = url.pathname.startsWith('/assets/') || url.pathname.startsWith('/icons/');
+  if (staticDestination || publicAsset) {
     event.respondWith(
       caches.match(request).then((cached) => {
         const update = fetch(request).then((response) => {
