@@ -643,9 +643,14 @@ app.MapGet("/api/v1/discovery/products", async Task<IResult> (
     string? languageCode,
     CancellationToken ct) =>
 {
-    if (!Merkato.Api.Services.ProductLanguageFilter.TryNormalize(languageCode ?? "en", out var selectedLanguage))
+    string? selectedLanguage = null;
+    if (!string.IsNullOrWhiteSpace(languageCode))
     {
-        return Results.BadRequest(new { message = "languageCode must be one of: en, om, am." });
+        if (!Merkato.Api.Services.ProductLanguageFilter.TryNormalize(languageCode, out var normalizedLanguage))
+        {
+            return Results.BadRequest(new { message = "languageCode must be one of: en, om, am." });
+        }
+        selectedLanguage = normalizedLanguage;
     }
 
     if (maxPriceEtb is < 0)
@@ -654,9 +659,14 @@ app.MapGet("/api/v1/discovery/products", async Task<IResult> (
     }
 
     var take = Math.Clamp(limit ?? 12, 1, 24);
-    var products = Merkato.Api.Services.ProductLanguageFilter.Apply(
-        db.Products.AsNoTracking().Where(product => product.IsActive),
-        selectedLanguage);
+    var products = db.Products
+        .AsNoTracking()
+        .Where(product => product.IsActive);
+
+    if (selectedLanguage is not null)
+    {
+        products = Merkato.Api.Services.ProductLanguageFilter.Apply(products, selectedLanguage);
+    }
 
     if (!string.IsNullOrWhiteSpace(q))
     {
