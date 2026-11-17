@@ -1,4 +1,8 @@
-﻿using Merkato.Domain.Entities;
+    int StockQuantity = 0,
+    bool SellerVerified = false,
+    string? Description = null,
+    string LanguageCode = "en"
+);﻿using Merkato.Domain.Entities;
 
 namespace Merkato.Api.Controllers;
 
@@ -9,7 +13,9 @@ public record CreateProductRequest(
     string Location,
     string Category,
     string Emoji,
-    int StockQuantity = 0
+    int StockQuantity = 0,
+    string? Description = null,
+    string LanguageCode = "en"
 );
 
 public record ProductResponse(
@@ -34,5 +40,7 @@ public record UpdateProductRequest(
     string Location,
     string Category,
     string Emoji,
-    int StockQuantity = 0
+    int StockQuantity = 0,
+    string? Description = null,
+    string LanguageCode = "en"
 );
