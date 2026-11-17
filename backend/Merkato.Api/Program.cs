@@ -1,22 +1,4 @@
-            product.Name,
-            product.Description,
-            product.LanguageCode,
-            product.PriceEtb,        products = products.Where(product =>
-            product.Name.ToLower().Contains(term) ||
-            (product.Description != null && product.Description.ToLower().Contains(term)));    var products = Merkato.Api.Services.ProductLanguageFilter.Apply(
-        db.Products.AsNoTracking().Where(product => product.IsActive),
-        selectedLanguage);    string? location,
-    decimal? maxPriceEtb,
-    int? limit,
-    string? languageCode,
-    CancellationToken ct) =>
-{
-    if (!Merkato.Api.Services.ProductLanguageFilter.TryNormalize(languageCode ?? "en", out var selectedLanguage))
-    {
-        return Results.BadRequest(new { message = "languageCode must be one of: en, om, am." });
-    }
-
-    if (maxPriceEtb is < 0)using DotNetEnv;
+using DotNetEnv;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.DataProtection.KeyManagement;
@@ -658,25 +640,30 @@ app.MapGet("/api/v1/discovery/products", async Task<IResult> (
     string? location,
     decimal? maxPriceEtb,
     int? limit,
+    string? languageCode,
     CancellationToken ct) =>
 {
+    if (!Merkato.Api.Services.ProductLanguageFilter.TryNormalize(languageCode ?? "en", out var selectedLanguage))
+    {
+        return Results.BadRequest(new { message = "languageCode must be one of: en, om, am." });
+    }
+
     if (maxPriceEtb is < 0)
     {
         return Results.BadRequest(new { message = "maxPriceEtb must be zero or greater." });
     }
 
     var take = Math.Clamp(limit ?? 12, 1, 24);
-    var products = db.Products
-        .AsNoTracking()
-        .Where(product => product.IsActive);
+    var products = Merkato.Api.Services.ProductLanguageFilter.Apply(
+        db.Products.AsNoTracking().Where(product => product.IsActive),
+        selectedLanguage);
 
     if (!string.IsNullOrWhiteSpace(q))
     {
         var term = q.Trim().ToLowerInvariant();
         products = products.Where(product =>
             product.Name.ToLower().Contains(term) ||
-            product.Category.ToLower().Contains(term) ||
-            product.Location.ToLower().Contains(term));
+            (product.Description != null && product.Description.ToLower().Contains(term)));
     }
 
     if (!string.IsNullOrWhiteSpace(location))
@@ -705,6 +692,8 @@ app.MapGet("/api/v1/discovery/products", async Task<IResult> (
         {
             product.Id,
             product.Name,
+            product.Description,
+            product.LanguageCode,
             product.PriceEtb,
             product.Location,
             product.Category,
