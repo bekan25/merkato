@@ -644,9 +644,12 @@ app.MapGet("/api/v1/discovery/products", async Task<IResult> (
     CancellationToken ct) =>
 {
     string? selectedLanguage = null;
-    if (!string.IsNullOrWhiteSpace(languageCode))
+    var requestedLanguage = string.IsNullOrWhiteSpace(languageCode) && !string.IsNullOrWhiteSpace(q)
+        ? "en"
+        : languageCode;
+    if (!string.IsNullOrWhiteSpace(requestedLanguage))
     {
-        if (!Merkato.Api.Services.ProductLanguageFilter.TryNormalize(languageCode, out var normalizedLanguage))
+        if (!Merkato.Api.Services.ProductLanguageFilter.TryNormalize(requestedLanguage, out var normalizedLanguage))
         {
             return Results.BadRequest(new { message = "languageCode must be one of: en, om, am." });
         }
