@@ -71,8 +71,13 @@ export class MkInputComponent {
 @Component({
   selector: 'mk-skeleton',
   standalone: true,
-  template: `<span class="mk-skeleton" role="status" aria-live="polite" [attr.aria-label]="label" [style.width]="width" [style.height]="height"></span>`,
-  styles: [':host{display:block;max-width:100%}']
+  template: `<span class="mk-skeleton" aria-hidden="true" [style.width]="width" [style.height]="height"></span>`,
+  styles: [`
+    :host{display:block;max-width:100%;min-width:0}
+    .mk-skeleton{display:block;max-width:100%;border-radius:8px;background:linear-gradient(105deg,#edf1eb 20%,#faf8f1 38%,#e4eee5 56%);background-size:220% 100%;animation:mk-skeleton-shimmer 1.45s ease-in-out infinite}
+    @keyframes mk-skeleton-shimmer{to{background-position-x:-220%}}
+    @media(prefers-reduced-motion:reduce){.mk-skeleton{animation:none;background:#e9eee8}}
+  `]
 })
 export class MkSkeletonComponent {
   @Input() width = '100%';

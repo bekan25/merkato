@@ -4,11 +4,12 @@ import { FormsModule } from '@angular/forms';
 import { ApiService, MerkatoProduct } from '../core/api.service';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ShoppingAssistantComponent } from '../components/shopping-assistant.component';
+import { MkSkeletonComponent } from '../shared/ui-primitives.component';
 
 @Component({
   standalone: true,
   selector: 'app-storefront',
-  imports: [CommonModule, FormsModule, RouterLink, ShoppingAssistantComponent],
+  imports: [CommonModule, FormsModule, RouterLink, ShoppingAssistantComponent, MkSkeletonComponent],
   template: `
     <section class="hero">
       <div class="hero-copy">
@@ -91,7 +92,18 @@ import { ShoppingAssistantComponent } from '../components/shopping-assistant.com
         <p class="notification-empty" *ngIf="notificationItems.length===0">No notifications yet. Price-drop alerts will appear here.</p>
       </section>
 
-      <div *ngIf="loading" class="state-panel"><span class="loader"></span><strong>{{ t('finding') }}</strong><p>{{ t('loadingProducts') }}</p></div>
+      <div *ngIf="loading" class="product-grid skeleton-grid" role="status" aria-label="Loading marketplace products" aria-busy="true">
+        <span class="skeleton-sr-only">{{ t('loadingProducts') }}</span>
+        <article class="product-card skeleton-product-card" *ngFor="let item of skeletonCards" aria-hidden="true">
+          <div class="product-visual skeleton-product-visual"><mk-skeleton width="100%" height="100%"></mk-skeleton></div>
+          <div class="product-info skeleton-product-info">
+            <mk-skeleton width="36%" height="0.7rem"></mk-skeleton>
+            <mk-skeleton width="86%" height="1rem"></mk-skeleton>
+            <div class="skeleton-product-bottom"><mk-skeleton width="43%" height="1.15rem"></mk-skeleton><mk-skeleton width="34px" height="34px"></mk-skeleton></div>
+            <mk-skeleton width="52%" height="0.65rem"></mk-skeleton>
+          </div>
+        </article>
+      </div>
       <div *ngIf="error && !loading" class="state-panel"><span class="state-icon">⌁</span><strong>{{ t('connectionUnavailable') }}</strong><p>{{error}}</p><small>{{ t('tryAgainMoment') }}</small><button class="btn btn-outline" (click)="loadProducts()">{{ t('tryAgain') }}</button></div>
       <div *ngIf="!loading && !error && visibleProducts.length === 0" class="state-panel"><span class="state-icon">⌕</span><strong>{{ t('noProducts') }}</strong><p>{{ t('noProductsHelp') }}</p><button class="btn btn-outline" *ngIf="hasActiveFilters" (click)="clearFilters()">Clear filters</button></div>
 
@@ -323,6 +335,14 @@ import { ShoppingAssistantComponent } from '../components/shopping-assistant.com
     @keyframes merkato-hero-float{0%,100%{translate:0 0}50%{translate:0 -8px}}
     @media(max-width:760px){.hero-ethiopian-image{max-height:340px;border-radius:24px}.hero-image-caption{left:12px;bottom:12px}}
     @media(prefers-reduced-motion:reduce){.hero-ethiopian-image{animation:none!important;translate:none!important}}
+    /* Product-card skeletons mirror the live marketplace layout while API data loads. */
+    .skeleton-grid{align-items:stretch}
+    .skeleton-product-card{pointer-events:none;transform:none!important;box-shadow:0 5px 20px rgba(24,59,43,.05)!important}
+    .skeleton-product-visual mk-skeleton{height:100%}
+    .skeleton-product-info{display:grid;align-content:start;gap:13px}
+    .skeleton-product-bottom{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:2px}
+    .skeleton-sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+    @media(prefers-reduced-motion:reduce){.skeleton-product-card,.skeleton-product-card:hover{transform:none!important}}
 
   `]
 })
@@ -330,6 +350,7 @@ export class StorefrontComponent implements OnInit, OnDestroy {
   private api = inject(ApiService);
   private route = inject(ActivatedRoute);
   products: MerkatoProduct[] = [];
+  readonly skeletonCards = [0, 1, 2, 3, 4, 5, 6, 7];
   activePromotions: Array<{code:string;title:string;discountType:string;discountValue:number;maximumDiscountEtb?:number|null;minimumOrderEtb:number;expiresAt:string;merchantPromotion:boolean}> = [];
   loading = true;
   error = '';
