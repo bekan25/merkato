@@ -75,7 +75,7 @@ import { MkSkeletonComponent } from '../shared/ui-primitives.component';
                 <span aria-hidden="true">⌕</span><span>{{suggestion}}</span><small>↵</small>
               </button>
             </div>
-            <div class="search-suggestions-status" *ngIf="suggestionsLoading" role="status">{{t('searchingSuggestions')}}</div>
+            <div class="search-suggestions-status" *ngIf="suggestionsLoading && searchFocused" role="status">{{t('searchingSuggestions')}}</div>
           </div>
           <select [(ngModel)]="city" (ngModelChange)="loadProducts()" [attr.aria-label]="t('cityArea')"><option *ngFor="let item of cityOptions" [value]="item.value">{{item.label}}</option></select>
           <select [(ngModel)]="category" (ngModelChange)="loadProducts()" aria-label="Filter by category"><option *ngFor="let c of categoryOptions" [value]="c">{{c}}</option></select>
@@ -332,9 +332,9 @@ import { MkSkeletonComponent } from '../shared/ui-primitives.component';
     .compare-trigger{opacity:1;transform:translateY(0);bottom:11px;right:11px}
     .save-button:focus-visible,.quick-view-trigger:focus-visible,.compare-trigger:focus-visible,.add-button:focus-visible,.product-title-button:focus-visible{outline:3px solid #d8b56f;outline-offset:3px}
     .quick-view-dialog{max-height:min(90vh,760px);overflow:auto}
-    @media(max-width:1050px){.category-list.category-image-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.market-filter-panel{grid-template-columns:repeat(3,minmax(0,1fr))}.market-filter-panel .search-box{grid-column:span 3}}
-    @media(max-width:760px){.home-value-row{grid-template-columns:1fr;gap:8px;padding:15px 20px}.home-value-item{padding:10px 12px}.category-list.category-image-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.category-list.category-image-grid>button{height:126px}.category-list .category-all-card{min-height:126px}.market-filter-panel{grid-template-columns:repeat(2,minmax(0,1fr));padding:10px}.market-filter-panel .search-box{grid-column:span 2}.market-filter-panel select{height:43px}.price-filter-wrap .price-filter{height:43px}.product-visual{height:165px}.product-info{padding:12px}.product-title-button{font-size:12px}.compare-trigger{font-size:9px;padding:7px 9px}.product-image-hint{font-size:7px}}
-    @media(max-width:390px){.market-filter-panel{grid-template-columns:1fr}.market-filter-panel .search-box{grid-column:auto}.product-grid{gap:8px}.product-visual{height:135px}.product-info{padding:10px}.product-bottom>strong{font-size:13px}}
+    @media(max-width:1050px){.category-list.category-image-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.market-filter-panel{grid-template-columns:repeat(3,minmax(0,1fr))}.market-filter-panel .search-autocomplete{grid-column:span 3}}
+    @media(max-width:760px){.home-value-row{grid-template-columns:1fr;gap:8px;padding:15px 20px}.home-value-item{padding:10px 12px}.category-list.category-image-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.category-list.category-image-grid>button{height:126px}.category-list .category-all-card{min-height:126px}.market-filter-panel{grid-template-columns:repeat(2,minmax(0,1fr));padding:10px}.market-filter-panel .search-autocomplete{grid-column:span 2}.market-filter-panel select{height:43px}.price-filter-wrap .price-filter{height:43px}.product-visual{height:165px}.product-info{padding:12px}.product-title-button{font-size:12px}.compare-trigger{font-size:9px;padding:7px 9px}.product-image-hint{font-size:7px}}
+    @media(max-width:390px){.market-filter-panel{grid-template-columns:1fr}.market-filter-panel .search-autocomplete{grid-column:auto}.product-grid{gap:8px}.product-visual{height:135px}.product-info{padding:10px}.product-bottom>strong{font-size:13px}}
     @media(prefers-reduced-motion:reduce){.category-list.category-image-grid>button,.category-list.category-image-grid>button .category-photo,.product-card{transition:none}.category-list.category-image-grid>button:hover,.product-card:hover{transform:none}}
     /* Mobile home-page accessibility and trust polish */
     .hero h1{letter-spacing:-.02em}
@@ -396,6 +396,7 @@ export class StorefrontComponent implements OnInit, OnDestroy {
   suggestions: string[] = [];
   suggestionsOpen = false;
   suggestionsLoading = false;
+  searchFocused = false;
   activeSuggestionIndex = -1;
   private savedIds = new Set<number>();
   priceAlertTarget = 0;
@@ -507,7 +508,7 @@ export class StorefrontComponent implements OnInit, OnDestroy {
         next: items => {
           if (requestId !== this.suggestionRequestId) return;
           this.suggestions = (items || []).slice(0, 6);
-          this.suggestionsOpen = this.suggestions.length > 0;
+          this.suggestionsOpen = this.searchFocused && this.suggestions.length > 0;
           this.activeSuggestionIndex = -1;
           this.suggestionsLoading = false;
         },
@@ -522,10 +523,12 @@ export class StorefrontComponent implements OnInit, OnDestroy {
   }
 
   onSearchFocus(): void {
+    this.searchFocused = true;
     this.suggestionsOpen = this.suggestions.length > 0;
   }
 
   onSearchBlur(): void {
+    this.searchFocused = false;
     this.suggestionsOpen = false;
     this.activeSuggestionIndex = -1;
   }
