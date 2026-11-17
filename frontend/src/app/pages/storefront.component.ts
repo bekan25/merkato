@@ -1,4 +1,14 @@
-import { Component, OnDestroy, OnInit, inject } from '@angular/core';
+    this.api.getProducts(this.search, this.category, this.city === 'All' ? '' : this.city, this.language).subscribe({  private readonly languageListener = () => {
+    const nextLanguage = this.currentLanguage();
+    if (nextLanguage !== this.language) {
+      this.language = nextLanguage;
+      this.selectedProduct = null;
+      this.loadProducts();
+    }
+  };     .product-info{display:flex;flex:1;flex-direction:column;align-items:stretch;gap:2px;padding:15px}.product-title-button{min-height:40px;margin:7px 0 6px;font-size:13px;line-height:1.5}
+     .product-description{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;margin:0 0 9px;color:#718075;font-size:10px;line-height:1.45}           <p *ngIf="product.description">{{product.description}}</p>             <button class="product-title-button" type="button" (click)="openQuickView(product)">{{product.name}}</button>
+             <p class="product-description" *ngIf="product.description">{{product.description}}</p>
+             <div class="product-bottom">import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService, MerkatoProduct } from '../core/api.service';
