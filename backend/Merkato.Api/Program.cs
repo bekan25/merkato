@@ -1,4 +1,22 @@
-using DotNetEnv;
+            product.Name,
+            product.Description,
+            product.LanguageCode,
+            product.PriceEtb,        products = products.Where(product =>
+            product.Name.ToLower().Contains(term) ||
+            (product.Description != null && product.Description.ToLower().Contains(term)));    var products = Merkato.Api.Services.ProductLanguageFilter.Apply(
+        db.Products.AsNoTracking().Where(product => product.IsActive),
+        selectedLanguage);    string? location,
+    decimal? maxPriceEtb,
+    int? limit,
+    string? languageCode,
+    CancellationToken ct) =>
+{
+    if (!Merkato.Api.Services.ProductLanguageFilter.TryNormalize(languageCode ?? "en", out var selectedLanguage))
+    {
+        return Results.BadRequest(new { message = "languageCode must be one of: en, om, am." });
+    }
+
+    if (maxPriceEtb is < 0)using DotNetEnv;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.DataProtection.KeyManagement;
