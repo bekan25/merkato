@@ -180,6 +180,7 @@ modelBuilder.Entity<UserAddress>(e =>
 
             entity.Property(p => p.LanguageCode)
                 .HasMaxLength(5)
+                .HasDefaultValue("en")
                 .IsRequired();
 
             entity.Property(p => p.PriceEtb)
