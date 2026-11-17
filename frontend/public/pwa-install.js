@@ -27,7 +27,7 @@
 
     var mark = document.createElement('span');
     mark.className = 'merkato-pwa-mark';
-    mark.textContent = 'M';
+    mark.textContent = 'A';
 
     var copy = document.createElement('span');
     copy.className = 'merkato-pwa-copy';
