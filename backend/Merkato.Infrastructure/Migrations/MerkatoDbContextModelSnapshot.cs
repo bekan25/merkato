@@ -802,6 +802,7 @@ b.Property<long>("SellerId")
                     b.Property<string>("LanguageCode")
                         .IsRequired()
                         .HasMaxLength(5)
+                        .HasDefaultValue("en")
                         .HasColumnType("character varying(5)");
 
                     b.Property<decimal>("PriceEtb")
