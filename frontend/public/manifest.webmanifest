@@ -1,0 +1,23 @@
+{
+  "id": "/",
+  "name": "MERKATO — Ethiopia's Digital Marketplace",
+  "short_name": "MERKATO",
+  "description": "Discover products from trusted Ethiopian merchants on MERKATO.",
+  "lang": "en",
+  "dir": "ltr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f8f7f2",
+  "theme_color": "#0B3D2E",
+  "categories": ["shopping", "business"],
+  "icons": [
+    {
+      "src": "/icons/merkato-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
