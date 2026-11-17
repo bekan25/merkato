@@ -259,8 +259,12 @@ public class ProductsController : ControllerBase
             request.Name.Trim().Length < 3 || request.Name.Trim().Length > 180)
             return BadRequest("Product name must contain 3–180 characters.");
 
-        if (!Merkato.Api.Services.ProductLanguageFilter.TryNormalize(request.LanguageCode, out var updateLanguage))
-            return BadRequest("LanguageCode must be one of: en, om, am.");
+        var updateLanguage = product.LanguageCode;
+        if (!string.IsNullOrWhiteSpace(request.LanguageCode))
+        {
+            if (!Merkato.Api.Services.ProductLanguageFilter.TryNormalize(request.LanguageCode, out updateLanguage))
+                return BadRequest("LanguageCode must be one of: en, om, am.");
+        }
         if (request.Description?.Length > 2000)
             return BadRequest("Product description must be 2,000 characters or fewer.");
 
@@ -291,7 +295,8 @@ public class ProductsController : ControllerBase
 
         var previousPriceEtb = product.PriceEtb;
         product.Name = request.Name.Trim();
-        product.Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
+        if (request.Description is not null)
+            product.Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
         product.LanguageCode = updateLanguage;
         product.PriceEtb = request.PriceEtb;
         product.Location = string.IsNullOrWhiteSpace(request.Location)
