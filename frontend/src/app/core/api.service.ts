@@ -1,4 +1,9 @@
-import { Injectable, inject } from '@angular/core';
+  updateProduct(id: number, payload: { name: string; description: string; languageCode: string; priceEtb: number; stockQuantity: number; location: string; category: string; emoji: string }): Observable<MerkatoProduct> {  createProduct(payload: { name: string; description: string; languageCode: string; priceEtb: number; stockQuantity: number; location: string; category: string; emoji: string }): Observable<MerkatoProduct> {    params = params.set('limit', '24');
+    params = params.set('languageCode', languageCode);
+    if (search.trim()) params = params.set('q', search.trim());  getProducts(search = '', category = '', location = '', languageCode = 'en'): Observable<MerkatoProduct[]> {  items: Array<Pick<MerkatoProduct, 'id' | 'sellerId' | 'name' | 'description' | 'languageCode' | 'priceEtb' | 'location' | 'category' | 'emoji' | 'imageUrl' | 'stockQuantity'>>;  name: string;
+  description?: string | null;
+  languageCode?: string;
+  priceEtb: number;import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
 
