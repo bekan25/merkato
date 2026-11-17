@@ -66,9 +66,12 @@ public class ProductsController : ControllerBase
             .AsNoTracking()
             .Where(p => p.IsActive);
 
-        if (!string.IsNullOrWhiteSpace(languageCode))
+        var requestedLanguage = string.IsNullOrWhiteSpace(languageCode) && !string.IsNullOrWhiteSpace(search)
+            ? "en"
+            : languageCode;
+        if (!string.IsNullOrWhiteSpace(requestedLanguage))
         {
-            if (!Merkato.Api.Services.ProductLanguageFilter.TryNormalize(languageCode, out var normalizedLanguage))
+            if (!Merkato.Api.Services.ProductLanguageFilter.TryNormalize(requestedLanguage, out var normalizedLanguage))
                 return BadRequest(new { message = "languageCode must be one of: en, om, am." });
             query = Merkato.Api.Services.ProductLanguageFilter.Apply(query, normalizedLanguage);
         }
