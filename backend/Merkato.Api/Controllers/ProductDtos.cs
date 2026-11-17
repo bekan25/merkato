@@ -1,8 +1,4 @@
-    int StockQuantity = 0,
-    bool SellerVerified = false,
-    string? Description = null,
-    string LanguageCode = "en"
-);﻿using Merkato.Domain.Entities;
+﻿using Merkato.Domain.Entities;
 
 namespace Merkato.Api.Controllers;
 
@@ -30,7 +26,9 @@ public record ProductResponse(
     bool IsActive,
     DateTime CreatedAt,
     int StockQuantity = 0,
-    bool SellerVerified = false
+    bool SellerVerified = false,
+    string? Description = null,
+    string LanguageCode = "en"
 );
 
 
