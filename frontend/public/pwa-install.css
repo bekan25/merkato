@@ -1,0 +1,11 @@
+#merkato-install-banner{position:fixed;z-index:10000;left:16px;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));display:flex;align-items:center;gap:12px;max-width:520px;margin:0 auto;padding:12px 14px;border:1px solid #dce8dc;border-radius:18px;background:rgba(255,255,250,.97);color:#173b2c;box-shadow:0 12px 38px rgba(14,48,31,.2);font:13px/1.4 system-ui,-apple-system,sans-serif;backdrop-filter:blur(18px)}
+#merkato-install-banner[hidden]{display:none}
+#merkato-install-banner .merkato-pwa-mark{width:40px;height:40px;flex:0 0 40px;display:grid;place-items:center;border-radius:12px;background:#0b3d2e;color:#fff;font-size:22px;font-weight:800}
+#merkato-install-banner .merkato-pwa-copy{min-width:0;flex:1}
+#merkato-install-banner strong{display:block;font-size:13px}
+#merkato-install-banner small{display:block;color:#617267;font-size:11px}
+#merkato-install-banner button{min-height:38px;padding:0 14px;border:0;border-radius:11px;background:#0b6b45;color:#fff;font:700 12px system-ui;cursor:pointer}
+#merkato-install-banner button:focus-visible,#merkato-install-banner .merkato-pwa-close:focus-visible{outline:3px solid #c69a51;outline-offset:2px}
+#merkato-install-banner .merkato-pwa-close{width:30px;height:30px;flex:0 0 30px;padding:0;border:0;background:transparent;color:#607266;font-size:21px;cursor:pointer}
+@media(min-width:761px){#merkato-install-banner{left:auto;right:24px;bottom:24px;margin:0}}
+@media(prefers-reduced-motion:no-preference){#merkato-install-banner{animation:merkato-pwa-in .22s ease-out}@keyframes merkato-pwa-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}}
