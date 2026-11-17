@@ -7,6 +7,8 @@ export interface MerkatoProduct {
   sellerId: number;
   sellerVerified?: boolean;
   name: string;
+  description?: string | null;
+  languageCode?: string;
   priceEtb: number;
   location: string;
   category: string;
@@ -18,7 +20,7 @@ export interface MerkatoProduct {
 }
 
 interface DiscoveryProductsResponse {
-  items: Array<Pick<MerkatoProduct, 'id' | 'sellerId' | 'name' | 'priceEtb' | 'location' | 'category' | 'emoji' | 'imageUrl' | 'stockQuantity'>>;
+  items: Array<Pick<MerkatoProduct, 'id' | 'sellerId' | 'name' | 'description' | 'languageCode' | 'priceEtb' | 'location' | 'category' | 'emoji' | 'imageUrl' | 'stockQuantity'>>;
   count: number;
   limit: number;
 }
@@ -197,9 +199,10 @@ export class ApiService {
    * The API deliberately returns only catalogue fields; timestamps and
    * listing state are not exposed by this public search contract.
    */
-  getProducts(search = '', category = '', location = ''): Observable<MerkatoProduct[]> {
+  getProducts(search = '', category = '', location = '', languageCode?: string): Observable<MerkatoProduct[]> {
     let params = new HttpParams();
     params = params.set('limit', '24');
+    if (languageCode) params = params.set('languageCode', languageCode);
     if (search.trim()) params = params.set('q', search.trim());
     if (category && category !== 'All') params = params.set('category', category.trim());
     if (location.trim()) params = params.set('location', location.trim());
@@ -334,7 +337,7 @@ export class ApiService {
     return this.http.post<ShoppingAssistantResponse>(`${this.baseUrl}/assistant/chat`, { message });
   }
 
-  createProduct(payload: { name: string; priceEtb: number; stockQuantity: number; location: string; category: string; emoji: string }): Observable<MerkatoProduct> {
+  createProduct(payload: { name: string; description: string; languageCode: string; priceEtb: number; stockQuantity: number; location: string; category: string; emoji: string }): Observable<MerkatoProduct> {
     return this.http.post<MerkatoProduct>(`${this.baseUrl}/products`, payload);
   }
 
@@ -344,7 +347,7 @@ export class ApiService {
     return this.http.post<MerkatoProduct>(`${this.baseUrl}/products/${id}/image`, form);
   }
 
-  updateProduct(id: number, payload: { name: string; priceEtb: number; stockQuantity: number; location: string; category: string; emoji: string }): Observable<MerkatoProduct> {
+  updateProduct(id: number, payload: { name: string; description: string; languageCode: string; priceEtb: number; stockQuantity: number; location: string; category: string; emoji: string }): Observable<MerkatoProduct> {
     return this.http.put<MerkatoProduct>(`${this.baseUrl}/products/${id}`, payload);
   }
 

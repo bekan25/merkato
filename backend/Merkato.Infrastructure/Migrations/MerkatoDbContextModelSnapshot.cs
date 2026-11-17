@@ -774,6 +774,10 @@ b.Property<long>("SellerId")
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
                     b.Property<string>("Emoji")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -795,6 +799,12 @@ b.Property<long>("SellerId")
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<string>("LanguageCode")
+                        .IsRequired()
+                        .HasMaxLength(5)
+                        .HasDefaultValue("en")
+                        .HasColumnType("character varying(5)");
+
                     b.Property<decimal>("PriceEtb")
                         .HasColumnType("numeric(18,4)");
 
@@ -809,6 +819,8 @@ b.Property<long>("SellerId")
                     b.HasIndex("Category");
 
                     b.HasIndex("IsActive");
+
+                    b.HasIndex("LanguageCode");
 
                     b.HasIndex("SellerId");
 

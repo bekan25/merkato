@@ -9,7 +9,9 @@ public record CreateProductRequest(
     string Location,
     string Category,
     string Emoji,
-    int StockQuantity = 0
+    int StockQuantity = 0,
+    string? Description = null,
+    string LanguageCode = "en"
 );
 
 public record ProductResponse(
@@ -24,7 +26,9 @@ public record ProductResponse(
     bool IsActive,
     DateTime CreatedAt,
     int StockQuantity = 0,
-    bool SellerVerified = false
+    bool SellerVerified = false,
+    string? Description = null,
+    string LanguageCode = "en"
 );
 
 
@@ -34,5 +38,7 @@ public record UpdateProductRequest(
     string Location,
     string Category,
     string Emoji,
-    int StockQuantity = 0
+    int StockQuantity = 0,
+    string? Description = null,
+    string? LanguageCode = null
 );

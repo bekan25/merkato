@@ -640,8 +640,22 @@ app.MapGet("/api/v1/discovery/products", async Task<IResult> (
     string? location,
     decimal? maxPriceEtb,
     int? limit,
+    string? languageCode,
     CancellationToken ct) =>
 {
+    string? selectedLanguage = null;
+    var requestedLanguage = string.IsNullOrWhiteSpace(languageCode) && !string.IsNullOrWhiteSpace(q)
+        ? "en"
+        : languageCode;
+    if (!string.IsNullOrWhiteSpace(requestedLanguage))
+    {
+        if (!Merkato.Api.Services.ProductLanguageFilter.TryNormalize(requestedLanguage, out var normalizedLanguage))
+        {
+            return Results.BadRequest(new { message = "languageCode must be one of: en, om, am." });
+        }
+        selectedLanguage = normalizedLanguage;
+    }
+
     if (maxPriceEtb is < 0)
     {
         return Results.BadRequest(new { message = "maxPriceEtb must be zero or greater." });
@@ -652,13 +666,17 @@ app.MapGet("/api/v1/discovery/products", async Task<IResult> (
         .AsNoTracking()
         .Where(product => product.IsActive);
 
+    if (selectedLanguage is not null)
+    {
+        products = Merkato.Api.Services.ProductLanguageFilter.Apply(products, selectedLanguage);
+    }
+
     if (!string.IsNullOrWhiteSpace(q))
     {
         var term = q.Trim().ToLowerInvariant();
         products = products.Where(product =>
             product.Name.ToLower().Contains(term) ||
-            product.Category.ToLower().Contains(term) ||
-            product.Location.ToLower().Contains(term));
+            (product.Description != null && product.Description.ToLower().Contains(term)));
     }
 
     if (!string.IsNullOrWhiteSpace(location))
@@ -687,6 +705,8 @@ app.MapGet("/api/v1/discovery/products", async Task<IResult> (
         {
             product.Id,
             product.Name,
+            product.Description,
+            product.LanguageCode,
             product.PriceEtb,
             product.Location,
             product.Category,

@@ -169,9 +169,18 @@ modelBuilder.Entity<UserAddress>(e =>
             entity.HasIndex(p => p.SellerId);
             entity.HasIndex(p => p.Category);
             entity.HasIndex(p => p.IsActive);
+            entity.HasIndex(p => p.LanguageCode);
 
             entity.Property(p => p.Name)
                 .HasMaxLength(200)
+                .IsRequired();
+
+            entity.Property(p => p.Description)
+                .HasMaxLength(2000);
+
+            entity.Property(p => p.LanguageCode)
+                .HasMaxLength(5)
+                .HasDefaultValue("en")
                 .IsRequired();
 
             entity.Property(p => p.PriceEtb)

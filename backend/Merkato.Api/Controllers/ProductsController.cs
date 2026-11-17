@@ -59,11 +59,22 @@ public class ProductsController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IEnumerable<ProductResponse>>> GetProducts(
         [FromQuery] string? search = null,
-        [FromQuery] string? category = null)
+        [FromQuery] string? category = null,
+        [FromQuery] string? languageCode = null)
     {
         var query = _db.Products
             .AsNoTracking()
             .Where(p => p.IsActive);
+
+        var requestedLanguage = string.IsNullOrWhiteSpace(languageCode) && !string.IsNullOrWhiteSpace(search)
+            ? "en"
+            : languageCode;
+        if (!string.IsNullOrWhiteSpace(requestedLanguage))
+        {
+            if (!Merkato.Api.Services.ProductLanguageFilter.TryNormalize(requestedLanguage, out var normalizedLanguage))
+                return BadRequest(new { message = "languageCode must be one of: en, om, am." });
+            query = Merkato.Api.Services.ProductLanguageFilter.Apply(query, normalizedLanguage);
+        }
 
         if (!string.IsNullOrWhiteSpace(search))
         {
@@ -71,8 +82,7 @@ public class ProductsController : ControllerBase
 
             query = query.Where(p =>
                 p.Name.Contains(search) ||
-                p.Category.Contains(search) ||
-                p.Location.Contains(search));
+                (p.Description != null && p.Description.Contains(search)));
         }
 
         if (!string.IsNullOrWhiteSpace(category) &&
@@ -86,7 +96,8 @@ public class ProductsController : ControllerBase
             .Select(p => new ProductResponse(
                 p.Id, p.SellerId, p.Name, p.PriceEtb, p.Location, p.Category, p.Emoji,
                 p.ImageUrl, p.IsActive, p.CreatedAt,
-                _db.ProductListingDetails.Where(x => x.ProductId == p.Id).Select(x => (int?)x.StockQuantity).FirstOrDefault() ?? 0))
+                _db.ProductListingDetails.Where(x => x.ProductId == p.Id).Select(x => (int?)x.StockQuantity).FirstOrDefault() ?? 0,
+                false, p.Description, p.LanguageCode))
             .ToListAsync();
 
         return Ok(products);
@@ -113,7 +124,8 @@ public class ProductsController : ControllerBase
                 p.ImageUrl,
                 p.IsActive,
                 p.CreatedAt,
-                _db.ProductListingDetails.Where(x => x.ProductId == p.Id).Select(x => (int?)x.StockQuantity).FirstOrDefault() ?? 0))
+                _db.ProductListingDetails.Where(x => x.ProductId == p.Id).Select(x => (int?)x.StockQuantity).FirstOrDefault() ?? 0,
+                false, p.Description, p.LanguageCode))
             .FirstOrDefaultAsync();
 
         if (product == null)
@@ -133,6 +145,11 @@ public class ProductsController : ControllerBase
         if (string.IsNullOrWhiteSpace(request.Name) ||
             request.Name.Trim().Length < 3 || request.Name.Trim().Length > 180)
             return BadRequest("Product name must contain 3–180 characters.");
+
+        if (!Merkato.Api.Services.ProductLanguageFilter.TryNormalize(request.LanguageCode, out var createLanguage))
+            return BadRequest("LanguageCode must be one of: en, om, am.");
+        if (request.Description?.Length > 2000)
+            return BadRequest("Product description must be 2,000 characters or fewer.");
 
         if (request.PriceEtb <= 0 || request.PriceEtb > 1000000000m)
             return BadRequest("Price must be greater than zero and within the supported ETB range.");
@@ -172,6 +189,8 @@ public class ProductsController : ControllerBase
         {
             SellerId = sellerId,
             Name = request.Name.Trim(),
+            Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim(),
+            LanguageCode = createLanguage,
             PriceEtb = request.PriceEtb,
             Location = string.IsNullOrWhiteSpace(request.Location)
                 ? "Addis Ababa"
@@ -211,7 +230,7 @@ public class ProductsController : ControllerBase
             product.ImageUrl,
             product.IsActive,
             product.CreatedAt,
-            request.StockQuantity));
+            request.StockQuantity, false, product.Description, product.LanguageCode));
     }
 
     // ==========================================
@@ -240,6 +259,15 @@ public class ProductsController : ControllerBase
             request.Name.Trim().Length < 3 || request.Name.Trim().Length > 180)
             return BadRequest("Product name must contain 3–180 characters.");
 
+        var updateLanguage = product.LanguageCode;
+        if (!string.IsNullOrWhiteSpace(request.LanguageCode))
+        {
+            if (!Merkato.Api.Services.ProductLanguageFilter.TryNormalize(request.LanguageCode, out updateLanguage))
+                return BadRequest("LanguageCode must be one of: en, om, am.");
+        }
+        if (request.Description?.Length > 2000)
+            return BadRequest("Product description must be 2,000 characters or fewer.");
+
         if (request.PriceEtb <= 0 || request.PriceEtb > 1000000000m)
             return BadRequest("Price must be greater than zero and within the supported ETB range.");
 
@@ -267,6 +295,9 @@ public class ProductsController : ControllerBase
 
         var previousPriceEtb = product.PriceEtb;
         product.Name = request.Name.Trim();
+        if (request.Description is not null)
+            product.Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
+        product.LanguageCode = updateLanguage;
         product.PriceEtb = request.PriceEtb;
         product.Location = string.IsNullOrWhiteSpace(request.Location)
             ? "Addis Ababa"
@@ -326,7 +357,7 @@ public class ProductsController : ControllerBase
             product.ImageUrl,
             product.IsActive,
             product.CreatedAt,
-            inventory.StockQuantity));
+            inventory.StockQuantity, false, product.Description, product.LanguageCode));
     }
 
     // ==========================================
@@ -487,7 +518,8 @@ public class ProductsController : ControllerBase
             product.ImageUrl,
             product.IsActive,
             product.CreatedAt,
-            await _db.ProductListingDetails.Where(x => x.ProductId == product.Id).Select(x => (int?)x.StockQuantity).FirstOrDefaultAsync() ?? 0));
+            await _db.ProductListingDetails.Where(x => x.ProductId == product.Id).Select(x => (int?)x.StockQuantity).FirstOrDefaultAsync() ?? 0,
+            false, product.Description, product.LanguageCode));
     }
 
     // ==========================================

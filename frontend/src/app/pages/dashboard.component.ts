@@ -430,6 +430,8 @@ import { ApiService, MerkatoProduct, MerkatoOrder, MerkatoDispute, MerchantAnaly
               <div class="editor-main">
                 <section class="editor-card"><div class="editor-card-title"><span class="editor-icon">▤</span><div><h4>General information</h4><p>Give your product a clear name and category.</p></div></div>
                   <label>Product name <input name="name" [(ngModel)]="draft.name" required maxlength="180" placeholder="e.g. Handmade leather bag"></label>
+                  <label>Product description <textarea name="description" [(ngModel)]="draft.description" required maxlength="2000" rows="3" placeholder="Describe this product in the listing language"></textarea></label>
+                  <label>Listing language <select name="languageCode" [(ngModel)]="draft.languageCode" required><option value="en">English</option><option value="om">Afaan Oromoo</option><option value="am">አማርኛ</option></select><small>Buyers see this listing only when their MERKATO language matches.</small></label>
                   <label>Category <select name="category" [(ngModel)]="draft.category" required><option *ngFor="let category of productCategories" [value]="category">{{category}}</option></select></label>
                   <label>Store city <select name="location" [(ngModel)]="draft.location" required><option *ngFor="let city of supportedCities" [value]="city">{{city}}</option></select></label>
                 </section>
@@ -567,7 +569,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   readonly businessTypes = ['Retail shop','Wholesale','Manufacturer','Farmer / producer','Service provider','Online store','Other'];
   readonly productCategories = ['Electronics','Fashion','Home & Living','Beauty & Personal Care','Food & Grocery','Agriculture','Automotive','Books & Education','Sports & Outdoors','Baby & Kids','Other'];
   verificationDraft = { businessName: '', businessType: '', city: 'Addis Ababa', contactPhone: '' };
-  draft = { name: '', priceEtb: 0, stockQuantity: 0, category: 'Other', location: 'Addis Ababa', emoji: '🛍️' };
+  draft = { name: '', description: '', languageCode: 'en', priceEtb: 0, stockQuantity: 0, category: 'Other', location: 'Addis Ababa', emoji: '🛍️' };
   get hasExistingProductImage(): boolean {
     return this.editingProductId !== null &&
       !!this.merchantProducts.find(product => product.id === this.editingProductId)?.imageUrl;
@@ -719,7 +721,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
   createProduct(): void {
     this.productError = '';
-    if (this.draft.name.trim().length < 3 || this.draft.name.trim().length > 180 || this.draft.priceEtb <= 0 || !this.draft.category.trim() || !this.draft.location.trim()) { this.productError = 'Enter a clear product name, category, store city and a price greater than zero.'; return; }
+    if (this.draft.name.trim().length < 3 || this.draft.name.trim().length > 180 || !this.draft.description.trim() || this.draft.description.trim().length > 2000 || !['en','om','am'].includes(this.draft.languageCode) || this.draft.priceEtb <= 0 || !this.draft.category.trim() || !this.draft.location.trim()) { this.productError = 'Enter a product name, description, supported listing language, category, store city and a price greater than zero.'; return; }
     if (!this.selectedImage && !(this.editingProductId && this.merchantProducts.some(p => p.id === this.editingProductId && !!p.imageUrl))) { this.productError = 'Add a clear product photo before publishing. Buyers need to see what they are ordering.'; return; }
     this.saving = true;
     const request = this.editingProductId
@@ -743,7 +745,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
                 ? this.merchantProducts.map(item => item.id === product.id ? product : item)
                 : [product, ...this.merchantProducts];
               this.editingProductId = product.id;
-              this.draft = { name: product.name, priceEtb: product.priceEtb, stockQuantity: product.stockQuantity ?? 0, category: product.category, location: product.location, emoji: product.emoji || '🛍️' };
+              this.draft = { name: product.name, description: product.description || '', languageCode: product.languageCode || 'en', priceEtb: product.priceEtb, stockQuantity: product.stockQuantity ?? 0, category: product.category, location: product.location, emoji: product.emoji || '🛍️' };
               this.showProductForm = true;
               this.saving = false;
               this.productError = err?.status === 413
@@ -758,10 +760,22 @@ export class DashboardComponent implements OnInit, OnDestroy {
       error: err => { this.saving = false; this.productError = err?.status === 0 ? 'Cannot reach the API.' : 'Product could not be saved. Check your merchant permissions and form values.'; }
     });
   }
-  toggleProductForm(): void { if (this.showProductForm) this.cancelEdit(); else this.showProductForm = true; }
+  private currentAppLanguage(): 'en' | 'om' | 'am' {
+    try {
+      const value = localStorage.getItem('merkato_language');
+      return value === 'om' || value === 'am' ? value : 'en';
+    } catch { return 'en'; }
+  }
+  toggleProductForm(): void {
+    if (this.showProductForm) this.cancelEdit();
+    else {
+      this.draft.languageCode = this.currentAppLanguage();
+      this.showProductForm = true;
+    }
+  }
   editProduct(product: MerkatoProduct): void {
     this.editingProductId = product.id;
-    this.draft = { name: product.name, priceEtb: product.priceEtb, stockQuantity: product.stockQuantity ?? 0, category: product.category, location: product.location, emoji: product.emoji || '🛍️' };
+    this.draft = { name: product.name, description: product.description || '', languageCode: product.languageCode || 'en', priceEtb: product.priceEtb, stockQuantity: product.stockQuantity ?? 0, category: product.category, location: product.location, emoji: product.emoji || '🛍️' };
     this.showProductForm = true;
     this.clearSelectedImage();
     this.productError = '';
@@ -770,7 +784,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.clearSelectedImage();
     this.editingProductId = null;
     this.showProductForm = false;
-    this.draft = { name: '', priceEtb: 0, stockQuantity: 0, category: 'Other', location: 'Addis Ababa', emoji: '🛍️' };
+    this.draft = { name: '', description: '', languageCode: this.currentAppLanguage(), priceEtb: 0, stockQuantity: 0, category: 'Other', location: 'Addis Ababa', emoji: '🛍️' };
   }
   removeProduct(product: MerkatoProduct): void {
     if (!window.confirm('Archive ' + product.name + '? It will no longer appear in the public marketplace.')) return;

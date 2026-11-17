@@ -247,6 +247,9 @@ public class Product
     public long SellerId { get; set; }
 
     public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    // Language of the seller-authored listing content: en, om, or am.
+    public string LanguageCode { get; set; } = "en";
 
     [Column(TypeName = "numeric(18,4)")]
     public decimal PriceEtb { get; set; }
