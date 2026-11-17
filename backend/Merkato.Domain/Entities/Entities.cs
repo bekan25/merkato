@@ -1,4 +1,25 @@
-using System.ComponentModel.DataAnnotations;
+public class Product
+{
+    public long Id { get; set; }
+    public long SellerId { get; set; }
+
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    // Language of the seller-authored listing content: en, om, or am.
+    public string LanguageCode { get; set; } = "en";
+
+    [Column(TypeName = "numeric(18,4)")]
+    public decimal PriceEtb { get; set; }
+
+    public string Location { get; set; } = "Addis Ababa";
+    public string Category { get; set; } = "Other";
+    public string Emoji { get; set; } = "???";
+    public string? ImageUrl { get; set; }
+    public bool IsActive { get; set; } = true;
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+}using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Merkato.Domain.Enums;
 
