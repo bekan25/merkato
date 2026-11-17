@@ -1,6 +1,6 @@
-namespace Merkato.Api.Services;
-
 using Merkato.Domain.Entities;
+
+namespace Merkato.Api.Services;
 
 /// <summary>
 /// Keeps public product discovery scoped to the language in which the seller
