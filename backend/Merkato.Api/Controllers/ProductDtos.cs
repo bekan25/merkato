@@ -11,7 +11,7 @@ public record CreateProductRequest(
     string Emoji,
     int StockQuantity = 0,
     string? Description = null,
-    string LanguageCode = "en"
+    string? LanguageCode = null
 );
 
 public record ProductResponse(
