@@ -1,4 +1,22 @@
-import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+    this.draft = { name: '', description: '', languageCode: this.currentAppLanguage(), priceEtb: 0, stockQuantity: 0, category: 'Other', location: 'Addis Ababa', emoji: '🛍️' };  private currentAppLanguage(): 'en' | 'om' | 'am' {
+    try {
+      const value = localStorage.getItem('merkato_language');
+      return value === 'om' || value === 'am' ? value : 'en';
+    } catch { return 'en'; }
+  }
+  toggleProductForm(): void {
+    if (this.showProductForm) this.cancelEdit();
+    else {
+      this.draft.languageCode = this.currentAppLanguage();
+      this.showProductForm = true;
+    }
+  }
+  editProduct(product: MerkatoProduct): void {
+    this.editingProductId = product.id;
+    this.draft = { name: product.name, description: product.description || '', languageCode: product.languageCode || 'en', priceEtb: product.priceEtb, stockQuantity: product.stockQuantity ?? 0, category: product.category, location: product.location, emoji: product.emoji || '🛍️' };              this.draft = { name: product.name, description: product.description || '', languageCode: product.languageCode || 'en', priceEtb: product.priceEtb, stockQuantity: product.stockQuantity ?? 0, category: product.category, location: product.location, emoji: product.emoji || '🛍️' };    if (this.draft.name.trim().length < 3 || this.draft.name.trim().length > 180 || !this.draft.description.trim() || this.draft.description.trim().length > 2000 || !['en','om','am'].includes(this.draft.languageCode) || this.draft.priceEtb <= 0 || !this.draft.category.trim() || !this.draft.location.trim()) { this.productError = 'Enter a product name, description, supported listing language, category, store city and a price greater than zero.'; return; }  draft = { name: '', description: '', languageCode: 'en', priceEtb: 0, stockQuantity: 0, category: 'Other', location: 'Addis Ababa', emoji: '🛍️' };                  <label>Product name <input name="name" [(ngModel)]="draft.name" required maxlength="180" placeholder="e.g. Handmade leather bag"></label>
+                  <label>Product description <textarea name="description" [(ngModel)]="draft.description" required maxlength="2000" rows="3" placeholder="Describe this product in the listing language"></textarea></label>
+                  <label>Listing language <select name="languageCode" [(ngModel)]="draft.languageCode" required><option value="en">English</option><option value="om">Afaan Oromoo</option><option value="am">አማርኛ</option></select><small>Buyers see this listing only when their MERKATO language matches.</small></label>
+                  <label>Category <select name="category" [(ngModel)]="draft.category" required>import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
