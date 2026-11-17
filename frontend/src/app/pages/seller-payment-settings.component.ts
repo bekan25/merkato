@@ -1,7 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ApiService, SellerPaymentAccount } from '../core/api.service';
+import { ApiService, SellerPaymentAccount, SellerChapaOnboarding } from '../core/api.service';
 
 @Component({
   standalone: true,
@@ -20,6 +20,16 @@ import { ApiService, SellerPaymentAccount } from '../core/api.service';
         <p>Enter an account that belongs to your business or you. Buyers will see these details for the matching payment method. MERKATO does not receive or hold seller-direct transfers. Never enter your PIN, password, or one-time code.</p>
       </section>
 
+      <section class="panel chapa-panel">
+        <div class="chapa-heading">
+          <img src="/assets/payment-methods/chapa.svg" alt="Chapa" width="112" height="45">
+          <div><h2>Chapa seller settlement</h2><p class="muted">Connect an approved Chapa subaccount to receive seller proceeds through hosted checkout.</p></div>
+        </div>
+        <div class="chapa-status"><span class="status-dot" [class.approved]="chapa?.hasApprovedSubaccount"></span><strong>{{chapaStatusLabel()}}</strong></div>
+        <p class="muted" *ngIf="chapa?.hasApprovedSubaccount">Your Chapa subaccount is approved. Checkout activation is still controlled by MERKATO after provider verification and sandbox testing.</p>
+        <p class="muted" *ngIf="!chapa?.hasApprovedSubaccount">Chapa checkout is not available yet. MERKATO is waiting for marketplace split-payment approval and seller subaccount onboarding. Your existing direct-to-seller accounts remain active.</p>
+        <small class="chapa-meta" *ngIf="chapa?.accountNumberLast4">Verified payout account ending •••• {{chapa?.accountNumberLast4}}</small>
+      </section>
       <section class="panel">
         <h2>{{editingId ? 'Update payment account' : 'Add payment account'}}</h2>
         <form (ngSubmit)="save()">
@@ -69,6 +79,7 @@ import { ApiService, SellerPaymentAccount } from '../core/api.service';
     </main>
   `,
   styles: [`
+    .chapa-heading{display:flex;align-items:center;gap:16px}.chapa-heading h2{margin:0 0 5px}.chapa-heading p{margin:0}.chapa-status{display:flex;align-items:center;gap:9px;margin:16px 0 8px;color:#72551d;font-size:12px}.status-dot{width:9px;height:9px;border-radius:50%;background:#c49a36}.status-dot.approved{background:#25834c}.chapa-meta{display:block;color:#63786a;font-size:11px;margin-top:8px}.chapa-panel{border-color:#e7def4;background:linear-gradient(135deg,#fff 0%,#fbf8ff 100%)}
     :host{display:block;min-height:80vh;background:#f4f7f3;color:#20382a;font-family:Inter,Arial,sans-serif}
     .page{max-width:900px;margin:auto;padding:30px 16px 70px}.hero{padding:12px 2px 20px}
     .eyebrow{color:#a27e36;font-size:10px;font-weight:900;letter-spacing:1.5px}
@@ -94,6 +105,7 @@ import { ApiService, SellerPaymentAccount } from '../core/api.service';
 export class SellerPaymentSettingsComponent implements OnInit {
   private api = inject(ApiService);
   accounts: SellerPaymentAccount[] = [];
+  chapa: SellerChapaOnboarding | null = null;
   loading = true;
   saving = false;
   error = '';
@@ -110,10 +122,17 @@ export class SellerPaymentSettingsComponent implements OnInit {
 
   load(): void {
     this.loading = true;
+    this.api.getMyChapaOnboarding().subscribe({ next: row => this.chapa = row, error: () => this.chapa = null });
     this.api.getSellerPaymentAccounts().subscribe({
       next: rows => { this.accounts = rows ?? []; this.loading = false; },
       error: e => { this.error = e?.error?.error || 'Could not load seller payment accounts.'; this.loading = false; }
     });
+  }
+
+  chapaStatusLabel(): string {
+    if (this.chapa?.hasApprovedSubaccount) return 'Seller subaccount approved';
+    const status = this.chapa?.onboardingStatus || 'NOT_STARTED';
+    return ({ NOT_STARTED: 'Not connected', PENDING: 'Approval pending', REJECTED: 'Needs review' } as Record<string, string>)[status] || status;
   }
 
   railName(rail: string): string {

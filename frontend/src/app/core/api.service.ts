@@ -160,6 +160,18 @@ export interface SellerPaymentAccount {
   updatedAt: string;
 }
 
+export interface SellerChapaOnboarding {
+  onboardingStatus: 'NOT_STARTED' | 'PENDING' | 'APPROVED' | 'REJECTED' | string;
+  businessName?: string | null;
+  accountName?: string | null;
+  bankCode?: string | null;
+  accountNumberLast4?: string | null;
+  providerReference?: string | null;
+  submittedAt?: string | null;
+  verifiedAt?: string | null;
+  hasApprovedSubaccount: boolean;
+}
+
 export interface SellerPaymentDestination {
   orderId: number;
   orderNumber: string;
@@ -369,6 +381,10 @@ export class ApiService {
     form.append('receipt', receipt, receipt.name);
     if (transactionReference.trim()) form.append('transactionReference', transactionReference.trim());
     return this.http.post<PaymentReceiptUploadResult>('/api/payment-receipts', form);
+  }
+
+  getMyChapaOnboarding(): Observable<SellerChapaOnboarding> {
+    return this.http.get<SellerChapaOnboarding>(`${this.baseUrl}/seller-payment-accounts/chapa/mine`);
   }
 
   getMyPaymentReceipts(): Observable<unknown[]> {
