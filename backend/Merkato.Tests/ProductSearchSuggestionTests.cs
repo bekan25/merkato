@@ -34,6 +34,33 @@ public sealed class ProductSearchSuggestionTests
     }
 
     [Fact]
+    public async Task Apply_RanksExactThenPrefixThenContainsMatches()
+    {
+        var options = new DbContextOptionsBuilder<MerkatoDbContext>()
+            .UseInMemoryDatabase(nameof(Apply_RanksExactThenPrefixThenContainsMatches))
+            .Options;
+
+        await using var db = new MerkatoDbContext(options);
+        db.Products.AddRange(
+            new Product { Id = 1, SellerId = 10, Name = "Smart Bilbila", LanguageCode = "om", IsActive = true },
+            new Product { Id = 2, SellerId = 10, Name = "Bilbila Mini", LanguageCode = "om", IsActive = true },
+            new Product { Id = 3, SellerId = 10, Name = "Bilbila", LanguageCode = "om", IsActive = true },
+            new Product { Id = 4, SellerId = 10, Name = "Bilbila Case", LanguageCode = "om", IsActive = true },
+            new Product { Id = 5, SellerId = 10, Name = "Other Product", Description = "Bilbila", LanguageCode = "om", IsActive = true },
+            new Product { Id = 6, SellerId = 10, Name = "Phone Bilbila", LanguageCode = "en", IsActive = true });
+
+        await db.SaveChangesAsync();
+
+        var suggestions = await ProductSearchSuggestionService
+            .Apply(db.Products.AsNoTracking(), "om", "bilbila")
+            .ToListAsync();
+
+        Assert.Equal(
+            new[] { "Bilbila", "Bilbila Case", "Bilbila Mini", "Smart Bilbila" },
+            suggestions);
+    }
+
+    [Fact]
     public async Task Apply_UsesProductNameOnlyAndDoesNotSuggestDescriptionText()
     {
         var options = new DbContextOptionsBuilder<MerkatoDbContext>()
