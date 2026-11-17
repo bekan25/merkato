@@ -19,7 +19,7 @@ public static class ProductSearchSuggestionService
 
         var term = (searchTerm ?? string.Empty).Trim().ToLowerInvariant();
         if (term.Length < 2)
-            return Enumerable.Empty<string>().AsQueryable();
+            return products.Where(product => false).Select(product => product.Name);
 
         return ProductLanguageFilter.Apply(
                 products.Where(product => product.IsActive),
