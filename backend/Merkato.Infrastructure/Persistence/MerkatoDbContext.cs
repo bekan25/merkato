@@ -1,18 +1,4 @@
-            entity.HasIndex(p => p.SellerId);
-            entity.HasIndex(p => p.Category);
-            entity.HasIndex(p => p.IsActive);
-            entity.HasIndex(p => p.LanguageCode);            entity.Property(p => p.Name)
-                .HasMaxLength(200)
-                .IsRequired();
-
-            entity.Property(p => p.Description)
-                .HasMaxLength(2000);
-
-            entity.Property(p => p.LanguageCode)
-                .HasMaxLength(5)
-                .IsRequired();
-
-            entity.Property(p => p.PriceEtb)using Merkato.Domain.Entities;
+using Merkato.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace Merkato.Infrastructure.Persistence;
@@ -183,9 +169,17 @@ modelBuilder.Entity<UserAddress>(e =>
             entity.HasIndex(p => p.SellerId);
             entity.HasIndex(p => p.Category);
             entity.HasIndex(p => p.IsActive);
+            entity.HasIndex(p => p.LanguageCode);
 
             entity.Property(p => p.Name)
                 .HasMaxLength(200)
+                .IsRequired();
+
+            entity.Property(p => p.Description)
+                .HasMaxLength(2000);
+
+            entity.Property(p => p.LanguageCode)
+                .HasMaxLength(5)
                 .IsRequired();
 
             entity.Property(p => p.PriceEtb)
