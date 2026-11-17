@@ -67,7 +67,16 @@ import { MkSkeletonComponent } from '../shared/ui-primitives.component';
         <div><span class="eyebrow">{{ t('marketplace') }}</span><h2>{{ t('freshSellers') }}</h2><p>{{ t('merchantOfferings') }}</p></div>
         <button class="mobile-filter-toggle" type="button" (click)="filtersOpen = !filtersOpen" [attr.aria-expanded]="filtersOpen">{{ t('filters') }} <span aria-hidden="true">⌄</span></button>
         <div class="market-controls market-filter-panel" [class.filters-open]="filtersOpen">
-          <label class="search-box"><span>⌕</span><input [(ngModel)]="search" (ngModelChange)="onSearchChange()" placeholder="{{ t('searchProducts') }}" aria-label="Search products"></label>
+          <div class="search-autocomplete">
+            <label class="search-box"><span aria-hidden="true">⌕</span><input [(ngModel)]="search" (ngModelChange)="onSearchChange()" (keydown)="onSearchKeydown($event)" (focus)="onSearchFocus()" (blur)="onSearchBlur()" placeholder="{{ t('searchProducts') }}" [attr.aria-label]="t('searchProducts')" role="combobox" aria-autocomplete="list" [attr.aria-expanded]="suggestionsOpen" aria-controls="market-search-suggestions" [attr.aria-activedescendant]="activeSuggestionIndex >= 0 ? 'market-search-option-' + activeSuggestionIndex : null" autocomplete="off"></label>
+            <div class="search-suggestions" id="market-search-suggestions" role="listbox" *ngIf="suggestionsOpen && suggestions.length">
+              <div class="search-suggestions-heading">{{t('searchSuggestions')}}</div>
+              <button type="button" role="option" *ngFor="let suggestion of suggestions; let i = index" [id]="'market-search-option-' + i" [attr.aria-selected]="activeSuggestionIndex === i" [class.active]="activeSuggestionIndex === i" (pointerdown)="$event.preventDefault()" (click)="selectSearchSuggestion(suggestion)">
+                <span aria-hidden="true">⌕</span><span>{{suggestion}}</span><small>↵</small>
+              </button>
+            </div>
+            <div class="search-suggestions-status" *ngIf="suggestionsLoading && searchFocused" role="status">{{t('searchingSuggestions')}}</div>
+          </div>
           <select [(ngModel)]="city" (ngModelChange)="loadProducts()" [attr.aria-label]="t('cityArea')"><option *ngFor="let item of cityOptions" [value]="item.value">{{item.label}}</option></select>
           <select [(ngModel)]="category" (ngModelChange)="loadProducts()" aria-label="Filter by category"><option *ngFor="let c of categoryOptions" [value]="c">{{c}}</option></select>
           <label class="price-filter-wrap"><span>Min ETB</span><input class="price-filter" type="number" min="0" [(ngModel)]="minPrice" placeholder="{{ t('minEtb') }}" aria-label="Minimum price"></label>
@@ -301,8 +310,17 @@ import { MkSkeletonComponent } from '../shared/ui-primitives.component';
     .category-list .category-all-card strong{font-size:12px;font-weight:800}.category-list .category-all-card small{font-size:9px;color:#75877a}.category-list .category-all-card.selected{border-color:#0d7650;box-shadow:inset 0 0 0 1px #0d7650}
     /* Layer 3 — product discovery, responsive filters and accessible cards */
     .market-filter-panel{display:grid;grid-template-columns:minmax(220px,1.7fr) repeat(3,minmax(115px,.8fr)) repeat(2,minmax(95px,.65fr));gap:9px;align-items:center;padding:13px;border:1px solid #e9eee6;border-radius:16px;background:#fff;box-shadow:0 8px 25px rgba(20,55,39,.045)}
+     .market-filter-panel .search-autocomplete{position:relative;z-index:20;min-width:0}
     .market-filter-panel .search-box{min-width:0;width:100%;height:46px;border:1px solid #e5ebe3;border-radius:10px;padding:0 13px}.market-filter-panel select{width:100%;min-width:0;height:46px;border:1px solid #e5ebe3;border-radius:10px;padding:0 10px;background:#fbfcfa;color:#425349;font-size:11px}
     .price-filter-wrap{display:grid;gap:4px;min-width:0;color:#89958b;font-size:9px;font-weight:800;letter-spacing:.04em}.price-filter-wrap .price-filter{width:100%;height:46px;border:1px solid #e5ebe3;border-radius:10px;background:#fbfcfa;font-size:11px}
+    .search-suggestions{position:absolute;top:calc(100% + 7px);left:0;right:0;z-index:60;max-height:280px;overflow:auto;padding:7px;border:1px solid #e4ebe1;border-radius:13px;background:rgba(255,255,255,.98);box-shadow:0 16px 38px rgba(18,59,47,.16);backdrop-filter:blur(14px)}
+    .search-suggestions-heading{padding:7px 10px 6px;color:#839087;font-size:9px;font-weight:900;letter-spacing:.1em;text-transform:uppercase}
+    .search-suggestions button{display:flex;align-items:center;gap:10px;width:100%;min-height:40px;padding:8px 10px;border:0;border-radius:8px;background:transparent;color:#244a38;text-align:left;font-size:12px;cursor:pointer}
+    .search-suggestions button>span:first-child{color:#829487;font-size:16px}
+    .search-suggestions button>span:nth-child(2){flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .search-suggestions button small{color:#9aa69c;font-size:10px}
+    .search-suggestions button:hover,.search-suggestions button.active,.search-suggestions button[aria-selected=true]{background:#edf5ed;color:#0b6845}
+    .search-suggestions-status{position:absolute;top:calc(100% + 7px);left:0;z-index:60;padding:12px 14px;border:1px solid #e4ebe1;border-radius:10px;background:#fff;color:#718075;font-size:11px;box-shadow:0 10px 25px rgba(18,59,47,.1)}
     .market-toolbar{padding:14px 2px 0}.market-toolbar>span{font-weight:700;color:#607267}
     .product-grid{align-items:stretch}.product-card{position:relative;display:flex;flex-direction:column;min-width:0;border:1px solid #e9eee7;border-radius:16px;background:#fff;overflow:hidden;transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease}
     .product-card:hover{transform:translateY(-5px);border-color:#d5e2d4;box-shadow:0 18px 38px rgba(18,59,47,.12)}
@@ -314,9 +332,9 @@ import { MkSkeletonComponent } from '../shared/ui-primitives.component';
     .compare-trigger{opacity:1;transform:translateY(0);bottom:11px;right:11px}
     .save-button:focus-visible,.quick-view-trigger:focus-visible,.compare-trigger:focus-visible,.add-button:focus-visible,.product-title-button:focus-visible{outline:3px solid #d8b56f;outline-offset:3px}
     .quick-view-dialog{max-height:min(90vh,760px);overflow:auto}
-    @media(max-width:1050px){.category-list.category-image-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.market-filter-panel{grid-template-columns:repeat(3,minmax(0,1fr))}.market-filter-panel .search-box{grid-column:span 3}}
-    @media(max-width:760px){.home-value-row{grid-template-columns:1fr;gap:8px;padding:15px 20px}.home-value-item{padding:10px 12px}.category-list.category-image-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.category-list.category-image-grid>button{height:126px}.category-list .category-all-card{min-height:126px}.market-filter-panel{grid-template-columns:repeat(2,minmax(0,1fr));padding:10px}.market-filter-panel .search-box{grid-column:span 2}.market-filter-panel select{height:43px}.price-filter-wrap .price-filter{height:43px}.product-visual{height:165px}.product-info{padding:12px}.product-title-button{font-size:12px}.compare-trigger{font-size:9px;padding:7px 9px}.product-image-hint{font-size:7px}}
-    @media(max-width:390px){.market-filter-panel{grid-template-columns:1fr}.market-filter-panel .search-box{grid-column:auto}.product-grid{gap:8px}.product-visual{height:135px}.product-info{padding:10px}.product-bottom>strong{font-size:13px}}
+    @media(max-width:1050px){.category-list.category-image-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.market-filter-panel{grid-template-columns:repeat(3,minmax(0,1fr))}.market-filter-panel .search-autocomplete{grid-column:span 3}}
+    @media(max-width:760px){.home-value-row{grid-template-columns:1fr;gap:8px;padding:15px 20px}.home-value-item{padding:10px 12px}.category-list.category-image-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.category-list.category-image-grid>button{height:126px}.category-list .category-all-card{min-height:126px}.market-filter-panel{grid-template-columns:repeat(2,minmax(0,1fr));padding:10px}.market-filter-panel .search-autocomplete{grid-column:span 2}.market-filter-panel select{height:43px}.price-filter-wrap .price-filter{height:43px}.product-visual{height:165px}.product-info{padding:12px}.product-title-button{font-size:12px}.compare-trigger{font-size:9px;padding:7px 9px}.product-image-hint{font-size:7px}}
+    @media(max-width:390px){.market-filter-panel{grid-template-columns:1fr}.market-filter-panel .search-autocomplete{grid-column:auto}.product-grid{gap:8px}.product-visual{height:135px}.product-info{padding:10px}.product-bottom>strong{font-size:13px}}
     @media(prefers-reduced-motion:reduce){.category-list.category-image-grid>button,.category-list.category-image-grid>button .category-photo,.product-card{transition:none}.category-list.category-image-grid>button:hover,.product-card:hover{transform:none}}
     /* Mobile home-page accessibility and trust polish */
     .hero h1{letter-spacing:-.02em}
@@ -373,6 +391,13 @@ export class StorefrontComponent implements OnInit, OnDestroy {
   private pendingProductId: number | null = null;
   private toastTimer?: ReturnType<typeof setTimeout>;
   private searchTimer?: ReturnType<typeof setTimeout>;
+  private suggestionTimer?: ReturnType<typeof setTimeout>;
+  private suggestionRequestId = 0;
+  suggestions: string[] = [];
+  suggestionsOpen = false;
+  suggestionsLoading = false;
+  searchFocused = false;
+  activeSuggestionIndex = -1;
   private savedIds = new Set<number>();
   priceAlertTarget = 0;
   showNotifications = false;
@@ -387,13 +412,18 @@ export class StorefrontComponent implements OnInit, OnDestroy {
     if (nextLanguage !== this.language) {
       this.language = nextLanguage;
       this.selectedProduct = null;
+      this.suggestions = [];
+      this.suggestionsOpen = false;
+      this.suggestionRequestId++;
+      if (this.suggestionTimer) clearTimeout(this.suggestionTimer);
       this.loadProducts();
+      this.refreshProductSuggestions();
     }
   };
   private readonly translations: Record<string, Record<string, string>> = {
-    en: { trust:'TRUSTED MARKETPLACE IN ETHIOPIA',heroTitle1:'Good finds.',heroTitle2:'Great connections.',heroCopy:'Discover products from local merchants, support Ethiopian businesses, and shop with more confidence.',explore:'Explore marketplace',startSelling:'Start selling',proofTitle:'Shop local. Grow together.',proofCopy:'Discover trusted Ethiopian merchants and products.',madeForEthiopia:'MADE FOR ETHIOPIA',realSellers:'Great products. Real local sellers.',discoverMore:'Discover something worth sharing',localFinds:'Local finds',secureShopping:'Secure shopping',trustedMarketplace:'Trusted marketplace',shopConfidence:'Shop with confidence',supportLocal:'Support local',growBusiness:'Grow Ethiopian business',greatDiscoveries:'Great discoveries',everydayEssentials:'Find everyday essentials',discoverLocal:'Discover local products',connectMerchants:'Connect with merchants',checkoutConfidence:'Checkout with confidence',supportBusiness:'Support local business',exploreYourWay:'EXPLORE YOUR WAY',nextFavourite:'Find your next favourite.',browseCategory:'Browse by category',marketplace:'THE MARKETPLACE',freshSellers:'Fresh from local sellers.',merchantOfferings:'Explore what Ethiopian merchants are offering today.',searchProducts:'Search products...',cityArea:'City / area',allEthiopia:'All Ethiopia',minEtb:'Min ETB',maxEtb:'Max ETB',newest:'Newest',priceLow:'Price: low to high',priceHigh:'Price: high to low',nameAZ:'Name A–Z',clearFilters:'Clear filters ×',finding:'Finding good things...',loadingProducts:'Loading products from the MERKATO marketplace.',connectionUnavailable:'Marketplace connection unavailable',tryAgainMoment:'Please try again in a moment.',tryAgain:'Try again',noProducts:'No products found yet',noProductsHelp:'Try another search or check back as merchants add their products.',quickView:'Quick view',share:'Share',shareProduct:'Share this product',linkCopied:'Product link copied. Share it with friends!',shareFailed:'Could not copy the product link. Please try again.',compare:'Compare',saved:'Saved',saveItem:'Save item',wholesale:'Bulk pricing & wholesale',businessDiscovered1:'Your business deserves',businessDiscovered2:'to be discovered.',sellerCopy:'Bring your products online and connect with customers across Ethiopia.',becomeMerchant:'Become a merchant',addToCart:'Add to cart',filters:'Filters',merchantCtaTitle:'Be among the first sellers',merchantCtaCopy:'Bring your products to a growing Ethiopian marketplace.',merchantCtaAction:'Become a merchant',whyTitle:'Why shop with MERKATO?',verifiedTitle:'Verified merchants',verifiedCopy:'Merchant identity checks help you shop with confidence.',secureTitle:'Transparent payment review',secureCopy:'See the seller’s payment destination and submit a receipt for manual verification.',deliveryTitle:'Delivery & tracking',deliveryCopy:'Follow order updates from checkout to delivery.',disputeTitle:'Dispute protection',disputeCopy:'Get support when an order needs attention.',sellerBenefit1:'Reach customers across Ethiopia',sellerBenefit2:'Manage products and incoming orders',sellerBenefit3:'Grow your business with useful insights' },
-    om: { trust:'GABAA GURGURTAA ITOOPHIYAA',heroTitle1:'Oomisha gaarii.',heroTitle2:'Walitti dhufeenya gaarii.',heroCopy:'Oomisha daldaltoota naannoo irraa argadhu; daldala Itoophiyaa deeggaruun ofitti amanamummaadhaan bitadhu.',explore:'Gabaa qoradhu',startSelling:'Gurguruu jalqabi',proofTitle:'Naannoo kee irraa biti. Waliin guddadhaa.',proofCopy:'Daldaltoota Itoophiyaa amanamoo fi oomisha isaanii argadhu.',madeForEthiopia:'ITOOPHIYAADHAAF KAN QOPHAA’E',realSellers:'Oomisha gaarii. Gurgurtoota dhugaa.',discoverMore:'Waan gaarii qooduu dandeessu argadhu',localFinds:'Oomisha naannoo',secureShopping:'Bittaa nageenya qabu',trustedMarketplace:'Gabaa amanamaa',shopConfidence:'Ofitti amanamummaadhaan biti',supportLocal:'Naannoo deeggaru',growBusiness:'Daldala Itoophiyaa guddisi',greatDiscoveries:'Argannoo gaarii',everydayEssentials:'Waan guyyaa guyyaa barbaachisu argadhu',discoverLocal:'Oomisha naannoo argadhu',connectMerchants:'Daldaltoota waliin wal qunnami',checkoutConfidence:'Ofitti amanamummaadhaan kaffali',supportBusiness:'Daldala naannoo deeggaru',exploreYourWay:'AKKA FEDHETTI QORADHU',nextFavourite:'Oomisha itti aanu jaallattu argadhu.',browseCategory:'Ramaddii irratti hundaa’i',marketplace:'GABAA',freshSellers:'Daldaltoota naannoo irraa haaraa.',merchantOfferings:'Oomisha daldaltoonni Itoophiyaa har’a dhiyeessan ilaali.',searchProducts:'Oomisha barbaadi...',cityArea:'Magaalaa / naannoo',allEthiopia:'Itoophiyaa guutuu',minEtb:'ETB xiqqaa',maxEtb:'ETB guddaa',newest:'Haaraa',priceLow:'Gatii gadi irraa olitti',priceHigh:'Gatii ol irraa gadiitti',nameAZ:'Maqaa A–Z',clearFilters:'Filannoo qulqulleessi ×',finding:'Oomisha gaarii barbaadaa jira...',loadingProducts:'Oomishaalee gabaa MERKATO irraa fe’aa jira.',connectionUnavailable:'Walqunnamtiin gabaa hin jiru',tryAgainMoment:'Maaloo yeroo muraasa booda yaali.',tryAgain:'Irra deebi’i',noProducts:'Ammaaf oomishni hin argamne',noProductsHelp:'Barbaacha biraa yaali ykn daldaltoonni oomisha dabalan eegi.',quickView:'Saffisaan ilaali',share:'Qoodi',shareProduct:'Oomisha kana qoodi',linkCopied:'Linkiin oomishaa copy ta’eera. Hiriyoota waliin qoodi!',shareFailed:'Linkii copy gochuun hin danda’amne. Irra deebi’i yaali.',compare:'Wal bira qabi',saved:'Kuufameera',saveItem:'Kuusi',wholesale:'Gatii jumlaa',businessDiscovered1:'Daldalli kee',businessDiscovered2:'akka beekamu malu.',sellerCopy:'Oomisha kee toora interneetii irratti dhiyeessi; maamiltoota Itoophiyaa waliin wal qunnami.',becomeMerchant:'Daldalaa ta’i',addToCart:'Gara gaarii bittaa dabali',filters:'Filtoota',merchantCtaTitle:'Daldaltoota jalqabaa keessaa tokko ta’i',merchantCtaCopy:'Oomisha kee gabaa Itoophiyaa guddachaa jiru irratti dhiyeessi.',merchantCtaAction:'Daldalaa ta’i',whyTitle:'Maaliif MERKATO irratti bitatta?',verifiedTitle:'Daldaltoota mirkanaa’an',verifiedCopy:'Mirkaneessi eenyummaa daldalaa ofitti amanamummaadhaan akka bittu si gargaara.',secureTitle:'Kaffaltii ifa ta’e',secureCopy:'Akkaawuntii kaffaltii daldalaa ilaali; ragaa ergi, daldalaan harkaan mirkaneessa.',deliveryTitle:'Geejjiba fi hordoffii',deliveryCopy:'Ajaja kee kaffaltii irraa hanga geessuutti hordofi.',disputeTitle:'Eegumsa falmii',disputeCopy:'Ajajni rakkoo yoo qabaate deeggarsa argadhu.',sellerBenefit1:'Maamiltoota guutuu Itoophiyaa bira ga’i',sellerBenefit2:'Oomisha fi ajaja seenu bulchi',sellerBenefit3:'Hubannoo daldalaa fayyadamuun guddadhu' },
-    am: { trust:'በኢትዮጵያ የታመነ የገበያ መድረክ',heroTitle1:'ጥሩ ምርቶች።',heroTitle2:'ጥሩ ግንኙነቶች።',heroCopy:'ከአካባቢያዊ ነጋዴዎች ምርቶችን ያግኙ፣ የኢትዮጵያ ንግዶችን ይደግፉ።',explore:'ገበያውን ይመልከቱ',startSelling:'መሸጥ ይጀምሩ',proofTitle:'አካባቢያዊ ይግዙ። አብረን እናድግ።',proofCopy:'የታመኑ የኢትዮጵያ ነጋዴዎችን ያግኙ።',madeForEthiopia:'ለኢትዮጵያ የተዘጋጀ',realSellers:'ጥሩ ምርቶች። እውነተኛ አካባቢያዊ ሻጮች።',discoverMore:'ለማጋራት የሚገባ ነገር ያግኙ',localFinds:'አካባቢያዊ ምርቶች',secureShopping:'ደህንነቱ የተጠበቀ ግዢ',trustedMarketplace:'የታመነ ገበያ',shopConfidence:'በመተማመን ይግዙ',supportLocal:'አካባቢያዊን ይደግፉ',growBusiness:'የኢትዮጵያን ንግድ ያሳድጉ',greatDiscoveries:'ጥሩ ግኝቶች',everydayEssentials:'የዕለት ተዕለት አስፈላጊ ነገሮችን ያግኙ',discoverLocal:'አካባቢያዊ ምርቶችን ያግኙ',connectMerchants:'ከነጋዴዎች ጋር ይገናኙ',checkoutConfidence:'በመተማመን ይክፈሉ',supportBusiness:'አካባቢያዊ ንግድን ይደግፉ',exploreYourWay:'በሚፈልጉት መንገድ ይመርምሩ',nextFavourite:'ቀጣዩን ተወዳጅ ምርት ያግኙ።',browseCategory:'በምድብ ይመልከቱ',marketplace:'ገበያው',freshSellers:'ከአካባቢያዊ ሻጮች አዲስ።',merchantOfferings:'የኢትዮጵያ ነጋዴዎች ዛሬ የሚያቀርቡትን ይመልከቱ።',searchProducts:'ምርቶችን ይፈልጉ...',cityArea:'ከተማ / አካባቢ',allEthiopia:'መላው ኢትዮጵያ',minEtb:'ዝቅተኛ ETB',maxEtb:'ከፍተኛ ETB',newest:'አዲስ',priceLow:'ዋጋ፦ ከዝቅተኛ ወደ ከፍተኛ',priceHigh:'ዋጋ፦ ከከፍተኛ ወደ ዝቅተኛ',nameAZ:'ስም A–Z',clearFilters:'ማጣሪያዎችን አጽዳ ×',finding:'ጥሩ ምርቶችን በመፈለግ ላይ...',loadingProducts:'ከMERKATO ገበያ ምርቶችን በመጫን ላይ።',connectionUnavailable:'የገበያ ግንኙነት አልተገኘም',tryAgainMoment:'እባክዎ በትንሽ ጊዜ ይሞክሩ።',tryAgain:'እንደገና ይሞክሩ',noProducts:'እስካሁን ምርቶች አልተገኙም',noProductsHelp:'ሌላ ፍለጋ ይሞክሩ ወይም ሻጮች ምርቶችን እስኪጨምሩ ይጠብቁ።',quickView:'በፍጥነት ይመልከቱ',share:'አጋራ',shareProduct:'ይህን ምርት አጋራ',linkCopied:'የምርት ሊንክ ተቀድቷል። ለጓደኞችዎ ያጋሩ!',shareFailed:'የምርት ሊንኩን መቅዳት አልተቻለም። እንደገና ይሞክሩ።',compare:'ያወዳድሩ',saved:'ተቀምጧል',saveItem:'አስቀምጥ',wholesale:'የጅምላ ዋጋ',businessDiscovered1:'ንግድዎ ሊታወቅ',businessDiscovered2:'ይገባል።',sellerCopy:'ምርቶችዎን በመስመር ላይ ያቅርቡ እና ከኢትዮጵያ ደንበኞች ጋር ይገናኙ።',becomeMerchant:'ነጋዴ ይሁኑ',addToCart:'ወደ ጋሪ ጨምር',filters:'ማጣሪያዎች',merchantCtaTitle:'ከመጀመሪያዎቹ ሻጮች አንዱ ይሁኑ',merchantCtaCopy:'ምርቶችዎን እያደገ ባለው የኢትዮጵያ ገበያ ላይ ያቅርቡ።',merchantCtaAction:'ነጋዴ ይሁኑ',whyTitle:'ለምን MERKATO ላይ ይግዙ?',verifiedTitle:'የተረጋገጡ ነጋዴዎች',verifiedCopy:'የነጋዴ ማንነት ማረጋገጫ በመተማመን እንዲገዙ ይረዳዎታል።',secureTitle:'ግልጽ የክፍያ ማረጋገጫ',secureCopy:'የሻጩን የክፍያ መለያ ይመልከቱ፤ ደረሰኝ ያስገቡ፣ ሻጩም በእጅ ያረጋግጣል።',deliveryTitle:'ማድረስ እና ክትትል',deliveryCopy:'ትዕዛዝዎን ከክፍያ እስከ ማድረስ ይከታተሉ።',disputeTitle:'የክርክር ጥበቃ',disputeCopy:'ትዕዛዝ ችግር ሲኖረው ድጋፍ ያግኙ።',sellerBenefit1:'በመላው ኢትዮጵያ ያሉ ደንበኞችን ያግኙ',sellerBenefit2:'ምርቶችን እና የሚገቡ ትዕዛዞችን ያስተዳድሩ',sellerBenefit3:'በጠቃሚ የንግድ ግንዛቤ ያድጉ' }
+    en: { trust:'TRUSTED MARKETPLACE IN ETHIOPIA',heroTitle1:'Good finds.',heroTitle2:'Great connections.',heroCopy:'Discover products from local merchants, support Ethiopian businesses, and shop with more confidence.',explore:'Explore marketplace',startSelling:'Start selling',proofTitle:'Shop local. Grow together.',proofCopy:'Discover trusted Ethiopian merchants and products.',madeForEthiopia:'MADE FOR ETHIOPIA',realSellers:'Great products. Real local sellers.',discoverMore:'Discover something worth sharing',localFinds:'Local finds',secureShopping:'Secure shopping',trustedMarketplace:'Trusted marketplace',shopConfidence:'Shop with confidence',supportLocal:'Support local',growBusiness:'Grow Ethiopian business',greatDiscoveries:'Great discoveries',everydayEssentials:'Find everyday essentials',discoverLocal:'Discover local products',connectMerchants:'Connect with merchants',checkoutConfidence:'Checkout with confidence',supportBusiness:'Support local business',exploreYourWay:'EXPLORE YOUR WAY',nextFavourite:'Find your next favourite.',browseCategory:'Browse by category',marketplace:'THE MARKETPLACE',freshSellers:'Fresh from local sellers.',merchantOfferings:'Explore what Ethiopian merchants are offering today.',searchProducts:'Search products...',searchSuggestions:'SUGGESTIONS',searchingSuggestions:'Finding matching products...',cityArea:'City / area',allEthiopia:'All Ethiopia',minEtb:'Min ETB',maxEtb:'Max ETB',newest:'Newest',priceLow:'Price: low to high',priceHigh:'Price: high to low',nameAZ:'Name A–Z',clearFilters:'Clear filters ×',finding:'Finding good things...',loadingProducts:'Loading products from the MERKATO marketplace.',connectionUnavailable:'Marketplace connection unavailable',tryAgainMoment:'Please try again in a moment.',tryAgain:'Try again',noProducts:'No products found yet',noProductsHelp:'Try another search or check back as merchants add their products.',quickView:'Quick view',share:'Share',shareProduct:'Share this product',linkCopied:'Product link copied. Share it with friends!',shareFailed:'Could not copy the product link. Please try again.',compare:'Compare',saved:'Saved',saveItem:'Save item',wholesale:'Bulk pricing & wholesale',businessDiscovered1:'Your business deserves',businessDiscovered2:'to be discovered.',sellerCopy:'Bring your products online and connect with customers across Ethiopia.',becomeMerchant:'Become a merchant',addToCart:'Add to cart',filters:'Filters',merchantCtaTitle:'Be among the first sellers',merchantCtaCopy:'Bring your products to a growing Ethiopian marketplace.',merchantCtaAction:'Become a merchant',whyTitle:'Why shop with MERKATO?',verifiedTitle:'Verified merchants',verifiedCopy:'Merchant identity checks help you shop with confidence.',secureTitle:'Transparent payment review',secureCopy:'See the seller’s payment destination and submit a receipt for manual verification.',deliveryTitle:'Delivery & tracking',deliveryCopy:'Follow order updates from checkout to delivery.',disputeTitle:'Dispute protection',disputeCopy:'Get support when an order needs attention.',sellerBenefit1:'Reach customers across Ethiopia',sellerBenefit2:'Manage products and incoming orders',sellerBenefit3:'Grow your business with useful insights' },
+    om: { trust:'GABAA GURGURTAA ITOOPHIYAA',heroTitle1:'Oomisha gaarii.',heroTitle2:'Walitti dhufeenya gaarii.',heroCopy:'Oomisha daldaltoota naannoo irraa argadhu; daldala Itoophiyaa deeggaruun ofitti amanamummaadhaan bitadhu.',explore:'Gabaa qoradhu',startSelling:'Gurguruu jalqabi',proofTitle:'Naannoo kee irraa biti. Waliin guddadhaa.',proofCopy:'Daldaltoota Itoophiyaa amanamoo fi oomisha isaanii argadhu.',madeForEthiopia:'ITOOPHIYAADHAAF KAN QOPHAA’E',realSellers:'Oomisha gaarii. Gurgurtoota dhugaa.',discoverMore:'Waan gaarii qooduu dandeessu argadhu',localFinds:'Oomisha naannoo',secureShopping:'Bittaa nageenya qabu',trustedMarketplace:'Gabaa amanamaa',shopConfidence:'Ofitti amanamummaadhaan biti',supportLocal:'Naannoo deeggaru',growBusiness:'Daldala Itoophiyaa guddisi',greatDiscoveries:'Argannoo gaarii',everydayEssentials:'Waan guyyaa guyyaa barbaachisu argadhu',discoverLocal:'Oomisha naannoo argadhu',connectMerchants:'Daldaltoota waliin wal qunnami',checkoutConfidence:'Ofitti amanamummaadhaan kaffali',supportBusiness:'Daldala naannoo deeggaru',exploreYourWay:'AKKA FEDHETTI QORADHU',nextFavourite:'Oomisha itti aanu jaallattu argadhu.',browseCategory:'Ramaddii irratti hundaa’i',marketplace:'GABAA',freshSellers:'Daldaltoota naannoo irraa haaraa.',merchantOfferings:'Oomisha daldaltoonni Itoophiyaa har’a dhiyeessan ilaali.',searchProducts:'Oomisha barbaadi...',searchSuggestions:'YAADA BARBAACHA',searchingSuggestions:'Oomisha wal fakkaatu barbaadaa jira...',cityArea:'Magaalaa / naannoo',allEthiopia:'Itoophiyaa guutuu',minEtb:'ETB xiqqaa',maxEtb:'ETB guddaa',newest:'Haaraa',priceLow:'Gatii gadi irraa olitti',priceHigh:'Gatii ol irraa gadiitti',nameAZ:'Maqaa A–Z',clearFilters:'Filannoo qulqulleessi ×',finding:'Oomisha gaarii barbaadaa jira...',loadingProducts:'Oomishaalee gabaa MERKATO irraa fe’aa jira.',connectionUnavailable:'Walqunnamtiin gabaa hin jiru',tryAgainMoment:'Maaloo yeroo muraasa booda yaali.',tryAgain:'Irra deebi’i',noProducts:'Ammaaf oomishni hin argamne',noProductsHelp:'Barbaacha biraa yaali ykn daldaltoonni oomisha dabalan eegi.',quickView:'Saffisaan ilaali',share:'Qoodi',shareProduct:'Oomisha kana qoodi',linkCopied:'Linkiin oomishaa copy ta’eera. Hiriyoota waliin qoodi!',shareFailed:'Linkii copy gochuun hin danda’amne. Irra deebi’i yaali.',compare:'Wal bira qabi',saved:'Kuufameera',saveItem:'Kuusi',wholesale:'Gatii jumlaa',businessDiscovered1:'Daldalli kee',businessDiscovered2:'akka beekamu malu.',sellerCopy:'Oomisha kee toora interneetii irratti dhiyeessi; maamiltoota Itoophiyaa waliin wal qunnami.',becomeMerchant:'Daldalaa ta’i',addToCart:'Gara gaarii bittaa dabali',filters:'Filtoota',merchantCtaTitle:'Daldaltoota jalqabaa keessaa tokko ta’i',merchantCtaCopy:'Oomisha kee gabaa Itoophiyaa guddachaa jiru irratti dhiyeessi.',merchantCtaAction:'Daldalaa ta’i',whyTitle:'Maaliif MERKATO irratti bitatta?',verifiedTitle:'Daldaltoota mirkanaa’an',verifiedCopy:'Mirkaneessi eenyummaa daldalaa ofitti amanamummaadhaan akka bittu si gargaara.',secureTitle:'Kaffaltii ifa ta’e',secureCopy:'Akkaawuntii kaffaltii daldalaa ilaali; ragaa ergi, daldalaan harkaan mirkaneessa.',deliveryTitle:'Geejjiba fi hordoffii',deliveryCopy:'Ajaja kee kaffaltii irraa hanga geessuutti hordofi.',disputeTitle:'Eegumsa falmii',disputeCopy:'Ajajni rakkoo yoo qabaate deeggarsa argadhu.',sellerBenefit1:'Maamiltoota guutuu Itoophiyaa bira ga’i',sellerBenefit2:'Oomisha fi ajaja seenu bulchi',sellerBenefit3:'Hubannoo daldalaa fayyadamuun guddadhu' },
+    am: { trust:'በኢትዮጵያ የታመነ የገበያ መድረክ',heroTitle1:'ጥሩ ምርቶች።',heroTitle2:'ጥሩ ግንኙነቶች።',heroCopy:'ከአካባቢያዊ ነጋዴዎች ምርቶችን ያግኙ፣ የኢትዮጵያ ንግዶችን ይደግፉ።',explore:'ገበያውን ይመልከቱ',startSelling:'መሸጥ ይጀምሩ',proofTitle:'አካባቢያዊ ይግዙ። አብረን እናድግ።',proofCopy:'የታመኑ የኢትዮጵያ ነጋዴዎችን ያግኙ።',madeForEthiopia:'ለኢትዮጵያ የተዘጋጀ',realSellers:'ጥሩ ምርቶች። እውነተኛ አካባቢያዊ ሻጮች።',discoverMore:'ለማጋራት የሚገባ ነገር ያግኙ',localFinds:'አካባቢያዊ ምርቶች',secureShopping:'ደህንነቱ የተጠበቀ ግዢ',trustedMarketplace:'የታመነ ገበያ',shopConfidence:'በመተማመን ይግዙ',supportLocal:'አካባቢያዊን ይደግፉ',growBusiness:'የኢትዮጵያን ንግድ ያሳድጉ',greatDiscoveries:'ጥሩ ግኝቶች',everydayEssentials:'የዕለት ተዕለት አስፈላጊ ነገሮችን ያግኙ',discoverLocal:'አካባቢያዊ ምርቶችን ያግኙ',connectMerchants:'ከነጋዴዎች ጋር ይገናኙ',checkoutConfidence:'በመተማመን ይክፈሉ',supportBusiness:'አካባቢያዊ ንግድን ይደግፉ',exploreYourWay:'በሚፈልጉት መንገድ ይመርምሩ',nextFavourite:'ቀጣዩን ተወዳጅ ምርት ያግኙ።',browseCategory:'በምድብ ይመልከቱ',marketplace:'ገበያው',freshSellers:'ከአካባቢያዊ ሻጮች አዲስ።',merchantOfferings:'የኢትዮጵያ ነጋዴዎች ዛሬ የሚያቀርቡትን ይመልከቱ።',searchProducts:'ምርቶችን ይፈልጉ...',searchSuggestions:'የፍለጋ ጥቆማዎች',searchingSuggestions:'ተመሳሳይ ምርቶችን በመፈለግ ላይ...',cityArea:'ከተማ / አካባቢ',allEthiopia:'መላው ኢትዮጵያ',minEtb:'ዝቅተኛ ETB',maxEtb:'ከፍተኛ ETB',newest:'አዲስ',priceLow:'ዋጋ፦ ከዝቅተኛ ወደ ከፍተኛ',priceHigh:'ዋጋ፦ ከከፍተኛ ወደ ዝቅተኛ',nameAZ:'ስም A–Z',clearFilters:'ማጣሪያዎችን አጽዳ ×',finding:'ጥሩ ምርቶችን በመፈለግ ላይ...',loadingProducts:'ከMERKATO ገበያ ምርቶችን በመጫን ላይ።',connectionUnavailable:'የገበያ ግንኙነት አልተገኘም',tryAgainMoment:'እባክዎ በትንሽ ጊዜ ይሞክሩ።',tryAgain:'እንደገና ይሞክሩ',noProducts:'እስካሁን ምርቶች አልተገኙም',noProductsHelp:'ሌላ ፍለጋ ይሞክሩ ወይም ሻጮች ምርቶችን እስኪጨምሩ ይጠብቁ።',quickView:'በፍጥነት ይመልከቱ',share:'አጋራ',shareProduct:'ይህን ምርት አጋራ',linkCopied:'የምርት ሊንክ ተቀድቷል። ለጓደኞችዎ ያጋሩ!',shareFailed:'የምርት ሊንኩን መቅዳት አልተቻለም። እንደገና ይሞክሩ።',compare:'ያወዳድሩ',saved:'ተቀምጧል',saveItem:'አስቀምጥ',wholesale:'የጅምላ ዋጋ',businessDiscovered1:'ንግድዎ ሊታወቅ',businessDiscovered2:'ይገባል።',sellerCopy:'ምርቶችዎን በመስመር ላይ ያቅርቡ እና ከኢትዮጵያ ደንበኞች ጋር ይገናኙ።',becomeMerchant:'ነጋዴ ይሁኑ',addToCart:'ወደ ጋሪ ጨምር',filters:'ማጣሪያዎች',merchantCtaTitle:'ከመጀመሪያዎቹ ሻጮች አንዱ ይሁኑ',merchantCtaCopy:'ምርቶችዎን እያደገ ባለው የኢትዮጵያ ገበያ ላይ ያቅርቡ።',merchantCtaAction:'ነጋዴ ይሁኑ',whyTitle:'ለምን MERKATO ላይ ይግዙ?',verifiedTitle:'የተረጋገጡ ነጋዴዎች',verifiedCopy:'የነጋዴ ማንነት ማረጋገጫ በመተማመን እንዲገዙ ይረዳዎታል።',secureTitle:'ግልጽ የክፍያ ማረጋገጫ',secureCopy:'የሻጩን የክፍያ መለያ ይመልከቱ፤ ደረሰኝ ያስገቡ፣ ሻጩም በእጅ ያረጋግጣል።',deliveryTitle:'ማድረስ እና ክትትል',deliveryCopy:'ትዕዛዝዎን ከክፍያ እስከ ማድረስ ይከታተሉ።',disputeTitle:'የክርክር ጥበቃ',disputeCopy:'ትዕዛዝ ችግር ሲኖረው ድጋፍ ያግኙ።',sellerBenefit1:'በመላው ኢትዮጵያ ያሉ ደንበኞችን ያግኙ',sellerBenefit2:'ምርቶችን እና የሚገቡ ትዕዛዞችን ያስተዳድሩ',sellerBenefit3:'በጠቃሚ የንግድ ግንዛቤ ያድጉ' }
   };
 
   private currentLanguage(): 'en' | 'om' | 'am' {
@@ -450,11 +480,100 @@ export class StorefrontComponent implements OnInit, OnDestroy {
     window.removeEventListener('merkato-language-change', this.languageListener);
     if (this.toastTimer) clearTimeout(this.toastTimer);
     if (this.searchTimer) clearTimeout(this.searchTimer);
+    if (this.suggestionTimer) clearTimeout(this.suggestionTimer);
+    this.suggestionRequestId++;
   }
 
   onSearchChange(): void {
     if (this.searchTimer) clearTimeout(this.searchTimer);
     this.searchTimer = setTimeout(() => this.loadProducts(), 300);
+    this.refreshProductSuggestions();
+  }
+
+  private refreshProductSuggestions(): void {
+    if (this.suggestionTimer) clearTimeout(this.suggestionTimer);
+    const term = this.search.trim();
+    const requestId = ++this.suggestionRequestId;
+    if (term.length < 2) {
+      this.suggestions = [];
+      this.suggestionsOpen = false;
+      this.suggestionsLoading = false;
+      this.activeSuggestionIndex = -1;
+      return;
+    }
+
+    this.suggestionTimer = setTimeout(() => {
+      this.suggestionsLoading = true;
+      this.api.getProductSearchSuggestions(term, this.language).subscribe({
+        next: items => {
+          if (requestId !== this.suggestionRequestId) return;
+          this.suggestions = (items || []).slice(0, 6);
+          this.suggestionsOpen = this.searchFocused && this.suggestions.length > 0;
+          this.activeSuggestionIndex = -1;
+          this.suggestionsLoading = false;
+        },
+        error: () => {
+          if (requestId !== this.suggestionRequestId) return;
+          this.suggestions = [];
+          this.suggestionsOpen = false;
+          this.suggestionsLoading = false;
+        }
+      });
+    }, 180);
+  }
+
+  onSearchFocus(): void {
+    this.searchFocused = true;
+    this.suggestionsOpen = this.suggestions.length > 0;
+  }
+
+  onSearchBlur(): void {
+    this.searchFocused = false;
+    this.suggestionsOpen = false;
+    this.activeSuggestionIndex = -1;
+  }
+
+  onSearchKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Escape') {
+      this.suggestionsOpen = false;
+      this.activeSuggestionIndex = -1;
+      return;
+    }
+    if (event.key === 'ArrowDown' && this.suggestions.length) {
+      event.preventDefault();
+      this.suggestionsOpen = true;
+      this.activeSuggestionIndex = (this.activeSuggestionIndex + 1) % this.suggestions.length;
+      return;
+    }
+    if (event.key === 'ArrowUp' && this.suggestions.length) {
+      event.preventDefault();
+      this.suggestionsOpen = true;
+      this.activeSuggestionIndex = this.activeSuggestionIndex <= 0
+        ? this.suggestions.length - 1
+        : this.activeSuggestionIndex - 1;
+      return;
+    }
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      if (this.suggestionsOpen && this.activeSuggestionIndex >= 0) {
+        this.selectSearchSuggestion(this.suggestions[this.activeSuggestionIndex]);
+        return;
+      }
+      this.suggestionsOpen = false;
+      if (this.searchTimer) clearTimeout(this.searchTimer);
+      this.loadProducts();
+    }
+  }
+
+  selectSearchSuggestion(value: string): void {
+    this.search = value;
+    this.suggestionsOpen = false;
+    this.suggestions = [];
+    this.activeSuggestionIndex = -1;
+    this.suggestionRequestId++;
+    if (this.searchTimer) clearTimeout(this.searchTimer);
+    if (this.suggestionTimer) clearTimeout(this.suggestionTimer);
+    this.loadProducts();
   }
 
   loadProducts(): void {

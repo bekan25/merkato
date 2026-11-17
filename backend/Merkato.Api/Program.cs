@@ -730,6 +730,41 @@ app.MapGet("/api/v1/discovery/products", async Task<IResult> (
     });
 }).AllowAnonymous();
 
+// Language-scoped product-name autocomplete. Suggestions are derived only
+// from active public listings and never mix languages or search locations.
+app.MapGet("/api/v1/discovery/suggestions", async Task<IResult> (
+    MerkatoDbContext db,
+    string? q,
+    string? languageCode,
+    int? limit,
+    CancellationToken ct) =>
+{
+    var term = (q ?? string.Empty).Trim();
+    if (term.Length < 2)
+    {
+        return Results.Ok(new { items = Array.Empty<string>(), count = 0, limit = 0 });
+    }
+
+    if (term.Length > 80)
+    {
+        return Results.BadRequest(new { message = "q must be 80 characters or fewer." });
+    }
+
+    var requestedLanguage = string.IsNullOrWhiteSpace(languageCode) ? "en" : languageCode;
+    if (!Merkato.Api.Services.ProductLanguageFilter.TryNormalize(requestedLanguage, out var selectedLanguage))
+    {
+        return Results.BadRequest(new { message = "languageCode must be one of: en, om, am." });
+    }
+
+    var take = Math.Clamp(limit ?? 6, 1, 8);
+    var suggestions = await Merkato.Api.Services.ProductSearchSuggestionService
+        .Apply(db.Products.AsNoTracking(), selectedLanguage, term)
+        .Take(take)
+        .ToListAsync(ct);
+
+    return Results.Ok(new { items = suggestions, count = suggestions.Count, limit = take });
+}).AllowAnonymous();
+
 app.Run();
 
 
