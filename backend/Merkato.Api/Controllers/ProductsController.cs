@@ -1,4 +1,29 @@
-﻿using System.Data;
+            await _db.ProductListingDetails.Where(x => x.ProductId == product.Id).Select(x => (int?)x.StockQuantity).FirstOrDefaultAsync() ?? 0,
+            false, product.Description, product.LanguageCode));            inventory.StockQuantity, false, product.Description, product.LanguageCode));        product.Name = request.Name.Trim();
+        product.Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
+        product.LanguageCode = updateLanguage;
+        product.PriceEtb = request.PriceEtb;            request.StockQuantity, false, product.Description, product.LanguageCode));            Name = request.Name.Trim(),
+            Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim(),
+            LanguageCode = createLanguage,
+            PriceEtb = request.PriceEtb,                _db.ProductListingDetails.Where(x => x.ProductId == p.Id).Select(x => (int?)x.StockQuantity).FirstOrDefault() ?? 0,
+                false, p.Description, p.LanguageCode))
+            .FirstOrDefaultAsync();                _db.ProductListingDetails.Where(x => x.ProductId == p.Id).Select(x => (int?)x.StockQuantity).FirstOrDefault() ?? 0,
+                false, p.Description, p.LanguageCode))            query = query.Where(p =>
+                p.Name.Contains(search) ||
+                (p.Description != null && p.Description.Contains(search)));        [FromQuery] string? search = null,
+        [FromQuery] string? category = null,
+        [FromQuery] string? languageCode = null)
+    {
+        var query = _db.Products
+            .AsNoTracking()
+            .Where(p => p.IsActive);
+
+        if (!string.IsNullOrWhiteSpace(languageCode))
+        {
+            if (!Merkato.Api.Services.ProductLanguageFilter.TryNormalize(languageCode, out var normalizedLanguage))
+                return BadRequest(new { message = "languageCode must be one of: en, om, am." });
+            query = Merkato.Api.Services.ProductLanguageFilter.Apply(query, normalizedLanguage);
+        }﻿using System.Data;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
@@ -134,6 +159,11 @@ public class ProductsController : ControllerBase
             request.Name.Trim().Length < 3 || request.Name.Trim().Length > 180)
             return BadRequest("Product name must contain 3–180 characters.");
 
+        if (!Merkato.Api.Services.ProductLanguageFilter.TryNormalize(request.LanguageCode, out var createLanguage))
+            return BadRequest("LanguageCode must be one of: en, om, am.");
+        if (request.Description?.Length > 2000)
+            return BadRequest("Product description must be 2,000 characters or fewer.");
+
         if (request.PriceEtb <= 0 || request.PriceEtb > 1000000000m)
             return BadRequest("Price must be greater than zero and within the supported ETB range.");
         if (request.StockQuantity < 0 || request.StockQuantity > 1000000)
@@ -239,6 +269,11 @@ public class ProductsController : ControllerBase
         if (string.IsNullOrWhiteSpace(request.Name) ||
             request.Name.Trim().Length < 3 || request.Name.Trim().Length > 180)
             return BadRequest("Product name must contain 3–180 characters.");
+
+        if (!Merkato.Api.Services.ProductLanguageFilter.TryNormalize(request.LanguageCode, out var updateLanguage))
+            return BadRequest("LanguageCode must be one of: en, om, am.");
+        if (request.Description?.Length > 2000)
+            return BadRequest("Product description must be 2,000 characters or fewer.");
 
         if (request.PriceEtb <= 0 || request.PriceEtb > 1000000000m)
             return BadRequest("Price must be greater than zero and within the supported ETB range.");
