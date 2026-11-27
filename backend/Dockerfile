@@ -1,5 +1,5 @@
 # Build the Angular storefront.
-FROM node:22-alpine AS frontend-build
+FROM node:26-alpine AS frontend-build
 WORKDIR /frontend
 COPY frontend/package*.json ./
 RUN npm ci
