@@ -314,7 +314,7 @@ export class CartComponent implements OnInit, OnDestroy {
         this.persist();
         this.loading = false;
       },
-      error: () => {
+      error: err => {
         this.loading = false;
         this.error = err?.name === 'TimeoutError' ? 'The marketplace is taking too long to respond. Check your connection and retry.' : 'Could not load products. Check the API connection.';
       }
