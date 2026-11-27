@@ -7,7 +7,7 @@ COPY frontend/ ./
 RUN npm run build -- --configuration production
 
 # Build and publish the ASP.NET Core 10 API with the Angular application.
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:11.0 AS build
 WORKDIR /src
 ARG MERKATO_VERSION=unknown
 ARG MERKATO_COMMIT_SHA=unknown
