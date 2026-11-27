@@ -26,7 +26,7 @@ COPY --from=frontend-build /frontend/dist/markatoo-web/browser/ backend/Merkato.
 RUN dotnet publish backend/Merkato.Api/Merkato.Api.csproj -c Release -o /app/publish --no-restore
 RUN date -u +%Y-%m-%dT%H:%M:%SZ > /app/publish/merkato-build-time.txt
 
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:11.0 AS runtime
 WORKDIR /app
 ARG MERKATO_VERSION=unknown
 ARG MERKATO_COMMIT_SHA=unknown
