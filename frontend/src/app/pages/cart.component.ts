@@ -2,7 +2,7 @@ import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, timeout } from 'rxjs';
 import { ApiService, DeliveryProviderOption, MerkatoProduct, UserDeliveryAddress } from '../core/api.service';
 import { AuthService } from '../core/auth.service';
 
@@ -19,7 +19,7 @@ interface CartLine { product: MerkatoProduct; quantity: number; }
         <span class="eyebrow">{{ t('marketBag') }}</span>
         <h1>{{ t('shoppingCart') }}</h1>
         <p>{{ t('reviewCart') }}</p>
-        <p class="form-error" *ngIf="error">{{error}} <a routerLink="/login">{{ t('signIn') }}</a></p>
+        <p class="form-error" *ngIf="error">{{error}} <a routerLink="/login">{{ t('signIn') }}</a> <button *ngIf="!loading && !lines.length" type="button" class="cart-retry" (click)="retryCartLoad()">Retry</button></p>
       </div>
       <div class="cart-layout">
         <div class="cart-items">
@@ -139,7 +139,7 @@ interface CartLine { product: MerkatoProduct; quantity: number; }
   styles: [`
     .cart-page{min-height:70vh;padding:clamp(24px,5vw,66px) clamp(16px,6vw,88px);background:radial-gradient(ellipse at 90% 0%,rgba(225,237,220,.5),transparent 35%),#f7f9f5}
     .cart-heading{max-width:1280px;margin:0 auto 30px}
-    .cart-heading .back-link{display:inline-block;margin-bottom:24px;color:#617468;font-size:12px}
+    .cart-heading .cart-retry{margin-left:8px;padding:6px 11px;border:1px solid #d9e5d8;border-radius:8px;background:#fff;color:#174d35;font-weight:750;cursor:pointer}.cart-heading .back-link{display:inline-block;margin-bottom:24px;color:#617468;font-size:12px}
     .cart-heading h1{font:800 clamp(34px,4vw,48px)/1.1 Manrope,sans-serif;letter-spacing:-2px;color:#173d2d;margin:12px 0}
     .cart-heading>p:not(.form-error){color:#748178;font-size:13px;line-height:1.7}
     .cart-layout{max-width:1280px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1.55fr) minmax(300px,.85fr);align-items:start;gap:26px}
@@ -299,7 +299,13 @@ export class CartComponent implements OnInit, OnDestroy {
       sessionStorage.removeItem('merkato_cart');
     }
 
-    this.api.getProducts().subscribe({
+    if (!stored.length) {
+      this.lines = [];
+      this.loading = false;
+      return;
+    }
+
+    this.api.getProducts().pipe(timeout(45000)).subscribe({
       next: products => {
         this.lines = stored
           .map(item => ({ product: products.find(product => product.id === item.productId)!, quantity: item.quantity }))
@@ -308,9 +314,9 @@ export class CartComponent implements OnInit, OnDestroy {
         this.persist();
         this.loading = false;
       },
-      error: () => {
+      error: err => {
         this.loading = false;
-        this.error = 'Could not load products. Check the API connection.';
+        this.error = err?.name === 'TimeoutError' ? 'The marketplace is taking too long to respond. Check your connection and retry.' : 'Could not load products. Check the API connection.';
       }
     });
   }
@@ -379,6 +385,8 @@ export class CartComponent implements OnInit, OnDestroy {
       error: err => { this.deliveryQuoteError = err?.error?.message || 'Could not calculate delivery for this city.'; this.deliveryQuoteLoading = false; }
     });
   }
+
+  retryCartLoad(): void { window.location.reload(); }
 
   ngOnDestroy(): void { window.removeEventListener('merkato-language-change', this.languageListener); }
 
