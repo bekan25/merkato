@@ -2,7 +2,7 @@ import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, timeout } from 'rxjs';
 import { ApiService, DeliveryProviderOption, MerkatoProduct, UserDeliveryAddress } from '../core/api.service';
 import { AuthService } from '../core/auth.service';
 
@@ -299,7 +299,13 @@ export class CartComponent implements OnInit, OnDestroy {
       sessionStorage.removeItem('merkato_cart');
     }
 
-    this.api.getProducts().subscribe({
+    if (!stored.length) {
+      this.lines = [];
+      this.loading = false;
+      return;
+    }
+
+    this.api.getProducts().pipe(timeout(45000)).subscribe({
       next: products => {
         this.lines = stored
           .map(item => ({ product: products.find(product => product.id === item.productId)!, quantity: item.quantity }))
