@@ -1,2 +1,2 @@
-import DashboardPage from "@/app/dashboard/page";
-export default DashboardPage;
+import AdminOverview from "@/components/admin-overview";
+export default AdminOverview;
