@@ -5,7 +5,7 @@ import Link from "next/link";
 
 const API = (process.env.NEXT_PUBLIC_API_BASE_URL || "/api").replace(/\/$/, "");
 type Section = "users" | "products" | "returns" | "audit";
-type Row = Record<string, any>;
+type Row = { id?: number; entityId?: string | number; fullName?: string; phoneNumber?: string; email?: string | null; role?: string; trustScore?: number; isSuspended?: boolean; name?: string; category?: string; sellerName?: string; sellerPhone?: string; priceEtb?: number; location?: string; isActive?: boolean; orderId?: number; buyerId?: number; sellerId?: number; reason?: string; status?: string; createdAt?: string; actorRole?: string; actorUserId?: number; action?: string; entityType?: string; result?: string; details?: string; metadataJson?: string; };
 
 export default function AdminOperations() {
   const [token,setToken]=useState(""); const [role,setRole]=useState("");
@@ -21,7 +21,7 @@ export default function AdminOperations() {
   useEffect(()=>{if(token)void load();},[token,load]);
   async function mutate(path:string,body:unknown){setBusy(true);setError("");setMessage("");try{await request(path,{method:"POST",body:JSON.stringify(body)});setMessage("Change saved and recorded by the backend.");await load();}catch(e){setError(e instanceof Error?e.message:"Operation failed.");}finally{setBusy(false);}}
   async function createCourier(e:React.FormEvent<HTMLFormElement>){e.preventDefault();if(!/^\d{6,8}$/.test(courier.temporaryPin)){setError("Temporary PIN must contain 6–8 digits.");return;}setCreatingCourier(true);setError("");setMessage("");try{const data=await request("/admin/operations/couriers",{method:"POST",body:JSON.stringify(courier)});setMessage("Courier account created for "+data.fullName+". Share the temporary PIN privately.");setCourier({fullName:"",phoneNumber:"",temporaryPin:""});}catch(e){setError(e instanceof Error?e.message:"Could not create courier.");}finally{setCreatingCourier(false);}}
-  function askReason(action:string){const reason=window.prompt("Enter the reason / review note (required):");return reason?.trim()?reason.trim():null;}
+  function askReason(action:string){const reason=window.prompt("Enter the reason / review note for "+action+" (required):");return reason?.trim()?reason.trim():null;}
   if(!token)return <main className="grid min-h-screen place-items-center bg-stone-50"><Link href="/login" className="rounded-xl bg-emerald-900 px-5 py-3 font-bold text-white">Administrator sign in</Link></main>;
   if(role!=="ADMIN")return <main className="p-10 text-center">Administrator access required. <Link href="/">Return home</Link></main>;
   const tabs:Section[]=["users","products","returns","audit"];
