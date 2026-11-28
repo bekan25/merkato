@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import Link from "next/link";
 import { ArrowLeft, ArrowRight, BadgeCheck, ShieldCheck } from "lucide-react";
 import type { AuthUser, MerkatoRole } from "@/lib/types";
 
@@ -58,12 +59,12 @@ export function AuthForm({ initialMode = "login" }: { initialMode?: "login" | "r
 
   return <main className="grid min-h-screen bg-[#f5f5ed] lg:grid-cols-2">
     <aside className="relative flex min-h-[300px] flex-col justify-between overflow-hidden bg-[radial-gradient(circle_at_80%_15%,rgba(213,173,97,.22),transparent_30%),linear-gradient(145deg,#052b25,#0b493b)] p-8 text-white sm:p-12 lg:min-h-screen lg:p-16">
-      <a href="/" className="text-2xl font-black tracking-tight">MERKATO<span className="text-[#d5ad61]">.</span></a>
+      <Link href="/" className="text-2xl font-black tracking-tight">MERKATO<span className="text-[#d5ad61]">.</span></Link>
       <div className="relative z-10 my-12 max-w-xl"><p className="text-xs font-bold tracking-[.24em] text-[#e3c785]">YOUR MARKET. YOUR PEOPLE.</p><h1 className="mt-5 text-4xl font-black leading-tight tracking-tight sm:text-6xl">Local commerce,<br/><span className="text-[#e3bd7c]">without limits.</span></h1><p className="mt-6 max-w-md leading-8 text-white/75">One account connects you to a growing community of buyers and merchants across Ethiopia.</p><ul className="mt-8 space-y-4 text-sm text-white/85"><li className="flex items-center gap-3"><BadgeCheck className="text-[#e3bd7c]"/> Discover local products</li><li className="flex items-center gap-3"><BadgeCheck className="text-[#e3bd7c]"/> Manage your marketplace activity</li><li className="flex items-center gap-3"><BadgeCheck className="text-[#e3bd7c]"/> Built around secure transactions</li></ul></div>
       <p className="text-[10px] tracking-[.2em] text-white/55">MERKATO · MADE FOR ETHIOPIA</p>
     </aside>
     <section className="flex items-center justify-center p-5 sm:p-10"><div className="w-full max-w-md rounded-[2rem] border border-white bg-white p-7 shadow-[0_24px_80px_rgba(23,61,45,.1)] sm:p-10">
-      <a href="/" className="mb-8 inline-flex items-center gap-2 text-xs font-semibold text-slate-500"><ArrowLeft size={15}/> Back to marketplace</a>
+      <Link href="/" className="mb-8 inline-flex items-center gap-2 text-xs font-semibold text-slate-500"><ArrowLeft size={15}/> Back to marketplace</Link>
       <p className="text-xs font-bold tracking-[.2em] text-emerald-800">{adminMode ? "ADMINISTRATOR ACCESS" : mode === "register" ? "JOIN THE MARKETPLACE" : "WELCOME BACK"}</p>
       <h2 className="mt-3 text-3xl font-black tracking-tight text-[#173d2d]">{adminMode ? "Administrator sign in" : mode === "register" ? "Create your account" : "Sign in to MERKATO"}</h2>
       <p className="mt-3 text-sm leading-6 text-slate-500">{adminMode ? "Use your approved administrator email and password." : mode === "register" ? "Choose how you want to participate in MERKATO." : "Use your registered phone number and PIN to continue."}</p>
