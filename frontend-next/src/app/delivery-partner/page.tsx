@@ -1,2 +1,2 @@
-import DashboardPage from "@/app/dashboard/page";
-export default DashboardPage;
+import CourierDashboard from "@/components/courier-dashboard";
+export default CourierDashboard;
