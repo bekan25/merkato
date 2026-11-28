@@ -138,6 +138,15 @@ export interface PaymentReceiptReview {
   verificationNotes?: string[];
 }
 
+export interface TrustJourneyEvent { code: string; title: string; description: string; occurredAt: string; source: string; }
+export interface TrustJourneyResponse {
+  order: { id:number; orderNumber:string; productTitle:string; quantity:number; totalAmountEtb:number; deliveryFeeEtb:number; paymentMode:string; paymentRail:string; escrowState:string; deliveryStatus:string; createdAt:string };
+  seller: { id:number; fullName:string; verificationStatus:string; verificationMeaning:string } | null;
+  payment: { latestStatus:string; providerCallbackVerified:boolean; receiptCount:number; note:string };
+  delivery: { deliveryId:string; courierType:string; status:string; dispatchedAt?:string|null; deliveredAt?:string|null } | null;
+  timeline: TrustJourneyEvent[];
+}
+
 export interface SellerVerification {
   sellerId: number;
   status: 'NOT_SUBMITTED' | 'PENDING' | 'APPROVED' | 'REJECTED';
@@ -426,6 +435,10 @@ export class ApiService {
 
   getAdminAnalytics(): Observable<AdminAnalytics> {
     return this.http.get<AdminAnalytics>(`${this.baseUrl}/analytics/admin`);
+  }
+
+  getOrderTrustJourney(orderId: number): Observable<TrustJourneyResponse> {
+    return this.http.get<TrustJourneyResponse>(`${this.baseUrl}/trust/orders/${orderId}/journey`);
   }
 
   getMySellerVerification(): Observable<SellerVerification> {
