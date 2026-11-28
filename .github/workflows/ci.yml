@@ -15,10 +15,15 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: merkato-ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   frontend:
     name: Angular build and flow contract tests
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -39,6 +44,7 @@ jobs:
   backend:
     name: ASP.NET Core 10 and PostgreSQL migration tests
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     services:
       postgres:
         image: postgres:16
@@ -80,6 +86,7 @@ jobs:
   containers:
     name: Container image, PostgreSQL and smoke validation
     runs-on: ubuntu-latest
+    timeout-minutes: 35
     services:
       postgres:
         image: postgres:16
@@ -99,7 +106,15 @@ jobs:
       - name: Build combined API and storefront image
         run: docker build --file backend/Dockerfile --tag merkato:ci .
       - name: Run container smoke test against PostgreSQL
+        shell: bash
         run: |
+          set -Eeuo pipefail
+          cleanup() {
+            docker rm --force merkato-smoke >/dev/null 2>&1 || true
+            rm -f /tmp/merkato-dp.key /tmp/merkato-dp.crt /tmp/merkato-dp.pfx
+          }
+          trap cleanup EXIT
+
           openssl req -x509 -newkey rsa:2048 -keyout /tmp/merkato-dp.key -out /tmp/merkato-dp.crt -days 2 -nodes -subj "/CN=merkato-ci-dataprotection"
           openssl pkcs12 -export -out /tmp/merkato-dp.pfx -inkey /tmp/merkato-dp.key -in /tmp/merkato-dp.crt -passout pass:ci-dp-password
           DP_CERT_BASE64="$(base64 -w0 /tmp/merkato-dp.pfx)"
@@ -113,6 +128,7 @@ jobs:
             -e MERKATO_DP_CERT_PFX_BASE64="$DP_CERT_BASE64" \
             -e MERKATO_DP_CERT_PASSWORD="ci-dp-password" \
             -e MERKATO_APPLY_MIGRATIONS="true" merkato:ci
+
           ready=0
           for attempt in $(seq 1 40); do
             if curl --fail --silent http://127.0.0.1:8080/health/ready; then
@@ -125,16 +141,16 @@ jobs:
             docker logs merkato-smoke
             exit 1
           fi
-          curl --fail --silent http://127.0.0.1:8080/health
-          curl --fail --silent --output /dev/null http://127.0.0.1:8080/
-          # Assert that the encrypted Data Protection key was actually persisted.
+          curl --fail --silent --show-error http://127.0.0.1:8080/health
+          curl --fail --silent --show-error --output /dev/null http://127.0.0.1:8080/
+
           key_count="$(docker run --rm --network host postgres:16 psql "postgresql://merkato_ci:ci-password-not-for-production@127.0.0.1:5432/merkato_ci" -Atc 'SELECT count(*) FROM "DataProtectionKeys";')"
           if [ "$key_count" -lt 1 ]; then
             echo "Expected an initialized Data Protection key in PostgreSQL, found: $key_count"
             docker logs merkato-smoke
             exit 1
           fi
-          # Exercise real registration/login and prove the JWT session survives an app restart.
+
           curl --fail --silent --show-error -X POST http://127.0.0.1:8080/api/auth/register \
             -H "Content-Type: application/json" \
             -d '{"phoneNumber":"0911000001","fullName":"CI Session Buyer","role":"BUYER","pin":"123456"}' >/tmp/merkato-register.json
@@ -148,6 +164,7 @@ jobs:
             exit 1
           fi
           curl --fail --silent --show-error -H "Authorization: Bearer $token" http://127.0.0.1:8080/api/auth/me
+
           docker restart merkato-smoke
           ready=0
           for attempt in $(seq 1 40); do
@@ -161,11 +178,8 @@ jobs:
             docker logs merkato-smoke
             exit 1
           fi
-          # The exact same token must still authenticate after the container restart.
           curl --fail --silent --show-error -H "Authorization: Bearer $token" http://127.0.0.1:8080/api/auth/me
           docker logs merkato-smoke
-          docker rm --force merkato-smoke
-          rm -f /tmp/merkato-dp.key /tmp/merkato-dp.crt /tmp/merkato-dp.pfx
       - name: Validate Compose deployment configuration
         env:
           POSTGRES_DB: merkato_ci
@@ -177,3 +191,35 @@ jobs:
           MERKATO_ALLOWED_ORIGINS: https://merkato.test
           MERKATO_DOMAIN: merkato.test
         run: docker compose config --quiet
+
+  dependency-audit:
+    name: High and critical dependency vulnerability audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install locked frontend dependencies
+        working-directory: frontend
+        run: npm ci
+      - name: Audit npm dependencies (including development tooling)
+        working-directory: frontend
+        run: npm audit --audit-level=high
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Restore .NET solution with NuGet auditing enabled
+        run: dotnet restore backend/Merkato.sln -p:NuGetAudit=true -p:NuGetAuditLevel=high
+      - name: Report NuGet vulnerable packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet list backend/Merkato.sln package --vulnerable --include-transitive | tee /tmp/merkato-nuget-audit.txt
+          if grep -Eiq '(^|[[:space:]])(High|Critical)([[:space:]]|$)' /tmp/merkato-nuget-audit.txt; then
+            echo "High or critical NuGet vulnerabilities were found."
+            exit 1
+          fi
