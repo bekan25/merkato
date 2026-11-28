@@ -96,6 +96,12 @@ interface CartLine { product: MerkatoProduct; quantity: number; }
             <p class="form-error" *ngIf="deliveryQuoteError">{{deliveryQuoteError}}</p>
             <fieldset class="payment-methods">
               <legend>{{ t('paymentMethod') }}</legend>
+              <label class="payment-option chapa-payment-option" aria-disabled="true" title="Chapa checkout will be enabled after seller subaccount approval and sandbox verification">
+                <input type="radio" name="paymentRail" disabled>
+                <img src="/assets/payment-methods/chapa.svg" alt="Chapa">
+                <span><strong>Chapa Checkout</strong><small>Hosted checkout · seller split settlement</small></span>
+                <span class="chapa-coming-soon">Coming soon</span>
+              </label>
               <label class="payment-option" [class.selected]="paymentRail === 0">
                 <input type="radio" name="paymentRail" [value]="0" [(ngModel)]="paymentRail">
                 <img src="/assets/payment-methods/telebirr.svg" alt="Telebirr">
@@ -164,6 +170,7 @@ interface CartLine { product: MerkatoProduct; quantity: number; }
     .summary-total{margin:7px 0 18px;border:0;color:#304d3a;font-weight:800;font-size:13px}
     .summary-total strong{color:#164d36;font-size:18px}
     .delivery-quote{display:grid;gap:4px;padding:12px 14px;margin:10px 0 16px;border:1px solid #e9dfc7;border-radius:11px;background:#fffaf0;color:#72551d}.delivery-quote small{font-size:10px;color:#8d826d;line-height:1.5}
+    .chapa-payment-option{opacity:.78;cursor:not-allowed;border-style:dashed;background:#fbf9ff}.chapa-payment-option img{width:66px;height:42px;object-fit:contain}.chapa-coming-soon{margin-left:auto;padding:5px 8px;border-radius:999px;background:#f1ebfa;color:#6d42c7;font-size:9px;font-weight:850;white-space:nowrap}
     .payment-methods{display:grid;gap:9px;margin:0;padding:0;border:0;min-width:0}
     .payment-methods legend{margin-bottom:8px;color:#43594a;font-size:11px;font-weight:750}
     .payment-option{position:relative;display:flex!important;grid-template-columns:none!important;align-items:center;gap:12px!important;min-height:66px;padding:10px 12px;border:1px solid #e2e9df;border-radius:12px;background:#fff;cursor:pointer;transition:border-color .18s,background .18s,box-shadow .18s}
