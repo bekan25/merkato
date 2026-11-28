@@ -16,6 +16,26 @@ permissions:
   contents: read
 
 jobs:
+  nextjs:
+    name: Next.js build and lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install Next.js dependencies
+        working-directory: frontend-next
+        run: npm install --no-audit --no-fund
+      - name: Lint Next.js application
+        working-directory: frontend-next
+        run: npm run lint
+      - name: Build Next.js application
+        working-directory: frontend-next
+        env:
+          MERKATO_API_BASE_URL: https://merkato-bekan25.onrender.com/api
+        run: npm run build
+
   frontend:
     name: Angular build and flow contract tests
     runs-on: ubuntu-latest
