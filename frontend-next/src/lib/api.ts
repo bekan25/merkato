@@ -1,5 +1,11 @@
 import type { ProductDiscoveryResponse } from "@/lib/types";
-const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "/api").replace(/\\/$/, "");
+
+// Server Components need an absolute API origin; browsers can use the same-origin proxy.
+const configuredBase = typeof window === "undefined"
+  ? process.env.MERKATO_API_BASE_URL || "https://merkato-bekan25.onrender.com/api"
+  : process.env.NEXT_PUBLIC_API_BASE_URL || "/api";
+const API_BASE = configuredBase.replace(/\/$/, "");
+
 export async function getProducts(options: { search?: string; category?: string; location?: string; languageCode?: string } = {}): Promise<ProductDiscoveryResponse> {
   const params = new URLSearchParams({ limit: "24" });
   if (options.search?.trim()) params.set("q", options.search.trim());
