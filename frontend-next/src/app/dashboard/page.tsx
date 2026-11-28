@@ -1,0 +1,31 @@
+"use client";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { ShoppingBag, Package, ShieldCheck, ArrowRight, RefreshCw } from "lucide-react";
+
+type Order = { id:number; orderNumber?:string; productTitle?:string; totalAmountEtb?:number; paymentStatus?:string; deliveryStatus?:string; createdAt?:string };
+type User = { fullName?:string; role?:string; userId?:number };
+const money=(v:number|undefined)=>new Intl.NumberFormat("en-ET",{style:"currency",currency:"ETB",maximumFractionDigits:0}).format(v||0);
+const roleLinks:Record<string,{href:string;label:string}[]>={BUYER:[{href:"/shop",label:"Shop products"},{href:"/account",label:"Account & addresses"},{href:"/cart",label:"Shopping cart"}],MERCHANT:[{href:"/merchant",label:"Merchant workspace"},{href:"/merchant/payment-settings",label:"Payment accounts"},{href:"/merchant/delivery",label:"Delivery dispatch"}],ADMIN:[{href:"/admin",label:"Admin console"},{href:"/admin/operations",label:"Operations"},{href:"/admin/payments",label:"Payment reviews"}],COURIER:[{href:"/delivery-partner",label:"Delivery partner workspace"}]};
+export default function DashboardPage(){
+ const [user,setUser]=useState<User|null>(null);const [orders,setOrders]=useState<Order[]>([]);const [loading,setLoading]=useState(true);const [error,setError]=useState("");
+ async function load(){
+  setLoading(true);setError("");
+  const token=typeof window!=="undefined"?sessionStorage.getItem("merkato_access_token"):null;
+  const saved=typeof window!=="undefined"?sessionStorage.getItem("merkato_user"):null;
+  if(!token||!saved){window.location.assign("/login");return;}
+  let parsed:User;try{parsed=JSON.parse(saved);setUser(parsed);}catch{window.location.assign("/login");return;}
+  const role=(parsed.role||"BUYER").toUpperCase();
+  const endpoint=role==="MERCHANT"?"/orders/merchant":role==="ADMIN"?"/analytics/admin":role==="COURIER"?"/v1/delivery/assignments/mine":"/orders/mine";
+  try{const response=await fetch("/api"+endpoint,{headers:{Authorization:"Bearer "+token,Accept:"application/json"},cache:"no-store"});if(!response.ok)throw new Error("Could not load your workspace ("+response.status+").");const data=await response.json();setOrders(Array.isArray(data)?data:Array.isArray(data.orders)?data.orders:[]);}
+  catch(e){setError(e instanceof Error?e.message:"Workspace request failed.");}
+  finally{setLoading(false);}
+ }
+ useEffect(()=>{load();},[]);
+ const role=(user?.role||"BUYER").toUpperCase();const links=roleLinks[role]||roleLinks.BUYER;
+ return <main className="min-h-screen bg-[#f5f6f0] text-[#18382c]"><header className="sticky top-0 border-b border-emerald-950/10 bg-white/90 backdrop-blur"><div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4"><Link href="/" className="text-xl font-black">MERKATO<span className="text-[#c9a251]">.</span></Link><div className="flex items-center gap-4 text-sm"><span>{user?.fullName||"Account"}</span><button onClick={()=>{sessionStorage.removeItem("merkato_access_token");sessionStorage.removeItem("merkato_user");window.location.assign("/login");}} className="font-semibold text-emerald-800">Sign out</button></div></div></header>
+ <section className="mx-auto max-w-7xl px-5 py-10"><div className="rounded-3xl bg-gradient-to-br from-[#073d32] to-[#155744] p-8 text-white sm:p-10"><p className="text-xs font-bold tracking-[.2em] text-[#e3c782]">{role} WORKSPACE</p><h1 className="mt-3 text-3xl font-black sm:text-4xl">Welcome, {user?.fullName||"back"}.</h1><p className="mt-3 max-w-xl text-white/70">Your MERKATO activity and shortcuts in one place.</p><div className="mt-6 flex flex-wrap gap-3">{links.map(l=><Link key={l.href} href={l.href} className="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold hover:bg-white/20">{l.label} <ArrowRight className="inline" size={14}/></Link>)}</div></div>
+ <div className="mt-7 grid gap-4 sm:grid-cols-3"><article className="rounded-2xl border border-emerald-950/10 bg-white p-5"><ShoppingBag className="text-emerald-800"/><p className="mt-3 text-xs text-slate-500">Orders in this view</p><strong className="text-2xl">{orders.length}</strong></article><article className="rounded-2xl border border-emerald-950/10 bg-white p-5"><Package className="text-emerald-800"/><p className="mt-3 text-xs text-slate-500">Total order value shown</p><strong className="text-2xl">{money(orders.reduce((sum,o)=>sum+(o.totalAmountEtb||0),0))}</strong></article><article className="rounded-2xl border border-emerald-950/10 bg-white p-5"><ShieldCheck className="text-emerald-800"/><p className="mt-3 text-xs text-slate-500">Role</p><strong className="text-2xl">{role}</strong></article></div>
+ <div className="mt-8 rounded-2xl border border-emerald-950/10 bg-white p-5 sm:p-7"><div className="flex items-center justify-between gap-4"><h2 className="text-xl font-bold">Recent activity</h2><button onClick={load} className="flex items-center gap-2 rounded-full border px-3 py-2 text-sm" disabled={loading}><RefreshCw size={15}/>Refresh</button></div>{loading?<p className="py-8 text-sm text-slate-500">Loading data from MERKATO…</p>:error?<p role="alert" className="mt-5 rounded-xl bg-amber-50 p-4 text-sm text-amber-900">{error}</p>:orders.length===0?<p className="py-8 text-sm text-slate-500">No activity to display yet. Use the shortcuts above to get started.</p>:<div className="mt-5 overflow-x-auto"><table className="w-full min-w-[650px] text-left text-sm"><thead className="bg-[#f6f7f2] text-xs text-slate-500"><tr><th className="p-3">Order</th><th className="p-3">Item</th><th className="p-3">Amount</th><th className="p-3">Payment</th><th className="p-3">Delivery</th><th className="p-3">Date</th></tr></thead><tbody>{orders.slice(0,20).map(o=><tr key={o.id} className="border-t"><td className="p-3 font-semibold">{o.orderNumber||("#"+o.id)}</td><td className="p-3">{o.productTitle||"Order"}</td><td className="p-3">{money(o.totalAmountEtb)}</td><td className="p-3">{o.paymentStatus||"—"}</td><td className="p-3">{String(o.deliveryStatus??"—")}</td><td className="p-3">{o.createdAt?new Date(o.createdAt).toLocaleDateString():"—"}</td></tr>)}</tbody></table></div>}</div>
+ <p className="mt-5 text-xs text-slate-500">Data is loaded from the MERKATO API. Status details may be available from the role-specific workspace.</p></section></main>;
+}
