@@ -1,2 +1,2 @@
-import DashboardPage from "@/app/dashboard/page";
-export default DashboardPage;
+import MerchantDashboard from "@/components/merchant-dashboard";
+export default MerchantDashboard;
